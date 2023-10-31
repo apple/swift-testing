@@ -16,4 +16,15 @@ extension CollectionDifference.Change {
       return result
     }
   }
+
+  /// The offset to the change.
+  ///
+  /// Note that the semantic meaning of this value depends on this instance's
+  /// case.
+  var offset: Int {
+    switch self {
+    case let .insert(offset: result, element: _, associatedWith: _), let .remove(offset: result, element: _, associatedWith: _):
+      return result
+    }
+  }
 }

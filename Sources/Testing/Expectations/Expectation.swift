@@ -31,14 +31,17 @@ public struct Expectation: Sendable {
   @_spi(ExperimentalEventHandling)
   public var expandedExpressionDescription: String?
 
-  /// A description of the difference between the operands in the expression
-  /// evaluated by this expectation, if the difference could be determined.
+  /// An opaque value that describes the difference between two values or
+  /// collections that have been compared.
   ///
-  /// If this expectation passed, the value of this property is `nil` because
-  /// the difference is only computed when necessary to assist with diagnosing
-  /// test failures.
+  /// If this expectation did not involve the comparison of two values or
+  /// collections, the value of this property is `nil`.
+  ///
+  /// If this expectation passed, the value of this property will be `nil`
+  /// because the difference is only computed when necessary to assist with
+  /// diagnosing failures.
   @_spi(ExperimentalEventHandling)
-  public var differenceDescription: String?
+  public var difference: Difference?
 
   /// Whether the expectation passed or failed.
   ///

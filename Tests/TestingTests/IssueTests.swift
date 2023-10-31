@@ -963,11 +963,12 @@ final class IssueTests: XCTestCase {
         XCTFail("Unexpected issue kind \(issue.kind)")
         return
       }
-      guard let differenceDescription = expectation.differenceDescription else {
-        return XCTFail("Unexpected nil differenceDescription")
+      guard let difference = expectation.difference else {
+        return XCTFail("Unexpected nil difference")
       }
-      XCTAssertTrue(differenceDescription.contains("inserted ["))
-      XCTAssertTrue(differenceDescription.contains("removed ["))
+      let differenceDescription = String(describing: difference)
+      XCTAssertTrue(differenceDescription.contains("+   6"))
+      XCTAssertTrue(differenceDescription.contains("-   3"))
     }
 
     await Test {
@@ -977,7 +978,7 @@ final class IssueTests: XCTestCase {
     }.run(configuration: configuration)
   }
 
-  func testCollectionDifferenceSkippedForStrings() async {
+  func testCollectionDifferenceForStrings() async {
     var configuration = Configuration()
     configuration.eventHandler = { event, _ in
       guard case let .issueRecorded(issue) = event.kind else {
@@ -987,11 +988,111 @@ final class IssueTests: XCTestCase {
         XCTFail("Unexpected issue kind \(issue.kind)")
         return
       }
-      XCTAssertNil(expectation.differenceDescription)
+      guard let difference = expectation.difference else {
+        return XCTFail("Unexpected nil difference")
+      }
+      let differenceDescription = String(describing: difference)
+      XCTAssertTrue(differenceDescription.contains(#"- consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse"#))
+      XCTAssertTrue(differenceDescription.contains(#"+ potato salad. Duis aute irure dolor in reprehenderit in voluptate velit esse"#))
     }
 
     await Test {
-      #expect("hello" == "helbo")
+      let lhs = """
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+      tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+      quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+      consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
+      cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
+      non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+      """
+      let rhs = """
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+      tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+      quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+      potato salad. Duis aute irure dolor in reprehenderit in voluptate velit esse
+      cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
+      non dentistry, sunt in culpa qui officia deserunt mollit anim id est laborum.
+      """
+      #expect(lhs == rhs)
+    }.run(configuration: configuration)
+  }
+
+  func testComplexStructureDifference() async {
+    var configuration = Configuration()
+    configuration.eventHandler = { event, _ in
+      guard case let .issueRecorded(issue) = event.kind else {
+        return
+      }
+      guard case let .expectationFailed(expectation) = issue.kind else {
+        XCTFail("Unexpected issue kind \(issue.kind)")
+        return
+      }
+      guard let difference = expectation.difference else {
+        return XCTFail("Unexpected nil difference")
+      }
+      let differenceDescription = String(describing: difference)
+      XCTAssertTrue(differenceDescription.contains(#"+   y: "def""#))
+      XCTAssertTrue(differenceDescription.contains(#"-   y: "abc""#))
+    }
+
+    struct S: Equatable {
+      var x: Int
+      var y: String
+    }
+
+    await Test {
+      let lhs = S(x: 123, y: "abc")
+      let rhs = S(x: 123, y: "def")
+      #expect(lhs == rhs)
+    }.run(configuration: configuration)
+  }
+
+  func testDifferenceForScalarsIsNil() async {
+    var configuration = Configuration()
+    configuration.eventHandler = { event, _ in
+      guard case let .issueRecorded(issue) = event.kind else {
+        return
+      }
+      guard case let .expectationFailed(expectation) = issue.kind else {
+        XCTFail("Unexpected issue kind \(issue.kind)")
+        return
+      }
+      XCTAssertNil(expectation.difference)
+    }
+
+    await Test {
+      #expect(1 == 2)
+      #expect(1.0 > 2.0)
+    }.run(configuration: configuration)
+  }
+
+  func testDifferenceForStructures() async {
+    var configuration = Configuration()
+    configuration.eventHandler = { event, _ in
+      guard case let .issueRecorded(issue) = event.kind else {
+        return
+      }
+      guard case let .expectationFailed(expectation) = issue.kind else {
+        XCTFail("Unexpected issue kind \(issue.kind)")
+        return
+      }
+      guard let difference = expectation.difference else {
+        return XCTFail("Unexpected nil difference")
+      }
+      let differenceDescription = String(describing: difference)
+      XCTAssertTrue(differenceDescription.contains(#"-   y: "abc""#))
+      XCTAssertTrue(differenceDescription.contains(#"+   y: "def""#))
+    }
+
+    struct S: Equatable {
+      var x: Int
+      var y: String
+    }
+
+    await Test {
+      let lhs = S(x: 123, y: "abc")
+      let rhs = S(x: 123, y: "def")
+      #expect(lhs == rhs)
     }.run(configuration: configuration)
   }
 

@@ -344,6 +344,37 @@ extension Event.Recorder {
   }
 }
 
+// MARK: -
+
+extension Difference {
+  /// Get a description of this instance with the given recorder options.
+  ///
+  /// - Parameters:
+  ///   - options: Options to use when writing the comments.
+  ///
+  /// - Returns: A formatted description of `self`.
+  fileprivate func formattedDescription(options: Set<Event.Recorder.Option>) -> String {
+    guard options.contains(.useANSIEscapeCodes) else {
+      return String(describing: self)
+    }
+
+    return String(describing: self)
+      .split(whereSeparator: \.isNewline)
+      .map { line in
+        switch line.first {
+        case "+":
+          "\(_ansiEscapeCodePrefix)32m\(line)\(_resetANSIEscapeCode)"
+        case "-":
+          "\(_ansiEscapeCodePrefix)31m\(line)\(_resetANSIEscapeCode)"
+        default:
+          String(line)
+        }
+      }.joined(separator: "\n")
+  }
+}
+
+// MARK: -
+
 extension Tag {
   /// Get an ANSI escape code that sets the foreground text color to this tag's
   /// corresponding color, if applicable.
@@ -554,9 +585,9 @@ extension Event.Recorder {
       }
 
       var difference = ""
-      if case let .expectationFailed(expectation) = issue.kind, let differenceDescription = expectation.differenceDescription {
+      if case let .expectationFailed(expectation) = issue.kind, let differenceValue = expectation.difference {
         let differenceSymbol = _Symbol.difference.stringValue(options: options)
-        difference = "\n\(differenceSymbol) \(differenceDescription)"
+        difference = "\n\(differenceSymbol) \(differenceValue.formattedDescription(options: options))"
       }
 
       var issueComments = ""

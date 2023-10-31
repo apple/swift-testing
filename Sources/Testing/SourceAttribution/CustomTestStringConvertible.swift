@@ -84,7 +84,21 @@ public protocol CustomTestStringConvertible {
   /// Do not use this property directly. To get the test description of a value,
   /// use ``Swift/String/init(describingForTest:)``.
   var testDescription: String { get }
+
+  /// A description of this instance to use when comparing it to another value
+  /// after an expectation fails.
+  ///
+  /// The default implementation of this property uses `Mirror` to get a
+  /// multi-line description of this instance. If the value of this property is
+  /// `nil`, the testing library uses the value of the ``testDescription``
+  /// property instead.
+  ///
+  /// This protocol requirement is not (yet) part of the public interface of the
+  /// testing library.
+  var _testDescriptionForComparison: String? { get }
 }
+
+// MARK: -
 
 extension String {
   /// Initialize this instance so that it can be presented in a test's output.
@@ -122,9 +136,40 @@ extension String {
       self.init(describing: value)
     }
   }
+
+  /// Initialize this instance so that it can be presented in a test's output as
+  /// part of a comparison of different values.
+  ///
+  /// - Parameters:
+  ///   - value: The value to describe.
+  ///
+  /// If `value` conforms to ``CustomTestStringConvertible`` and the value of
+  /// its `_testDescriptionForComparison` property is `nil`, `nil` is returned.
+  ///
+  /// This initializer is not part of the public interface of the testing
+  /// library.
+  ///
+  /// ## See Also
+  ///
+  /// - ``init(describingForTest:)``
+  /// - ``CustomTestStringConvertible``
+  init(describingForTestComparison value: some Any) {
+    let description = if let value = value as? any CustomTestStringConvertible {
+      value._testDescriptionForComparison ?? value.testDescription
+    } else {
+      _reflect(value) ?? String(describingForTest: value)
+    }
+    self = description
+  }
 }
 
 // MARK: - Built-in implementations
+
+extension CustomTestStringConvertible {
+  public var _testDescriptionForComparison: String? {
+    _reflect(self)
+  }
+}
 
 extension Optional: CustomTestStringConvertible {
   public var testDescription: String {
@@ -147,7 +192,65 @@ extension CustomTestStringConvertible where Self: StringProtocol {
   public var testDescription: String {
     "\"\(self)\""
   }
+
+  public var _testDescriptionForComparison: String? {
+    String(self)
+  }
 }
 
 extension String: CustomTestStringConvertible {}
 extension Substring: CustomTestStringConvertible {}
+
+// MARK: -
+
+/// Get a string reflecting a value, similar to how it might have been
+/// initialized and suitable for display as part of a difference.
+///
+/// - Parameters:
+///   - value: The value to reflect.
+///
+/// - Returns: A string reflecting `value`, or `nil` if its reflection is
+///   trivial.
+///
+/// This function uses `Mirror`, so if the type of `value` conforms to
+/// `CustomReflectable`, the resulting string will be derived from the value's
+/// custom mirror.
+private func _reflect<T>(_ value: T) -> String? {
+  let mirror = Mirror(reflecting: value)
+  let mirrorChildren = mirror.children
+  if mirrorChildren.isEmpty {
+    return nil
+  }
+
+  let children = mirrorChildren.lazy
+    .map { child in
+      // TODO: handle multi-line descriptions elegantly
+      if let label = child.label {
+        "  \(label): \(String(describingForTest: child.value))"
+      } else {
+        "  \(String(describingForTest: child.value))"
+      }
+    }.joined(separator: "\n")
+
+  switch mirror.displayStyle {
+  case .tuple:
+    return """
+      (
+      \(children)
+      )
+      """
+  case .collection, .set, .dictionary:
+    return """
+      [
+      \(children)
+      ]
+      """
+  default:
+    let typeName = _typeName(T.self, qualified: true)
+    return """
+    \(typeName)(
+    \(children)
+    )
+    """
+  }
+}

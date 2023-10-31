@@ -157,7 +157,7 @@ extension Issue.Kind: CustomStringConvertible {
     case let .expectationFailed(expectation):
       if let mismatchedErrorDescription = expectation.mismatchedErrorDescription {
         "Expectation failed: \(mismatchedErrorDescription)"
-      } else if let expandedExpressionDescription = expectation.expandedExpressionDescription {
+      } else if let expandedExpressionDescription = expectation.expandedExpressionDescription, expectation.difference == nil {
         "Expectation failed: \(expandedExpressionDescription)"
       } else if let sourceCode = expectation.sourceCode {
         "Expectation failed: \(sourceCode)"

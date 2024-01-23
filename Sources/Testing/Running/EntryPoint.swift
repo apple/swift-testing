@@ -213,11 +213,13 @@ func configurationForSwiftPMEntryPoint(withArguments args: [String]) throws -> C
 /// - Parameters:
 ///   - configuration: The configuration to use for running.
 func runTests(configuration: Configuration) async {
-  let eventRecorder = Event.ConsoleOutputRecorder(options: .forStandardError) { string in
+  let writeOptions: [Event.ConsoleOutputRecorder.Option] = .forStandardError
+  @Sendable func write(_ string: String) {
     let stderr = swt_stderr()
     fputs(string, stderr)
     fflush(stderr)
   }
+  let eventRecorder = Event.ConsoleOutputRecorder(options: writeOptions, writingUsing: write)
 
   var configuration = configuration
   let oldEventHandler = configuration.eventHandler
@@ -227,7 +229,24 @@ func runTests(configuration: Configuration) async {
   }
 
   let runner = await Runner(configuration: configuration)
-  await runner.run()
+
+  // If there are no steps to run, the plan is empty and we should report that
+  // instead of trying to run nothing. An empty plan can be produced either if
+  // there are no tests in the current process or if `configuration.testFilter`
+  // excludes all tests.
+  let isPlanEmpty = runner.plan.steps.lazy
+    .map(\.action)
+    .filter { action in
+      if case .run = action {
+        return true
+      }
+      return false
+    }.isEmpty
+  if isPlanEmpty {
+    write(warning("No matching tests were run.", options: writeOptions))
+  } else {
+    await runner.run()
+  }
 }
 
 // MARK: - Command-line interface options

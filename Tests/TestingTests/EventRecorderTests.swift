@@ -340,11 +340,11 @@ struct EventRecorderTests {
   func unavailablePigeon() {}
 
   @Test("Future Grouse", .hidden)
-  @available(macOS 999.0, iOS 999.0, watchOS 999.0, tvOS 999.0, *)
+  @available(macOS 999.0, iOS 999.0, watchOS 999.0, tvOS 999.0, visionOS 999.0, *)
   func futureGrouse() {}
 
   @Test("Future Goose", .hidden)
-  @available(macOS 999, iOS 999, watchOS 999, tvOS 999, *)
+  @available(macOS 999, iOS 999, watchOS 999, tvOS 999, visionOS 999.0, *)
   func futureGoose() {}
 
   @Test("Future Mouse", .hidden)

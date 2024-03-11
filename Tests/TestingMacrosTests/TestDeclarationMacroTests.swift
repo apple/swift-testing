@@ -67,7 +67,6 @@ struct TestDeclarationMacroTests {
       "@Test enum E {}":
         "Attribute 'Test' cannot be applied to an enumeration",
 
-
       // Availability
       "@available(*, unavailable) @Suite struct S {}":
         "Attribute 'Suite' cannot be applied to this structure because it has been marked '@available(*, unavailable)'",
@@ -116,6 +115,26 @@ struct TestDeclarationMacroTests {
       #expect(diagnostic.message == expectedMessage)
     }
   }
+
+#if canImport(SwiftSyntax600)
+  @Test("Error diagnostics emitted for invalid lexical contexts",
+    arguments: [
+      "struct S { func f() { @Test func f() {} } }":
+        "The @Test attribute cannot be applied within a function.",
+      "struct S { func f() { @Suite struct S { } } }":
+        "The @Suite attribute cannot be applied within a function.",
+    ]
+  )
+  func invalidLexicalContext(input: String, expectedMessage: String) throws {
+    let (_, diagnostics) = try parse(input)
+
+    #expect(diagnostics.count > 0)
+    for diagnostic in diagnostics {
+      #expect(diagnostic.diagMessage.severity == .error)
+      #expect(diagnostic.message == expectedMessage)
+    }
+  }
+#endif
 
   @Test("Warning diagnostics emitted on API misuse",
     arguments: [
@@ -189,13 +208,9 @@ struct TestDeclarationMacroTests {
     }
   }
 
-  @Test("Different kinds of functions are handled correctly",
-    arguments: [
+  static var functionTypeInputs: [(String, String?, String?)] {
+    var result: [(String, String?, String?)] = [
       ("@Test func f() {}", nil, nil),
-      ("struct S {\n\t@Test func f() {} }", "Self", "let"),
-      ("struct S {\n\t@Test mutating func f() {} }", "Self", "var"),
-      ("struct S {\n\t@Test static func f() {} }", "Self", nil),
-      ("final class S {\n\t@Test class func f() {} }", "Self", nil),
       ("@Test @available(*, noasync) @MainActor func f() {}", nil, "MainActor.run"),
       ("@Test @_unavailableFromAsync @MainActor func f() {}", nil, "MainActor.run"),
       ("@Test @available(*, noasync) func f() {}", nil, "__requiringTry"),
@@ -220,7 +235,27 @@ struct TestDeclarationMacroTests {
         nil
       ),
     ]
-  )
+
+#if canImport(SwiftSyntax600)
+    result += [
+      ("struct S_NAME {\n\t@Test func f() {} }", "S_NAME", "let"),
+      ("struct S_NAME {\n\t@Test mutating func f() {} }", "S_NAME", "var"),
+      ("struct S_NAME {\n\t@Test static func f() {} }", "S_NAME", nil),
+      ("final class C_NAME {\n\t@Test class func f() {} }", "C_NAME", nil),
+    ]
+#else
+    result += [
+      ("struct S {\n\t@Test func f() {} }", "Self", "let"),
+      ("struct S {\n\t@Test mutating func f() {} }", "Self", "var"),
+      ("struct S {\n\t@Test static func f() {} }", "Self", nil),
+      ("final class C {\n\t@Test class func f() {} }", "Self", nil),
+    ]
+#endif
+
+    return result
+  }
+
+  @Test("Different kinds of functions are handled correctly", arguments: functionTypeInputs)
   func differentFunctionTypes(input: String, expectedTypeName: String?, otherCode: String?) throws {
     let (output, _) = try parse(input)
 

@@ -225,6 +225,27 @@ struct DiagnosticMessage: SwiftDiagnostics.DiagnosticMessage {
     )
   }
 
+#if canImport(SwiftSyntax600)
+  /// Create a diagnostic message stating that the given attribute cannot be
+  /// used within a lexical context.
+  ///
+  /// - Parameters:
+  ///   - node: The lexical context preventing the use of `attribute`.
+  ///   - attribute: The `@Test` or `@Suite` attribute.
+  ///
+  /// - Returns: A diagnostic message.
+  static func containingNodeUnsupported(_ node: some SyntaxProtocol, whenUsing attribute: AttributeSyntax) -> Self {
+    // It would be great if the diagnostic pointed to the containing lexical
+    // context that was unsupported, but that node may be synthesized and does
+    // not have reliable location information.
+    Self(
+      syntax: Syntax(attribute),
+      message: "The @\(attribute.attributeNameText) attribute cannot be applied within \(_kindString(for: node, includeA: true)).",
+      severity: .error
+    )
+  }
+#endif
+
   /// Create a diagnostic message stating that the given attribute has no effect
   /// when applied to the given extension declaration.
   ///
@@ -406,7 +427,6 @@ extension MacroExpansionContext {
   ///   - message: The diagnostic message to emit. The `node` and `position`
   ///     arguments to `Diagnostic.init()` are derived from the message's
   ///     `syntax` property.
-  ///   - fixIts: Any Fix-Its to apply.
   func diagnose(_ message: DiagnosticMessage) {
     diagnose(
       Diagnostic(
@@ -416,6 +436,16 @@ extension MacroExpansionContext {
         fixIts: message.fixIts
       )
     )
+  }
+
+  /// Emit a sequence of diagnostic messages.
+  ///
+  /// - Parameters:
+  ///   - messages: The diagnostic messages to emit.
+  func diagnose(_ messages: some Sequence<DiagnosticMessage>) {
+    for message in messages {
+      diagnose(message)
+    }
   }
 
   /// Emit a diagnostic message for debugging purposes during development of the

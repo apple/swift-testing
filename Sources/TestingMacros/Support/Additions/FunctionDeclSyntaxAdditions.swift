@@ -94,9 +94,17 @@ extension FunctionDeclSyntax {
       if signature.effectSpecifiers?.asyncSpecifier != nil {
         selector += "WithCompletionHandler"
         colonToken = .colonToken()
-      } else if signature.effectSpecifiers?.throwsSpecifier != nil {
-        selector += "AndReturnError"
-        colonToken = .colonToken()
+      } else {
+        let hasThrowsSpecifier: Bool
+#if canImport(SwiftSyntax600)
+        hasThrowsSpecifier = signature.effectSpecifiers?.throwsClause != nil
+#else
+        hasThrowsSpecifier = signature.effectSpecifiers?.throwsSpecifier != nil
+#endif
+        if hasThrowsSpecifier {
+          selector += "AndReturnError"
+          colonToken = .colonToken()
+        }
       }
       return ObjCSelectorPieceListSyntax {
         ObjCSelectorPieceSyntax(name: .identifier(selector), colon: colonToken)

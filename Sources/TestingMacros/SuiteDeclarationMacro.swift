@@ -21,7 +21,9 @@ public struct SuiteDeclarationMacro: MemberMacro, PeerMacro, Sendable {
     providingMembersOf declaration: some DeclGroupSyntax,
     in context: some MacroExpansionContext
   ) throws -> [DeclSyntax] {
-    _diagnoseIssues(with: declaration, suiteAttribute: node, in: context)
+    guard _diagnoseIssues(with: declaration, suiteAttribute: node, in: context) else {
+      return []
+    }
     return _createTestContainerDecls(for: declaration, suiteAttribute: node, in: context)
   }
 
@@ -33,7 +35,7 @@ public struct SuiteDeclarationMacro: MemberMacro, PeerMacro, Sendable {
     // The peer macro expansion of this macro is only used to diagnose misuses
     // on symbols that are not decl groups.
     if declaration.asProtocol((any DeclGroupSyntax).self) == nil {
-      _diagnoseIssues(with: declaration, suiteAttribute: node, in: context)
+      _ = _diagnoseIssues(with: declaration, suiteAttribute: node, in: context)
     }
     return []
   }
@@ -44,22 +46,30 @@ public struct SuiteDeclarationMacro: MemberMacro, PeerMacro, Sendable {
   ///   - declaration: The type declaration to diagnose.
   ///   - suiteAttribute: The `@Suite` attribute applied to `declaration`.
   ///   - context: The macro context in which the expression is being parsed.
+  ///
+  /// - Returns: Whether or not macro expansion should continue (i.e. stopping
+  ///   if a fatal error was diagnosed.)
   private static func _diagnoseIssues(
     with declaration: some SyntaxProtocol,
     suiteAttribute: AttributeSyntax,
     in context: some MacroExpansionContext
-  ) {
+  ) -> Bool {
     var diagnostics = [DiagnosticMessage]()
     defer {
-      diagnostics.forEach(context.diagnose)
+      context.diagnose(diagnostics)
     }
 
     // The @Suite attribute is only supported on type declarations, all of which
     // are DeclGroupSyntax types.
     guard let declaration = declaration.asProtocol((any DeclGroupSyntax).self) else {
       diagnostics.append(.attributeNotSupported(suiteAttribute, on: declaration))
-      return
+      return false
     }
+
+#if canImport(SwiftSyntax600)
+    // Check if the lexical context is appropriate for a suite or test.
+    diagnostics += diagnoseIssuesWithLexicalContext(containing: declaration, attribute: suiteAttribute, in: context)
+#endif
 
     // Generic suites are not supported.
     if let genericClause = declaration.asProtocol((any WithGenericParametersSyntax).self)?.genericParameterClause {
@@ -115,6 +125,8 @@ public struct SuiteDeclarationMacro: MemberMacro, PeerMacro, Sendable {
         diagnostics.append(.availabilityAttributeNotSupported(noasyncAttribute, on: declaration, whenUsing: suiteAttribute))
       }
     }
+
+    return !diagnostics.lazy.map(\.severity).contains(.error)
   }
 
   /// Create a declaration for a type that conforms to the `__TestContainer`

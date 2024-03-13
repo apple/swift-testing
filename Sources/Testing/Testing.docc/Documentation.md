@@ -40,18 +40,36 @@ concurrency, and parameterize test functions across wide ranges of inputs.
 ### Getting started
 
 - <doc:TemporaryGettingStarted>
-- <doc:MigratingFromXCTest>
 
-### Defining tests
+### Test definition
 
-- <doc:DefiningTests>
-- <doc:OrganizingTests>
-- <doc:ParameterizedTesting>
+- <doc:defining-test-functions>
+- ``Test``
+- ``Test(_:_:)``
 
-### Validating behavior and raising issues
+### Test organization
+
+- <doc:organizing-test-functions-with-suite-types>
+- ``Suite(_:_:)``
+
+### Test parameterization
+
+- <doc:running-a-test-function-multiple-times-with-different-input>
+- ``Test(_:_:arguments:)-8kn7a``
+- ``Test(_:_:arguments:_:)``
+- ``Test(_:_:arguments:)-3rzok``
+- ``CustomTestArgumentEncodable``
+- ``Test/Parameter``
+- ``Test/Case``
+
+### Expected outcomes
 
 - <doc:Expectations>
 
-### Customizing tests
+### Customizations
 
 - <doc:Traits>
+
+### Migration
+
+- <doc:migrating-a-test-from-xctest>

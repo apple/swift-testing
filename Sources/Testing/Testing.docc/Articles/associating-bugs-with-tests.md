@@ -23,7 +23,7 @@ specific bugs with tests that reproduce them or verify they are fixed.
   "issues." To avoid confusion with the ``Issue`` type in the testing library,
   this document consistently refers to them as "bugs."
 
-## Associating a bug with a test
+## Associate a bug with a test
 
 To associate a bug with a test, use the ``Trait/bug(_:relationship:)-duvt``
 or ``Trait/bug(_:relationship:)-40riy`` function. The first argument to this
@@ -43,7 +43,7 @@ specified as a string and matches certain formats, the testing library is able
 to infer additional information about it. For more information on the formats
 recognized by the testing library, see <doc:interpreting-bug-identifiers>.
 
-## Specifying the relationship between a bug and a test
+## Specify the relationship between a bug and a test
 
 By default, the nature of the relationship between a bug and a test is
 unspecified. All the testing library knows about such relationships is that they

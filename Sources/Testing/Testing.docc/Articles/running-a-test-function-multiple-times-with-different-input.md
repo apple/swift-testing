@@ -1,4 +1,4 @@
-# Parameterized testing
+# Running a test function multiple times with different input
 
 <!--
 This source file is part of the Swift.org open source project
@@ -10,7 +10,7 @@ See https://swift.org/LICENSE.txt for license information
 See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 -->
 
-Run the same test multiple times with different inputs.
+Specify different input parameters to generate multiple test cases from a test function.
 
 ## Overview
 
@@ -25,7 +25,7 @@ By default, the test cases of a test function will run in parallel with each
 other. For more information about test parallelization, see
 <doc:running-tests-serially-or-in-parallel>.
 
-## Parameterizing over an array of values
+## Parameterize over an array of values
 
 It is very common to want to run a test _n_ times over an array containing the
 values that should be tested. Consider the following test function:
@@ -66,7 +66,7 @@ test function as its first (and only) argument. Then, if the test fails for one
 or more inputs, the corresponding diagnostics can clearly indicate which inputs
 need to be examined.
 
-## Parameterizing over the cases of an enumeration
+## Parameterize over the cases of an enumeration
 
 In the example above, we hard-coded the list of `Food` cases to test. If `Food`
 is an enumeration conforming to `CaseIterable`, we can instead write:
@@ -86,7 +86,7 @@ func foodAvailable(_ food: Food) async throws {
 This way, if a new case is added to the `Food` enumeration, it will
 automatically be tested by this test function.
 
-## Parameterizing over a range of integers
+## Parameterize over a range of integers
 
 It is possible to parameterize a test function over a closed range of integers:
 
@@ -101,7 +101,7 @@ func makeLargeOrder(count: Int) async throws {
 - Note: Very large ranges such as `0 ..< .max` may take an excessive amount of
   time to test, or may never complete due to resource constraints.
 
-## Testing more than one collection
+## Test with more than one collection
 
 It is possible to test more than one collection. Consider the following test
 function:
@@ -143,7 +143,7 @@ words, this test function will be passed the inputs `(.burger, 1)`,
 `(.iceCream, 2)`, ..., `(.kebab, 5)` instead of `(.burger, 1)`, `(.burger, 2)`,
 `(.burger, 3)`, ... `(.kebab, 99)`, `(.kebab, 100)`.
 
-## Running selected test cases
+## Run selected test cases
 
 If a parameterized test meets certain requirements, the testing library allows
 users to run specific test cases it contains. This can be useful when a test

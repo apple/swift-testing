@@ -65,8 +65,3 @@ disabled (by, for example, passing `--no-parallel` to the `swift test` command.)
 - ``Trait/serial``
 - ``SerialTrait``
 -->
-
-## See Also
-
-- <doc:organizing-test-functions-with-suite-types>
-- <doc:running-a-test-function-multiple-times-with-different-input>

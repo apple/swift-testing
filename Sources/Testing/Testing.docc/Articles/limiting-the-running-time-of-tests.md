@@ -1,4 +1,4 @@
-# Limiting the execution time of a test
+# Limiting the running time of tests
 
 <!--
 This source file is part of the Swift.org open source project

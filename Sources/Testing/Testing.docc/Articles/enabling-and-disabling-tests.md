@@ -22,7 +22,7 @@ automatically skip them if conditions like these are not met.
 
 - Note: A condition may be evaluated multiple times during testing.
 
-## Disabling a test
+## Disable a test
 
 If a test should be disabled unconditionally, you can use the
 ``Trait/disabled(_:fileID:filePath:line:column:)`` function. Given the following
@@ -50,7 +50,7 @@ output from the runner when it skips the test:
 func sellsBurritos() async throws { ... }
 ```
 
-## Conditionally enabling or disabling a test
+## Conditionally enable or disable a test
 
 Sometimes, it makes sense to enable a test only if a condition is met. Consider
 the following test function:
@@ -101,7 +101,7 @@ If a test has multiple conditions applied to it, they must _all_ pass for it to
 run. Otherwise, the first condition to fail will be noted as the reason the test
 was skipped.
 
-## Handling complex conditions
+## Handle complex conditions
 
 If a condition is complex, consider factoring it out into a helper function to
 improve readability:

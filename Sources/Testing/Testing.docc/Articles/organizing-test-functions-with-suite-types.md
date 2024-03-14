@@ -1,4 +1,4 @@
-# Organizing tests
+# Organizing test functions with suite types
 
 <!--
 This source file is part of the Swift.org open source project
@@ -39,7 +39,7 @@ within the scope of the outer test suite type.
 By default, tests contained within a suite will run in parallel with each other.
 For more information about test parallelization, see <doc:running-tests-serially-or-in-parallel>.
 
-## Customizing a suite's name
+## Customize a suite's name
 
 To customize a test suite's name, supply a string literal as an argument to the
 `@Suite` attribute:

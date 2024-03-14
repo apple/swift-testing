@@ -28,7 +28,7 @@ Seeing comments related to tests in these contexts can help diagnose issues more
 quickly. Comments can be added to test declarations and the testing library will
 automatically capture and show them when issues are recorded.
 
-## Adding a code comment to a test
+## Add a code comment automatically
 
 To include a comment on a test or suite, write an ordinary Swift code comment
 immediately before its `@Test` or `@Suite` attribute:
@@ -67,7 +67,7 @@ includes an example code snippet or diagram.
 <!-- FIXME: Uncomment this section if/when the `.comment(...)` trait is promoted
   to non-experimental SPI
 
-## Adding a comment to a test programmatically
+## Add a comment programmatically
 
 For more precise control over a comment's content, comments can be added to a
 test programmatically by explicitly specifying them as trait arguments to the
@@ -86,7 +86,7 @@ func lunchMenu() {
 }
 ``` -->
 
-## Using test comments effectively
+## Use test comments effectively
 
 As in normal code, comments on tests are generally most useful when:
 

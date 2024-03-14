@@ -65,6 +65,7 @@ concurrency, and parameterize test functions across wide ranges of inputs.
 ### Expected outcomes
 
 - <doc:Expectations>
+- <doc:KnownIssues>
 
 ### Customizations
 

@@ -37,7 +37,7 @@ within them. To add a nested test suite type, simply declare an additional type
 within the scope of the outer test suite type.
 
 By default, tests contained within a suite will run in parallel with each other.
-For more information about test parallelization, see <doc:Parallelization>.
+For more information about test parallelization, see <doc:running-tests-serially-or-in-parallel>.
 
 ## Customizing a suite's name
 
@@ -166,7 +166,3 @@ class MenuItemTests { ... } // ❌ ERROR: this class is not final
 - Bug: Violations of this requirement are not consistently diagnosed at compile
   time, and the diagnostic produced when an issue is detected may be confusing
   to developers. ([105470382](rdar://105470382))
-
-## Topics
-
-- ``Suite(_:_:)``

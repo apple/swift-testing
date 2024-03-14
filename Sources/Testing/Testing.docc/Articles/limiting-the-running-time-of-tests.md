@@ -59,8 +59,3 @@ test functions and child test suites within that suite.
 When a time limit is applied to a parameterized test function, it is applied to
 each invocation _separately_ so that if only some arguments cause failures, then
 successful arguments are not incorrectly marked as failing too.
-
-## Topics
-
-- ``Trait/timeLimit(_:)``
-- ``TimeLimitTrait``

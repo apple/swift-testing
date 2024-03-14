@@ -155,11 +155,3 @@ be set to:
   ".legallyRequired": "#66FFCC"
 }
 ```
-
-## Topics
-
-- ``Trait/tags(_:)-505n9``
-- ``Trait/tags(_:)-yg0i``
-- ``Tag``
-- ``Tag/List``
-- ``Tag()``

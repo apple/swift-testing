@@ -49,7 +49,7 @@ take any arguments, then prefix its name with the `@Test` attribute:
 This test function can be present at file scope or within a type. A type
 containing test functions is automatically a _test suite_ and can be optionally
 annotated with the `@Suite` attribute. For more information about suites, see
-<doc:OrganizingTests>.
+<doc:organizing-test-functions-with-suite-types>.
 
 Note that, while this function is a valid test function, it does not actually
 perform any action or test any code. To check for expected values and outcomes
@@ -90,13 +90,3 @@ a test is unable to run due to limited availability:
 @available(swift, introduced: 5.9, message: "Requires Swift 5.9 features to run")
 @Test func foodTruckExists() { ... }
 ```
-
-## Topics
-
-- ``Test``
-- ``Test(_:_:)``
-
-## See Also
-
-- <doc:Expectations>
-- <doc:ParameterizedTesting>

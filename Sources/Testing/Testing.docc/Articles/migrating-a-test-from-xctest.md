@@ -90,7 +90,7 @@ concurrency safety:
 If you use a class as a test suite, it must be declared `final`.
 
 For more information about suites and how to declare and customize them, see
-<doc:OrganizingTests>.
+<doc:organizing-test-functions-with-suite-types>.
 
 #### Converting setUp() and tearDown() functions
 
@@ -210,7 +210,7 @@ and/or `throws` and to be isolated to a global actor (for example, by using the
   [`MainActor.run(resultType:body:)`](https://developer.apple.com/documentation/swift/mainactor/run(resulttype:body:)).
 
 For more information about test functions and how to declare and customize them,
-see <doc:DefiningTests>.
+see <doc:defining-test-functions>.
 
 #### Converting XCTAssert() XCTUnwrap(), and XCTFail() calls
 
@@ -674,6 +674,7 @@ of issues:
 
 ## See Also
 
-- <doc:DefiningTests>
-- <doc:OrganizingTests>
+- <doc:defining-test-functions>
+- <doc:organizing-test-functions-with-suite-types>
 - <doc:Expectations>
+- <doc:Known-issues>

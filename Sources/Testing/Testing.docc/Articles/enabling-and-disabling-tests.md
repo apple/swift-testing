@@ -116,12 +116,3 @@ func allIngredientsAvailable(for food: Food) -> Bool { ... }
 )
 func makeSundae() async throws { ... }
 ```
-
-## Topics
-
-- ``Trait/enabled(if:_:fileID:filePath:line:column:)``
-- ``Trait/enabled(_:fileID:filePath:line:column:_:)``
-- ``Trait/disabled(_:fileID:filePath:line:column:)``
-- ``Trait/disabled(if:_:fileID:filePath:line:column:)``
-- ``Trait/disabled(_:fileID:filePath:line:column:_:)``
-- ``ConditionTrait``

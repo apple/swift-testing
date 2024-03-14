@@ -41,7 +41,7 @@ func engineWorks() async {
 The bug identifier can be specified as an integer or as a string; if it is
 specified as a string and matches certain formats, the testing library is able
 to infer additional information about it. For more information on the formats
-recognized by the testing library, see <doc:BugIdentifiers>.
+recognized by the testing library, see <doc:interpreting-bug-identifiers>.
 
 ## Specifying the relationship between a bug and a test
 
@@ -82,10 +82,3 @@ The testing library defines several kinds of common bug/test relationship:
 
 <!-- Keep `.unspecified` as the last row above in order to imply it is a
 fallback. -->
-
-## Topics
-
-- <doc:BugIdentifiers>
-- ``Trait/bug(_:relationship:)-duvt``
-- ``Trait/bug(_:relationship:)-40riy``
-- ``Bug``

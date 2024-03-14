@@ -1,4 +1,4 @@
-# Parallelizing test execution
+# Running tests serially or in parallel
 
 <!--
 This source file is part of the Swift.org open source project
@@ -68,5 +68,5 @@ disabled (by, for example, passing `--no-parallel` to the `swift test` command.)
 
 ## See Also
 
-- <doc:OrganizingTests>
-- <doc:ParameterizedTesting>
+- <doc:organizing-test-functions-with-suite-types>
+- <doc:running-a-test-function-multiple-times-with-different-input>

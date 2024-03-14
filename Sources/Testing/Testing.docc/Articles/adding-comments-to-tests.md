@@ -94,12 +94,4 @@ As in normal code, comments on tests are generally most useful when:
 - they provide useful information about the operation or motivation of a test.
 
 If a test is related to a bug or issue, consider using the ``Bug`` trait instead
-of comments. For more information, review <doc:AssociatingBugs>.
-
-
-## Topics
-
-- ``Comment``
-<!-- FIXME: Uncomment this section if/when the `.comment(...)` trait is promoted
-  to non-experimental SPI.
-- ``Trait/comment(_:)`` -->
+of comments. For more information, review <doc:associating-bugs-with-tests>.

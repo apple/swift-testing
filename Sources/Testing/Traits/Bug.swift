@@ -18,13 +18,13 @@ public struct Bug {
   /// The identifier of this bug in the associated bug-tracking system.
   ///
   /// For more information on how the testing library interprets bug
-  /// identifiers, see <doc:BugIdentifiers>.
+  /// identifiers, see <doc:interpreting-bug-identifiers>.
   public var identifier: String
 
   /// An enumeration describing the relationship of a bug to a test.
   ///
   /// For more information on how the testing library uses bug relationships,
-  /// see <doc:AssociatingBugs>.
+  /// see <doc:associating-bugs-with-tests>.
   public enum Relationship: Sendable, Equatable, Hashable {
     /// The relationship between the test and this bug is unspecified.
     ///
@@ -60,7 +60,7 @@ public struct Bug {
   /// The relationship between the bug and the associated test.
   ///
   /// For more information on how the testing library uses bug relationships,
-  /// see <doc:AssociatingBugs>.
+  /// see <doc:associating-bugs-with-tests>.
   public var relationship: Relationship
 }
 

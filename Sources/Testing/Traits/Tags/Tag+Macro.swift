@@ -50,5 +50,5 @@ extension Tag {
 ///
 /// Use this tag with members of the ``Tag`` type declared in an extension to
 /// mark them as usable with tests. For more information on declaring tags, see
-/// <doc:AddingTags>.
+/// <doc:categorizing-tests-and-customizing-their-appearance>.
 @attached(accessor) public macro Tag() = #externalMacro(module: "TestingMacros", type: "TagMacro")

@@ -23,7 +23,7 @@ a test _case_.
 
 By default, the test cases of a test function will run in parallel with each
 other. For more information about test parallelization, see
-<doc:Parallelization>.
+<doc:running-tests-serially-or-in-parallel>.
 
 ## Parameterizing over an array of values
 
@@ -165,15 +165,3 @@ be run selectively. The following lists the known protocols, in precedence order
 
 If any argument of a test case does not meet one of the above requirements, then
 the overall test case cannot be run selectively.
-
-## Topics
-
-- ``Test(_:_:arguments:)-8kn7a``
-- ``Test(_:_:arguments:_:)``
-- ``Test(_:_:arguments:)-3rzok``
-- ``CustomTestArgumentEncodable``
-
-## See Also
-
-- ``Test/Parameter``
-- ``Test/Case``

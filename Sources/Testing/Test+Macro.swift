@@ -93,7 +93,7 @@ public typealias __XCTestCompatibleSelector = Never
 ///
 /// ## See Also
 ///
-/// - <doc:OrganizingTests>
+/// - <doc:organizing-test-functions-with-suite-types>
 @attached(member) @attached(peer) public macro Suite(
   _ displayName: _const String? = nil,
   _ traits: any SuiteTrait...
@@ -138,7 +138,7 @@ extension Test {
 ///
 /// ## See Also
 ///
-/// - <doc:DefiningTests>
+/// - <doc:defining-test-functions>
 @attached(peer) public macro Test(
   _ displayName: _const String? = nil,
   _ traits: any TestTrait...
@@ -217,7 +217,7 @@ extension [Test.__Parameter] {
 ///
 /// ## See Also
 ///
-/// - <doc:DefiningTests>
+/// - <doc:defining-test-functions>
 @attached(peer) public macro Test<C>(
   _ displayName: _const String? = nil,
   _ traits: any TestTrait...,
@@ -265,7 +265,7 @@ extension Test {
 ///
 /// ## See Also
 ///
-/// - <doc:DefiningTests>
+/// - <doc:defining-test-functions>
 @_documentation(visibility: private)
 @attached(peer) public macro Test<C1, C2>(
   _ traits: any TestTrait...,
@@ -292,7 +292,7 @@ extension Test {
 ///
 /// ## See Also
 ///
-/// - <doc:DefiningTests>
+/// - <doc:defining-test-functions>
 @attached(peer) public macro Test<C1, C2>(
   _ displayName: _const String? = nil,
   _ traits: any TestTrait...,
@@ -318,7 +318,7 @@ extension Test {
 ///
 /// ## See Also
 ///
-/// - <doc:DefiningTests>
+/// - <doc:defining-test-functions>
 @_documentation(visibility: private)
 @attached(peer) public macro Test<C1, C2>(
   _ traits: any TestTrait...,
@@ -345,7 +345,7 @@ extension Test {
 ///
 /// ## See Also
 ///
-/// - <doc:DefiningTests>
+/// - <doc:defining-test-functions>
 @attached(peer) public macro Test<C1, C2>(
   _ displayName: _const String? = nil,
   _ traits: any TestTrait...,

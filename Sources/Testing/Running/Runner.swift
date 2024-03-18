@@ -56,42 +56,6 @@ public struct Runner: Sendable {
 // MARK: - Running tests
 
 extension Runner {
-  /// Catch errors thrown from a closure and process them as issues instead of
-  /// allowing them to propagate to the caller.
-  ///
-  /// - Parameters:
-  ///   - sourceLocation: The source location to attribute caught errors to.
-  ///   - body: A closure that might throw an error.
-  ///
-  /// This function encapsulates the standard error handling performed by
-  /// ``Runner`` when running a test or test case.
-  private func _withErrorHandling(sourceLocation: SourceLocation, _ body: () async throws -> Void) async {
-    // Ensure that we are capturing backtraces for errors before we start
-    // expecting to see them.
-    Backtrace.startCachingForThrownErrors()
-    defer {
-      Backtrace.flushThrownErrorCache()
-    }
-
-    do {
-      try await body()
-
-    } catch is ExpectationFailedError {
-      // This error is thrown by `__check()` to indicate that its condition
-      // evaluated to `false`. That function emits its own issue, so we don't
-      // need to emit one here.
-
-    } catch {
-      Issue.record(
-        .errorCaught(error),
-        comments: [],
-        backtrace: Backtrace(forFirstThrowOf: error),
-        sourceLocation: sourceLocation,
-        configuration: configuration
-      )
-    }
-  }
-
   /// Execute the ``CustomExecutionTrait/execute(_:for:testCase:)`` functions
   /// associated with the test in a plan step.
   ///
@@ -239,7 +203,7 @@ extension Runner {
 
     if let step = stepGraph.value, case .run = step.action {
       await Test.withCurrent(step.test) {
-        await _withErrorHandling(sourceLocation: step.test.sourceLocation) {
+        _ = await Issue.recordingErrors(at: step.test.sourceLocation, configuration: configuration) {
           try await _executeTraits(for: step, testCase: nil) {
             // Run the test function at this step (if one is present.)
             if let testCases = step.test.testCases {
@@ -308,7 +272,7 @@ extension Runner {
 
     await Test.Case.withCurrent(testCase) {
       let sourceLocation = step.test.sourceLocation
-      await _withErrorHandling(sourceLocation: sourceLocation) {
+      await Issue.recordingErrors(at: sourceLocation, configuration: configuration) {
         try await withTimeLimit(for: step.test, configuration: configuration) {
           try await _executeTraits(for: step, testCase: testCase) {
             try await testCase.body()

@@ -1002,14 +1002,13 @@ public func __checkClosureCall<R>(
     mismatchExplanationValue = explanation
   } catch {
     expression = expression.capturingRuntimeValues(error)
-    do {
+    let secondError = Issue.recordingErrors(at: sourceLocation) {
       errorMatches = try errorMatcher(error)
-      if !errorMatches {
-        mismatchExplanationValue = mismatchExplanation?(error) ?? "unexpected error \(_description(of: error)) was thrown"
-      }
-    } catch let secondError {
-      Issue.record(.errorCaught(secondError), comments: comments(), backtrace: .current(), sourceLocation: sourceLocation)
+    }
+    if let secondError {
       mismatchExplanationValue = "a second error \(_description(of: secondError)) was thrown when checking error \(_description(of: error))"
+    } else if !errorMatches {
+      mismatchExplanationValue = mismatchExplanation?(error) ?? "unexpected error \(_description(of: error)) was thrown"
     }
   }
 
@@ -1051,14 +1050,13 @@ public func __checkClosureCall<R>(
     mismatchExplanationValue = explanation
   } catch {
     expression = expression.capturingRuntimeValues(error)
-    do {
+    let secondError = await Issue.recordingErrors(at: sourceLocation) {
       errorMatches = try await errorMatcher(error)
-      if !errorMatches {
-        mismatchExplanationValue = mismatchExplanation?(error) ?? "unexpected error \(_description(of: error)) was thrown"
-      }
-    } catch let secondError {
-      Issue.record(.errorCaught(secondError), comments: comments(), backtrace: .current(), sourceLocation: sourceLocation)
+    }
+    if let secondError {
       mismatchExplanationValue = "a second error \(_description(of: secondError)) was thrown when checking error \(_description(of: error))"
+    } else if !errorMatches {
+      mismatchExplanationValue = mismatchExplanation?(error) ?? "unexpected error \(_description(of: error)) was thrown"
     }
   }
 

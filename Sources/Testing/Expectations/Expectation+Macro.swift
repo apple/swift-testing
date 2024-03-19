@@ -23,7 +23,7 @@
 @freestanding(expression) public macro expect(
   _ condition: Bool,
   _ comment: @autoclosure () -> Comment? = nil,
-  sourceLocation: SourceLocation = SourceLocation()
+  sourceLocation: SourceLocation = #currentSourceLocation
 ) = #externalMacro(module: "TestingMacros", type: "ExpectMacro")
 
 /// Check that an expectation has passed after a condition has been evaluated
@@ -44,7 +44,7 @@
 @freestanding(expression) public macro require(
   _ condition: Bool,
   _ comment: @autoclosure () -> Comment? = nil,
-  sourceLocation: SourceLocation = SourceLocation()
+  sourceLocation: SourceLocation = #currentSourceLocation
 ) = #externalMacro(module: "TestingMacros", type: "RequireMacro")
 
 // MARK: - Optional checking
@@ -68,7 +68,7 @@
 @freestanding(expression) public macro require<T>(
   _ optionalValue: T?,
   _ comment: @autoclosure () -> Comment? = nil,
-  sourceLocation: SourceLocation = SourceLocation()
+  sourceLocation: SourceLocation = #currentSourceLocation
 ) -> T = #externalMacro(module: "TestingMacros", type: "RequireMacro")
 
 /// Unwrap an optional boolean value or, if it is `nil`, fail and throw an
@@ -97,7 +97,7 @@
 @freestanding(expression) public macro require(
   _ optionalValue: Bool?,
   _ comment: @autoclosure () -> Comment? = nil,
-  sourceLocation: SourceLocation = SourceLocation()
+  sourceLocation: SourceLocation = #currentSourceLocation
 ) -> Bool = #externalMacro(module: "TestingMacros", type: "AmbiguousRequireMacro")
 
 // MARK: - Matching errors by type
@@ -135,7 +135,7 @@
 @freestanding(expression) public macro expect<E, R>(
   throws errorType: E.Type,
   _ comment: @autoclosure () -> Comment? = nil,
-  sourceLocation: SourceLocation = SourceLocation(),
+  sourceLocation: SourceLocation = #currentSourceLocation,
   performing expression: () async throws -> R
 ) = #externalMacro(module: "TestingMacros", type: "ExpectMacro") where E: Error
 
@@ -174,7 +174,7 @@
 @freestanding(expression) public macro expect<R>(
   throws _: Never.Type,
   _ comment: @autoclosure () -> Comment? = nil,
-  sourceLocation: SourceLocation = SourceLocation(),
+  sourceLocation: SourceLocation = #currentSourceLocation,
   performing expression: () async throws -> R
 ) = #externalMacro(module: "TestingMacros", type: "ExpectMacro")
 
@@ -216,7 +216,7 @@
 @freestanding(expression) public macro require<E, R>(
   throws errorType: E.Type,
   _ comment: @autoclosure () -> Comment? = nil,
-  sourceLocation: SourceLocation = SourceLocation(),
+  sourceLocation: SourceLocation = #currentSourceLocation,
   performing expression: () async throws -> R
 ) = #externalMacro(module: "TestingMacros", type: "RequireMacro") where E: Error
 
@@ -235,7 +235,7 @@
 @freestanding(expression) public macro require<R>(
   throws _: Never.Type,
   _ comment: @autoclosure () -> Comment? = nil,
-  sourceLocation: SourceLocation = SourceLocation(),
+  sourceLocation: SourceLocation = #currentSourceLocation,
   performing expression: () async throws -> R
 ) = #externalMacro(module: "TestingMacros", type: "RequireMacro")
 
@@ -271,7 +271,7 @@
 @freestanding(expression) public macro expect<E, R>(
   throws error: E,
   _ comment: @autoclosure () -> Comment? = nil,
-  sourceLocation: SourceLocation = SourceLocation(),
+  sourceLocation: SourceLocation = #currentSourceLocation,
   performing expression: () async throws -> R
 ) = #externalMacro(module: "TestingMacros", type: "ExpectMacro") where E: Error & Equatable
 
@@ -308,7 +308,7 @@
 @freestanding(expression) public macro require<E, R>(
   throws error: E,
   _ comment: @autoclosure () -> Comment? = nil,
-  sourceLocation: SourceLocation = SourceLocation(),
+  sourceLocation: SourceLocation = #currentSourceLocation,
   performing expression: () async throws -> R
 ) = #externalMacro(module: "TestingMacros", type: "RequireMacro") where E: Error & Equatable
 
@@ -351,7 +351,7 @@
 /// ``expect(throws:_:sourceLocation:performing:)-5lzjz`` instead.
 @freestanding(expression) public macro expect<R>(
   _ comment: @autoclosure () -> Comment? = nil,
-  sourceLocation: SourceLocation = SourceLocation(),
+  sourceLocation: SourceLocation = #currentSourceLocation,
   performing expression: () async throws -> R,
   throws errorMatcher: (any Error) async throws -> Bool
 ) = #externalMacro(module: "TestingMacros", type: "ExpectMacro")
@@ -399,7 +399,7 @@
 /// this macro. The test will then fail if an error is thrown.
 @freestanding(expression) public macro require<R>(
   _ comment: @autoclosure () -> Comment? = nil,
-  sourceLocation: SourceLocation = SourceLocation(),
+  sourceLocation: SourceLocation = #currentSourceLocation,
   performing expression: () async throws -> R,
   throws errorMatcher: (any Error) async throws -> Bool
 ) = #externalMacro(module: "TestingMacros", type: "RequireMacro")

@@ -25,8 +25,8 @@ automatically skip them if conditions like these are not met.
 ## Disabling a test
 
 If a test should be disabled unconditionally, you can use the
-``Trait/disabled(_:fileID:filePath:line:column:)`` function. Given the following
-test function:
+``Trait/disabled(_:sourceLocation:)`` function. Given the following test
+function:
 
 ```swift
 @Test("Food truck sells burritos")
@@ -63,7 +63,7 @@ func isCold() async throws { ... }
 If it is currently winter, then presumably ice cream will not be available for
 sale and this test will fail. It therefore makes sense to only enable it if it
 is currently summer. You can conditionally enable a test with
-``Trait/enabled(if:_:fileID:filePath:line:column:)``:
+``Trait/enabled(if:_:sourceLocation:)``:
 
 ```swift
 @Test("Ice cream is cold", .enabled(if: Season.current == .summer))
@@ -119,9 +119,9 @@ func makeSundae() async throws { ... }
 
 ## Topics
 
-- ``Trait/enabled(if:_:fileID:filePath:line:column:)``
-- ``Trait/enabled(_:fileID:filePath:line:column:_:)``
-- ``Trait/disabled(_:fileID:filePath:line:column:)``
-- ``Trait/disabled(if:_:fileID:filePath:line:column:)``
-- ``Trait/disabled(_:fileID:filePath:line:column:_:)``
+- ``Trait/enabled(if:_:sourceLocation:)``
+- ``Trait/enabled(_:sourceLocation:_:)``
+- ``Trait/disabled(_:sourceLocation:)``
+- ``Trait/disabled(if:_:sourceLocation:)``
+- ``Trait/disabled(_:sourceLocation:_:)``
 - ``ConditionTrait``

@@ -293,7 +293,7 @@ Finally, XCTest has a function, [`XCTFail()`](https://developer.apple.com/docume
 that causes a test to fail immediately and unconditionally. This function is
 useful when the syntax of the language prevents the use of an `XCTAssert()`
 function. To record an unconditional issue using the testing library, use the
-``Issue/record(_:fileID:filePath:line:column:)`` function:
+``Issue/record(_:sourceLocation:)`` function:
 
 @Row {
   @Column {
@@ -429,7 +429,7 @@ Some tests, especially those that test asynchronously-delivered events, cannot
 be readily converted to use Swift concurrency. The testing library offers
 functionality called _confirmations_ which can be used to implement these tests.
 Instances of ``Confirmation`` are created and used within the scope of the
-function ``confirmation(_:expectedCount:fileID:filePath:line:column:_:)``.
+function ``confirmation(_:expectedCount:sourceLocation:_:)``.
 
 Confirmations function similarly to XCTest's expectations, however they do not
 block or suspend the caller while waiting for a condition to be fulfilled.
@@ -527,8 +527,8 @@ to tell XCTest and its infrastructure that the issue should not cause the test
 to fail. The testing library has an equivalent function with synchronous and
 asynchronous variants:
 
-- ``withKnownIssue(_:isIntermittent:fileID:filePath:line:column:_:)-5pxnd``
-- ``withKnownIssue(_:isIntermittent:fileID:filePath:line:column:_:)-30kgk``
+- ``withKnownIssue(_:isIntermittent:sourceLocation:_:)-95r6o``
+- ``withKnownIssue(_:isIntermittent:sourceLocation:_:)-3g6b7``
 
 This function can be used to annotate a section of a test as having a known
 issue:
@@ -623,8 +623,8 @@ Additional options can be specified when calling `XCTExpectFailure()`:
 The testing library includes overloads of `withKnownIssue()` that take
 additional arguments with similar behavior:
 
-- ``withKnownIssue(_:isIntermittent:fileID:filePath:line:column:_:when:matching:)-68e5g``
-- ``withKnownIssue(_:isIntermittent:fileID:filePath:line:column:_:when:matching:)-7azqg``
+- ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)-5vi5n``
+- ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)-47y3z``
 
 To conditionally enable known-issue matching and/or to match only certain kinds
 of issues:

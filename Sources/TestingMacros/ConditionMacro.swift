@@ -135,7 +135,7 @@ extension ConditionMacro {
     }
 
     // Construct and return the call to __check().
-    let call: ExprSyntax = "Testing.\(expandedFunctionName)(\(LabeledExprListSyntax(checkArguments)))"
+    let call: ExprSyntax = "\(expandedFunctionName)(\(LabeledExprListSyntax(checkArguments)))"
     if isThrowing {
       return "\(call).__required()"
     }

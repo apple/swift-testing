@@ -80,6 +80,13 @@ let package = Package(
     // by other targets above, not directly included in product libraries.
     .target(
       name: "TestingInternals",
+      exclude: {
+#if _runtime(_ObjC)
+        []
+#else
+        ["ExceptionHandling-ObjC.mm",]
+#endif
+      }(),
       cxxSettings: .packageSettings
     ),
 

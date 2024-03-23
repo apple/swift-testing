@@ -11,7 +11,8 @@
 #if canImport(Foundation)
 @testable @_spi(Experimental) @_spi(ForToolsIntegrationOnly) import _Testing_Foundation
 @_spi(Experimental) @_spi(ForToolsIntegrationOnly) import Testing
-import Foundation
+private import TestingInternals
+private import Foundation
 
 struct FoundationTests {
   @Test("Casting Test.Clock.Instant to Date")
@@ -20,5 +21,32 @@ struct FoundationTests {
     let date = Date(instant)
     #expect(TimeInterval(instant.timeComponentsSince1970.seconds) == date.timeIntervalSince1970.rounded(.down))
   }
+
+#if _runtime(_ObjC) && !SWT_NO_EXCEPTIONS
+  @Test("#expect(throws:) with an exception")
+  func expectThrowsException() {
+    #expect(throws: NSException.self) {
+      NSException(name: .genericException, reason: "abc123", userInfo: nil).raise()
+    }
+
+    withKnownIssue("Throws with the wrong name") {
+      #expect(throws: NSException.self, named: .genericException) {
+        NSException(name: .invalidArgumentException, reason: "abc123", userInfo: nil).raise()
+      }
+    }
+
+    withKnownIssue("Throws a number, not an NSException") {
+      #expect(throws: NSException.self) {
+        swt_throwNumber(123)
+      }
+    }
+
+    withKnownIssue("Throws a std::exception, not an NSException") {
+      #expect(throws: NSException.self) {
+        swt_throwCxxException("ceci n'est pas un NSException")
+      }
+    }
+  }
+#endif
 }
 #endif

@@ -32,6 +32,9 @@
 /// An attribute that renames a C symbol in Swift.
 #define SWT_SWIFT_NAME(name) __attribute__((swift_name(#name)))
 
+/// An attribute that indicates a function should not be inlined.
+#define SWT_NOINLINE __attribute__((noinline))
+
 /// The testing library version from the package manifest.
 ///
 /// - Bug: The value provided to the compiler (`_SWT_TESTING_LIBRARY_VERSION`)

@@ -277,7 +277,7 @@ extension Event {
 // MARK: - Snapshotting
 
 extension Event {
-  /// A serializable event that occurred during testing.
+  /// A serializable snapshot of an ``Event`` instance.
   public struct Snapshot: Sendable, Codable {
 
     /// The kind of event.
@@ -312,7 +312,7 @@ extension Event {
 }
 
 extension Event.Kind {
-  /// A serializable enumeration describing the various kinds of event that can be observed.
+  /// A serializable snapshot of an ``Event/Kind-swift.enum`` instance.
   public enum Snapshot: Sendable, Codable {
     /// A test run started.
     ///
@@ -412,8 +412,11 @@ extension Event.Kind {
     /// This is the last event posted before ``Runner/run()`` returns.
     case runEnded
 
-    /// Snapshots an ``Event.Kind``.
-    /// - Parameter kind: The original ``Event.Kind`` to snapshot.
+    /// Initialize an instance of this type by snapshotting the specified event
+    /// kind.
+    ///
+    /// - Parameters:
+    ///   - kind: The original event kind to snapshot.
     public init(snapshotting kind: Event.Kind) {
       switch kind {
       case .runStarted:

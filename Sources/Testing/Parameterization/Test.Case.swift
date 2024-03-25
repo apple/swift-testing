@@ -133,11 +133,9 @@ extension Test {
     /// The value of this property represents the type of the parameter, but
     /// arguments passed to this parameter may be of different types. For
     /// example, an argument may be a subclass or conforming type of the
-    /// declared parameter type.
-    ///
-    /// For information about runtime type of an argument to a parameterized
-    /// test, use ``TypeInfo/init(describingTypeOf:)``, passing the argument
-    /// value obtained by calling ``Test/Case/Argument/value``.
+    /// declared parameter type. Information about the type of an argument can
+    /// be accessed by querying the type of an argument's
+    /// ``Test/Case/Argument/value`` property.
     @_spi(ForToolsIntegrationOnly)
     public var typeInfo: TypeInfo
 

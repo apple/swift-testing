@@ -18,6 +18,8 @@
 ///   - expressionWithCapturedRuntimeValues: The expression, corresponding to
 ///     `condition` and with runtime values captured, that is being evaluated
 ///     (if available at compile time.)
+///   - mismatchedErrorDescription: A description of the error mismatch that
+///     occurred, if any.
 ///   - difference: The difference between the operands in `condition`, if
 ///     available. Most callers should pass `nil`.
 ///   - comments: An array of comments describing the expectation. This array

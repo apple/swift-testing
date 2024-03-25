@@ -55,7 +55,7 @@ public struct ExpectationFailedError: Error {
 // MARK: - Snapshotting
 
 extension Expectation {
-  /// A serializable type describing an expectation that has been evaluated.
+  /// A serializable snapshot of an ``Expectation`` instance.
   @_spi(ForToolsIntegrationOnly)
   public struct Snapshot: Sendable, Codable {
     /// The expression evaluated by this expectation.
@@ -89,8 +89,11 @@ extension Expectation {
     /// The source location where this expectation was evaluated.
     public var sourceLocation: SourceLocation
 
-    /// Creates a snapshot expectation from a real ``Expectation``.
-    /// - Parameter expectation: The real expectation.
+    /// Initialize an instance of this type by snapshotting the specified
+    /// expectation.
+    ///
+    /// - Parameters:
+    ///   - expectation: The original expectation to snapshot.
     public init(snapshotting expectation: Expectation) {
       self.evaluatedExpression = expectation.evaluatedExpression
       self.mismatchedErrorDescription = expectation.mismatchedErrorDescription

@@ -43,8 +43,7 @@ git checkout -b release/x.y.z
 The package manifest files (Package.swift _and_ Package@swift-6.0.swift) must
 be updated so that the release can be used as a package dependency:
 
-1. Delete any unsafe flags from `var packageSettings` as well as elsewhere in
-   the package manifest files.
+1. Change the `isBuildingForDistribution` constant from `false` to `true`.
 1. Open the "Documentation/Testing.docc/TemporaryGettingStarted.md" file and
    update the line:
 

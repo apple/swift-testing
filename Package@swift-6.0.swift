@@ -65,15 +65,7 @@ let package = Package(
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
       ],
-      swiftSettings: .packageSettings + [
-        // The only target which needs the ability to import this macro
-        // implementation target's module is its unit test target. Users of the
-        // macros this target implements use them via their declarations in the
-        // Testing module. This target's module is never distributed to users,
-        // but as an additional guard against accidental misuse, this specifies
-        // the unit test target as the only allowable client.
-        .unsafeFlags(["-Xfrontend", "-allowable-client", "-Xfrontend", "TestingMacrosTests"]),
-      ]
+      swiftSettings: .packageSettings
     ),
 
     // "Support" targets: These contain C family code and are used exclusively
@@ -110,12 +102,20 @@ package.targets.append(contentsOf: [
 ])
 #endif
 
+/// Whether this package is building for distribution.
+///
+/// This can be used to conditionalize certain settings which are not intended
+/// for use when building the package for distribution to end users.
+/// Non-distribution (i.e. development-only) builds may enable things
+/// like stricter compiler features which are unsupported or inappropriate for
+/// client builds.
+let isBuildingForDistribution = false
+
 extension Array where Element == PackageDescription.SwiftSetting {
   /// Settings intended to be applied to every Swift target in this package.
   /// Analogous to project-level build settings in an Xcode project.
   static var packageSettings: Self {
-    availabilityMacroSettings + [
-      .unsafeFlags(["-require-explicit-sendable"]),
+    var settings = availabilityMacroSettings + [
       .enableExperimentalFeature("StrictConcurrency"),
       .enableUpcomingFeature("ExistentialAny"),
 
@@ -126,6 +126,12 @@ extension Array where Element == PackageDescription.SwiftSetting {
 
       .define("SWT_NO_FILE_IO", .when(platforms: [.wasi])),
     ]
+
+    if !isBuildingForDistribution {
+      settings.append(contentsOf: developmentOnlySettings)
+    }
+
+    return settings
   }
 
   /// Settings which define commonly-used OS availability macros.
@@ -142,6 +148,15 @@ extension Array where Element == PackageDescription.SwiftSetting {
       .enableExperimentalFeature("AvailabilityMacro=_swiftVersionAPI:macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0"),
 
       .enableExperimentalFeature("AvailabilityMacro=_distantFuture:macOS 99.0, iOS 99.0, watchOS 99.0, tvOS 99.0"),
+    ]
+  }
+
+  /// Settings which are useful during development, but should not be included
+  /// when building for distribution.
+  private static var developmentOnlySettings: Self {
+    [
+      .unsafeFlags(["-require-explicit-sendable"]),
+      .unsafeFlags(["-include-spi-symbols"]),
     ]
   }
 }

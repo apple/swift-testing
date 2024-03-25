@@ -59,8 +59,8 @@ public struct Configuration: Sendable {
     /// The conditions under which test iterations should continue.
     ///
     /// If the value of this property is `nil`, a test plan will be run
-    /// ``count`` times regardless of whether or not issues are encountered
-    /// while running.
+    /// ``maximumIterationCount`` times regardless of whether or not issues are
+    /// encountered while running.
     public var continuationCondition: ContinuationCondition?
 
     /// The maximum number of times the test run should iterate.
@@ -79,7 +79,8 @@ public struct Configuration: Sendable {
     ///   - continuationCondition: The conditions under which test iterations
     ///     should continue. If `nil`, the iterations should continue
     ///     unconditionally `count` times.
-    ///   - count: The maximum number of times the test run should iterate.
+    ///   - maximumIterationCount: The maximum number of times the test run
+    ///     should iterate.
     public static func repeating(_ continuationCondition: ContinuationCondition? = nil, maximumIterationCount: Int) -> Self {
       Self(continuationCondition: continuationCondition, maximumIterationCount: maximumIterationCount)
     }

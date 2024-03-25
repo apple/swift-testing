@@ -402,8 +402,7 @@ extension Runner.Plan.Step {
 }
 
 extension Runner.Plan.Action {
-  /// A serializable snapshot of a ``Runner/Plan-swift.struct/Step/Action``
-  /// instance.
+  /// A serializable snapshot of a ``Runner/Plan-swift.struct/Action`` instance.
   @_spi(ForToolsIntegrationOnly)
   public enum Snapshot: Sendable, Codable {
     /// The test should be run.

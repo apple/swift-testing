@@ -28,7 +28,7 @@ built-in expectation APIs.
 ### Validating asynchronous behavior using confirmations
 
 - ``Confirmation``
-- ``confirmation(_:expectedCount:fileID:filePath:line:column:_:)``
+- ``confirmation(_:expectedCount:sourceLocation:_:)``
 
 ### Validating errors and issues in tests
 

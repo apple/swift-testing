@@ -13,7 +13,7 @@ public struct Issue: Sendable {
   /// Kinds of issues which may be recorded.
   public enum Kind: Sendable {
     /// An issue which occurred unconditionally, for example by using
-    /// ``Issue/record(_:fileID:filePath:line:column:)``.
+    /// ``Issue/record(_:sourceLocation:)``.
     case unconditional
 
     /// An issue due to a failed expectation, such as those produced by
@@ -33,9 +33,9 @@ public struct Issue: Sendable {
     ///     ``Confirmation/confirm(count:)`` should have been called.
     ///
     /// This issue can occur when calling
-    /// ``confirmation(_:expectedCount:fileID:filePath:line:column:_:)`` when
-    /// the confirmation passed to these functions' `body` closures is confirmed
-    /// too few or too many times.
+    /// ``confirmation(_:expectedCount:sourceLocation:_:)`` when the
+    /// confirmation passed to these functions' `body` closures is confirmed too
+    /// few or too many times.
     indirect case confirmationMiscounted(actual: Int, expected: Int)
 
     /// An issue due to an `Error` being thrown by a test function and caught by
@@ -225,7 +225,7 @@ extension Issue.Kind {
   @_spi(ForToolsIntegrationOnly)
   public enum Snapshot: Sendable, Codable {
     /// An issue which occurred unconditionally, for example by using
-    /// ``Issue/record(_:fileID:filePath:line:column:)``.
+    /// ``Issue/record(_:sourceLocation:)``.
     case unconditional
 
     /// An issue due to a failed expectation, such as those produced by
@@ -245,9 +245,9 @@ extension Issue.Kind {
     ///     ``Confirmation/confirm(count:)`` should have been called.
     ///
     /// This issue can occur when calling
-    /// ``confirmation(_:expectedCount:fileID:filePath:line:column:_:)`` when
-    /// the confirmation passed to these functions' `body` closures is confirmed
-    /// too few or too many times.
+    /// ``confirmation(_:expectedCount:sourceLocation:_:)`` when the
+    /// confirmation passed to these functions' `body` closures is confirmed too
+    /// few or too many times.
     indirect case confirmationMiscounted(actual: Int, expected: Int)
 
     /// An issue due to an `Error` being thrown by a test function and caught by

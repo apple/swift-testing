@@ -139,14 +139,10 @@ extension Test {
   /// the `@Test` macro.
   init(
     _ traits: any TestTrait...,
-    fileID: String = #fileID,
-    filePath: String = #filePath,
-    line: Int = #line,
-    column: Int = #column,
+    sourceLocation: SourceLocation = #currentSourceLocation,
     name: String = #function,
     testFunction: @escaping @Sendable () async throws -> Void
   ) {
-    let sourceLocation = SourceLocation(fileID: fileID, filePath: filePath, line: line, column: column)
     let caseGenerator = Case.Generator(testFunction: testFunction)
     self.init(name: name, displayName: name, traits: traits, sourceLocation: sourceLocation, containingTypeInfo: nil, testCases: caseGenerator, parameters: [])
   }
@@ -170,14 +166,11 @@ extension Test {
     _ traits: any TestTrait...,
     arguments collection: C,
     parameters: [Parameter] = [],
-    fileID: String = #fileID,
-    filePath: String = #filePath,
-    line: Int = #line,
+    sourceLocation: SourceLocation = #currentSourceLocation,
     column: Int = #column,
     name: String = #function,
     testFunction: @escaping @Sendable (C.Element) async throws -> Void
   ) where C: Collection & Sendable, C.Element: Sendable {
-    let sourceLocation = SourceLocation(fileID: fileID, filePath: filePath, line: line, column: column)
     let caseGenerator = Case.Generator(arguments: collection, parameters: parameters, testFunction: testFunction)
     self.init(name: name, displayName: name, traits: traits, sourceLocation: sourceLocation, containingTypeInfo: nil, testCases: caseGenerator, parameters: parameters)
   }
@@ -202,14 +195,10 @@ extension Test {
     _ traits: any TestTrait...,
     arguments collection1: C1, _ collection2: C2,
     parameters: [Parameter] = [],
-    fileID: String = #fileID,
-    filePath: String = #filePath,
-    line: Int = #line,
-    column: Int = #column,
+    sourceLocation: SourceLocation = #currentSourceLocation,
     name: String = #function,
     testFunction: @escaping @Sendable (C1.Element, C2.Element) async throws -> Void
   ) where C1: Collection & Sendable, C1.Element: Sendable, C2: Collection & Sendable, C2.Element: Sendable {
-    let sourceLocation = SourceLocation(fileID: fileID, filePath: filePath, line: line, column: column)
     let caseGenerator = Case.Generator(arguments: collection1, collection2, parameters: parameters, testFunction: testFunction)
     self.init(name: name, displayName: name, traits: traits, sourceLocation: sourceLocation, containingTypeInfo: nil, testCases: caseGenerator, parameters: parameters)
   }
@@ -229,14 +218,10 @@ extension Test {
     _ traits: any TestTrait...,
     arguments zippedCollections: Zip2Sequence<C1, C2>,
     parameters: [Parameter] = [],
-    fileID: String = #fileID,
-    filePath: String = #filePath,
-    line: Int = #line,
-    column: Int = #column,
+    sourceLocation: SourceLocation = #currentSourceLocation,
     name: String = #function,
     testFunction: @escaping @Sendable ((C1.Element, C2.Element)) async throws -> Void
   ) where C1: Collection & Sendable, C1.Element: Sendable, C2: Collection & Sendable, C2.Element: Sendable {
-    let sourceLocation = SourceLocation(fileID: fileID, filePath: filePath, line: line, column: column)
     let caseGenerator = Case.Generator(arguments: zippedCollections, parameters: parameters, testFunction: testFunction)
     self.init(name: name, displayName: name, traits: traits, sourceLocation: sourceLocation, containingTypeInfo: nil, testCases: caseGenerator, parameters: parameters)
   }

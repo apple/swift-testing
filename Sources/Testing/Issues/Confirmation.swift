@@ -92,10 +92,7 @@ extension Confirmation {
 public func confirmation<R>(
   _ comment: Comment? = nil,
   expectedCount: Int = 1,
-  fileID: String = #fileID,
-  filePath: String = #filePath,
-  line: Int = #line,
-  column: Int = #column,
+  sourceLocation: SourceLocation = #currentSourceLocation,
   _ body: (Confirmation) async throws -> R
 ) async rethrows -> R {
   let confirmation = Confirmation()
@@ -106,7 +103,7 @@ public func confirmation<R>(
         .confirmationMiscounted(actual: actualCount, expected: expectedCount),
         comments: Array(comment),
         backtrace: .current(),
-        sourceLocation: SourceLocation(fileID: fileID, filePath: filePath, line: line, column: column)
+        sourceLocation: sourceLocation
       )
     }
   }

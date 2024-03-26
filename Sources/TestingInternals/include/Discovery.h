@@ -55,6 +55,36 @@ SWT_EXTERN void swt_enumerateTypes(
   SWTTypeNameFilter _Nullable nameFilter
 ) SWT_SWIFT_NAME(swt_enumerateTypes(_:_:withNamesMatching:));
 
+/// A function type for functions that produce tests.
+///
+/// This type is fully defined by the Swift module as `__TestGetter`. See the
+/// declaration of that type for more information.
+typedef void (*SWTTestGetter)(void *_Nonnull);
+
+/// The type of callback that is called by `swt_enumerateTestGetters()`.
+///
+/// - Parameters:
+///   - fp: The underlying function pointer to the Swift function that gets the
+///     associated test.
+///   - context: An arbitrary pointer passed by the caller to
+///     `swt_enumerateTestGetters()`.
+typedef void (* SWTTestGetterEnumerator)(SWTTestGetter fp, void *_Null_unspecified context);
+
+/// Enumerate all types known to Swift found in the current process.
+///
+/// - Parameters:
+///   - nameFilter: If not `nullptr`, a filtering function that checks if a type
+///     name is valid before realizing the type.
+///   - body: A function to invoke. `context` is passed to it along with a
+///     type metadata pointer (which can be bitcast to `Any.Type`.)
+///   - context: An arbitrary pointer to pass to `body`.
+///
+/// This function may enumerate the same type more than once (for instance, if
+/// it is present in an image's metadata table multiple times, or if it is an
+/// Objective-C class implemented in Swift.) Callers are responsible for
+/// deduping type metadata pointers passed to `body`.
+SWT_EXTERN void swt_enumerateTestGetters(void *_Null_unspecified context, SWTTestGetterEnumerator body);
+
 SWT_ASSUME_NONNULL_END
 
 #endif

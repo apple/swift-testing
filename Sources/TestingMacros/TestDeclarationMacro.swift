@@ -459,17 +459,15 @@ public struct TestDeclarationMacro: PeerMacro, Sendable {
     result.append(DeclSyntax(thunkDecl))
 
     // Create the expression that returns the Test instance for the function.
-    var testsBody: CodeBlockItemListSyntax = """
-    return [
-      .__function(
-        named: \(literal: functionDecl.completeName),
-        in: \(typealiasExpr),
-        xcTestCompatibleSelector: \(selectorExpr ?? "nil"),
-        \(raw: attributeInfo.functionArgumentList(in: context)),
-        parameters: \(raw: functionDecl.testFunctionParameterList),
-        testFunction: \(thunkDecl.name)
-      )
-    ]
+    var testBody: CodeBlockItemListSyntax = """
+    return .__function(
+      named: \(literal: functionDecl.completeName),
+      in: \(typealiasExpr),
+      xcTestCompatibleSelector: \(selectorExpr ?? "nil"),
+      \(raw: attributeInfo.functionArgumentList(in: context)),
+      parameters: \(raw: functionDecl.testFunctionParameterList),
+      testFunction: \(thunkDecl.name)
+    )
     """
 
     // If this function has arguments, then it can only be referenced (let alone
@@ -486,29 +484,37 @@ public struct TestDeclarationMacro: PeerMacro, Sendable {
       result.append(
         """
         @available(*, deprecated, message: "This property is an implementation detail of the testing library. Do not use it directly.")
-        private \(_staticKeyword(for: typeName)) nonisolated func \(unavailableTestName)() async -> [Testing.Test] {
-          [
-            .__function(
-              named: \(literal: functionDecl.completeName),
-              in: \(typealiasExpr),
-              xcTestCompatibleSelector: \(selectorExpr ?? "nil"),
-              \(raw: attributeInfo.functionArgumentList(in: context)),
-              testFunction: {}
-            )
-          ]
+        private \(_staticKeyword(for: typeName)) nonisolated func \(unavailableTestName)() async -> Testing.Test {
+          .__function(
+            named: \(literal: functionDecl.completeName),
+            in: \(typealiasExpr),
+            xcTestCompatibleSelector: \(selectorExpr ?? "nil"),
+            \(raw: attributeInfo.functionArgumentList(in: context)),
+            testFunction: {}
+          )
         }
         """
       )
 
       // Add availability guards if needed. If none are needed, the extra thunk
       // is unused.
-      testsBody = createSyntaxNode(
+      testBody = createSyntaxNode(
         guardingForAvailabilityOf: functionDecl,
-        beforePerforming: testsBody,
+        beforePerforming: testBody,
         orExitingWith: "return await \(unavailableTestName)()",
         in: context
       )
     }
+    
+    let testGetterFunctionName = context.makeUniqueName(thunking: functionDecl)
+    result.append(
+      """
+      @available(*, deprecated)
+      @Sendable private \(_staticKeyword(for: typeName)) func \(testGetterFunctionName)() async -> Testing.Test {
+        \(raw: testBody)
+      }
+      """
+    )
 
     // The emitted type must be public or the compiler can optimize it away
     // (since it is not actually used anywhere that the compiler can see.)
@@ -523,14 +529,41 @@ public struct TestDeclarationMacro: PeerMacro, Sendable {
     let enumName = context.makeUniqueName(thunking: functionDecl, withPrefix: "__🟠$test_container__function__")
     result.append(
       """
+      #if !hasFeature(SymbolLinkageMarkers)
       @available(*, deprecated, message: "This type is an implementation detail of the testing library. Do not use it directly.")
       @frozen enum \(enumName): Testing.__TestContainer {
         static var __tests: [Testing.Test] {
           get async {
-            \(raw: testsBody)
+            [await \(testGetterFunctionName)()]
           }
         }
       }
+      #endif
+      """
+    )
+
+    let exportedSymbolName = context.makeUniqueName(thunking: functionDecl)
+    result.append(
+      """
+      #if hasFeature(SymbolLinkageMarkers)
+      @available(*, deprecated)
+      private enum \(enumName) {
+        @_used
+        #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
+        @_section("__DATA_CONST,__swift5_tests")
+        #elseif os(Linux)
+        @_section("swift5_tests")
+        #elseif os(Windows)
+        @_section(".sw5test$B")
+        #endif
+        private static let \(exportedSymbolName): Testing.__TestGetter = {
+          let taskGroup = $0.assumingMemoryBound(to: _Concurrency.TaskGroup<[Testing.Test]>.self)
+          taskGroup.pointee.addTask {
+            [await \(testGetterFunctionName)()]
+          }
+        }
+      }
+      #endif
       """
     )
 

@@ -142,6 +142,20 @@ public struct SuiteDeclarationMacro: MemberMacro, PeerMacro, Sendable {
 
     // Parse the @Suite attribute.
     let attributeInfo = AttributeInfo(byParsing: suiteAttribute, on: declaration, in: context)
+    let typeName = declaration.type.tokens(viewMode: .fixedUp).map(\.textWithoutBackticks).joined()
+
+    let testGetterFunctionName = context.makeUniqueName(typeName)
+    result.append(
+      """
+      @available(*, deprecated)
+      @Sendable private static func \(testGetterFunctionName)() async -> Testing.Test {
+        .__type(
+          \(declaration.type.trimmed).self,
+          \(raw: attributeInfo.functionArgumentList(in: context))
+        )
+      }
+      """
+    )
 
     // The emitted type must be public or the compiler can optimize it away
     // (since it is not actually used anywhere that the compiler can see.)
@@ -152,21 +166,44 @@ public struct SuiteDeclarationMacro: MemberMacro, PeerMacro, Sendable {
     // also annotated unavailable, since it's meant only for use by the testing
     // library at runtime. The compiler does not allow combining 'unavailable'
     // and 'deprecated' into a single availability attribute: rdar://111329796
-    let typeName = declaration.type.tokens(viewMode: .fixedUp).map(\.textWithoutBackticks).joined()
     let enumName = context.makeUniqueName("__🟠$test_container__suite__\(typeName)")
     result.append(
       """
+      #if !hasFeature(SymbolLinkageMarkers)
       @available(*, deprecated, message: "This type is an implementation detail of the testing library. Do not use it directly.")
       @frozen enum \(enumName): Testing.__TestContainer {
         static var __tests: [Testing.Test] {
-          get async {[
-            .__type(
-              \(declaration.type.trimmed).self,
-              \(raw: attributeInfo.functionArgumentList(in: context))
-            )
-          ]}
+          get async {
+            [await \(testGetterFunctionName)()]
+          }
         }
       }
+      #endif
+      """
+    )
+
+    let exportedSymbolName = context.makeUniqueName(typeName)
+    result.append(
+      """
+      #if hasFeature(SymbolLinkageMarkers)
+      @available(*, deprecated)
+      private enum \(enumName) {
+        @_used
+        #if os(macOS) || os(iOS) || os(watchOS) || os(tvOS)
+        @_section("__DATA_CONST,__swift5_tests")
+        #elseif os(Linux)
+        @_section("swift5_tests")
+        #elseif os(Windows)
+        @_section(".sw5test$B")
+        #endif
+        private static let \(exportedSymbolName): Testing.__TestGetter = {
+          let taskGroup = $0.assumingMemoryBound(to: _Concurrency.TaskGroup<[Testing.Test]>.self)
+          taskGroup.pointee.addTask {
+            [await \(testGetterFunctionName)()]
+          }
+        }
+      }
+      #endif
       """
     )
 

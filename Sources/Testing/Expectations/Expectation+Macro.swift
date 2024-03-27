@@ -463,7 +463,7 @@ public enum ExitCondition: Sendable {
   /// | Linux | `<signal.h>` |
   /// | Windows | [`<signal.h>`](https://learn.microsoft.com/en-us/cpp/c-runtime-library/signal-constants) |
 #if os(Windows)
-  @available(*, message: "On Windows, use .failure instead")
+  @available(*, unavailable, message: "On Windows, use .failure instead.")
 #endif
   case signal(_ signal: CInt)
 }

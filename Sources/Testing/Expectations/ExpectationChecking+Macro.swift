@@ -1238,6 +1238,7 @@ public func __checkClosureCall(
       isRequired: isRequired,
       sourceLocation: sourceLocation
     )
+#if !os(Windows)
   case let .signal(expectedSignal):
     return __checkValue(
       wasSignalled && expectedSignal == actualExitCode,
@@ -1247,6 +1248,7 @@ public func __checkClosureCall(
       isRequired: isRequired,
       sourceLocation: sourceLocation
     )
+#endif
   }
 }
 #endif

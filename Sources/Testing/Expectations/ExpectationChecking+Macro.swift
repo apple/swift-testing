@@ -1079,7 +1079,7 @@ public func __checkClosureCall<R>(
 
 // MARK: - Exit tests
 
-#if canImport(Foundation) && (os(macOS) || os(Linux) || os(Windows))
+#if SWIFT_PM_SUPPORTS_SWIFT_TESTING && canImport(Foundation) && (os(macOS) || os(Linux) || os(Windows))
 /// A type that provides task-local context for exit tests.
 private enum _ExitTestContext {
   /// Whether or not the current process and task are running an exit test.

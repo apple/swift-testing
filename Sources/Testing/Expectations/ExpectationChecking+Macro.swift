@@ -1177,12 +1177,27 @@ public func __checkClosureCall(
       "--filter",
       escapedTestID,
     ]
+    // By default, inherit the environment from the parent process.
+    var childEnvironment: [String: String]? = nil
+#if os(Linux)
+    if Environment.variable(named: "SWIFT_BACKTRACE") == nil {
+      // Disable interactive backtraces unless explicitly enabled to reduce
+      // the noise level during the exit test. Only needed on Linux.
+      childEnvironment = ProcessInfo.processInfo.environment
+      childEnvironment?["SWIFT_BACKTRACE"] = "enable=no"
+    }
+#endif
 
     (actualExitCode, wasSignalled) = try await withCheckedThrowingContinuation { continuation in
       do {
-        _ = try Process.run(childProcessURL, arguments: childArguments) { process in
+        let process = Process()
+        process.executableURL = childProcessURL
+        process.arguments = childArguments
+        process.environment = childEnvironment
+        process.terminationHandler = { process in
           continuation.resume(returning: (process.terminationStatus, process.terminationReason == .uncaughtSignal))
         }
+        try process.run()
       } catch {
         continuation.resume(throwing: error)
       }

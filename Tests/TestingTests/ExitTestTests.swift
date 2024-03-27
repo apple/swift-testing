@@ -29,8 +29,8 @@ private import TestingInternals
       exit(123)
     }
 #if !os(Windows)
-    await #expect(exitsWith: .signal(SIGABRT)) {
-      _ = kill(getpid(), SIGABRT)
+    await #expect(exitsWith: .signal(SIGKILL)) {
+      _ = kill(getpid(), SIGKILL)
     }
     await #expect(exitsWith: .signal(SIGABRT)) {
       abort()

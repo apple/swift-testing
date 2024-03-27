@@ -1193,7 +1193,9 @@ public func __checkClosureCall(
         let process = Process()
         process.executableURL = childProcessURL
         process.arguments = childArguments
-        process.environment = childEnvironment
+        if let childEnvironment {
+          process.environment = childEnvironment
+        }
         process.terminationHandler = { process in
           continuation.resume(returning: (process.terminationStatus, process.terminationReason == .uncaughtSignal))
         }

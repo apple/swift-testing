@@ -28,21 +28,27 @@ private import TestingInternals
     await #expect(exitsWith: .exitCode(123)) {
       exit(123)
     }
-#if SWT_TARGET_OS_APPLE || os(Linux)
+#if !os(Windows)
     await #expect(exitsWith: .signal(SIGABRT)) {
       _ = kill(getpid(), SIGABRT)
     }
-#endif
     await #expect(exitsWith: .signal(SIGABRT)) {
       abort()
     }
+#endif
   }
 
   @TaskLocal
   static var isTestingFailingExitTests = false
 
   @Test("Exit tests (failing)") func failing() async {
-    await confirmation("Exit tests failed", expectedCount: 6) { failed in
+    let expectedCount: Int
+#if os(Windows)
+    expectedCount = 4
+#else
+    expectedCount = 6
+#endif
+    await confirmation("Exit tests failed", expectedCount: expectedCount) { failed in
       var configuration = Configuration()
       configuration.eventHandler = { event, _ in
         if case .issueRecorded = event.kind {
@@ -72,14 +78,16 @@ func failingExitTests() async {
   await #expect(exitsWith: .exitCode(123)) {
     exit(0)
   }
-  await #expect(exitsWith: .signal(123)) {
-    exit(123)
-  }
   await #expect(exitsWith: .exitCode(SIGABRT)) {
     abort()
+  }
+#if !os(Windows)
+  await #expect(exitsWith: .signal(123)) {
+    exit(123)
   }
   await #expect(exitsWith: .signal(SIGSEGV)) {
     abort() // sends SIGABRT, not SIGSEGV
   }
+#endif
 }
 #endif

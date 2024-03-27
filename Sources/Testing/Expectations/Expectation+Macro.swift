@@ -462,6 +462,9 @@ public enum ExitCondition: Sendable {
   /// | macOS | [`<signal.h>`](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/signal.3.html) |
   /// | Linux | `<signal.h>` |
   /// | Windows | [`<signal.h>`](https://learn.microsoft.com/en-us/cpp/c-runtime-library/signal-constants) |
+#if os(Windows)
+  @available(*, message: "On Windows, use .failure instead")
+#endif
   case signal(_ signal: CInt)
 }
 

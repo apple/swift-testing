@@ -87,3 +87,24 @@ func diagnoseIssuesWithTags(in traitExprs: [ExprSyntax], addedTo attribute: Attr
     }
   }
 }
+
+#if canImport(SwiftSyntax600)
+/// Diagnose issues with the lexical context containing a declaration.
+///
+/// - Parameters:
+///   - decl: The declaration to inspect.
+///   - testAttribute: The `@Test` attribute applied to `decl`.
+///   - context: The macro context in which the expression is being parsed.
+///
+/// - Returns: An array of zero or more diagnostic messages related to the
+///   lexical context containing `decl`.
+func diagnoseIssuesWithLexicalContext(
+  containing decl: some DeclSyntaxProtocol,
+  attribute: AttributeSyntax,
+  in context: some MacroExpansionContext
+) -> [DiagnosticMessage] {
+  context.lexicalContext
+    .filter { !$0.isProtocol((any DeclGroupSyntax).self) }
+    .map { .containingNodeUnsupported($0, whenUsing: attribute) }
+}
+#endif

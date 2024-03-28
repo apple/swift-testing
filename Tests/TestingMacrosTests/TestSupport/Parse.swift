@@ -35,8 +35,17 @@ func parse(_ sourceCode: String, activeMacros activeMacroNames: [String] = [], r
   }
   let operatorTable = OperatorTable.standardOperators
   let originalSyntax = try operatorTable.foldAll(Parser.parse(source: sourceCode))
+#if canImport(SwiftSyntax600)
+  let context = BasicMacroExpansionContext(lexicalContext: [], expansionDiscriminator: "", sourceFiles: [:])
+  let syntax = try operatorTable.foldAll(
+    originalSyntax.expand(macros: activeMacros) { syntax in
+      BasicMacroExpansionContext(sharingWith: context, lexicalContext: syntax.allMacroLexicalContexts())
+    }
+  )
+#else
   let context = BasicMacroExpansionContext(expansionDiscriminator: "", sourceFiles: [:])
   let syntax = try operatorTable.foldAll(originalSyntax.expand(macros: activeMacros, in: context))
+#endif
   var sourceCode = String(describing: syntax.formatted().trimmed)
   if removeWhitespace {
     sourceCode = sourceCode.filter { !$0.isWhitespace }

@@ -541,7 +541,7 @@ final class IssueTests: XCTestCase {
 
   func testErrorCheckingWithExpect_Mismatching() async throws {
     let expectationFailed = expectation(description: "Expectation failed")
-    expectationFailed.expectedFulfillmentCount = 11
+    expectationFailed.expectedFulfillmentCount = 13
 
     var configuration = Configuration()
     configuration.eventHandler = { event, _ in
@@ -599,6 +599,12 @@ final class IssueTests: XCTestCase {
       func nonVoidReturning() throws -> Int { 0 }
       #expect(throws: MyError.self) {
         try nonVoidReturning()
+      }
+      #expect {
+        throw MyError()
+      } throws: { error in
+        let parameterizedError = try #require(error as? MyParameterizedError)
+        return parameterizedError.index == 123
       }
     }.run(configuration: configuration)
 
@@ -702,7 +708,7 @@ final class IssueTests: XCTestCase {
 
   func testErrorCheckingWithExpectAsync_Mismatching() async throws {
     let expectationFailed = expectation(description: "Expectation failed")
-    expectationFailed.expectedFulfillmentCount = 11
+    expectationFailed.expectedFulfillmentCount = 13
 
     var configuration = Configuration()
     configuration.eventHandler = { event, _ in
@@ -752,6 +758,12 @@ final class IssueTests: XCTestCase {
       func nonVoidReturning() async throws -> Int { 0 }
       await #expect(throws: MyError.self) {
         try await nonVoidReturning()
+      }
+      await #expect { () async throws in
+        throw MyError()
+      } throws: { error in
+        let parameterizedError = try #require(error as? MyParameterizedError)
+        return parameterizedError.index == 123
       }
     }.run(configuration: configuration)
 

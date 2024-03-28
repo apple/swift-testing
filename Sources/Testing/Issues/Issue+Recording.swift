@@ -105,7 +105,11 @@ extension Issue {
     issue.record()
     return issue
   }
+}
 
+// MARK: - Recording issues for errors
+
+extension Issue {
   /// Record a new issue when a running test unexpectedly catches an error.
   ///
   /// - Parameters:
@@ -133,7 +137,97 @@ extension Issue {
     issue.record()
     return issue
   }
+
+  /// Catch any error thrown from a closure and record it as an issue instead of
+  /// allowing it to propagate to the caller.
+  ///
+  /// - Parameters:
+  ///   - sourceLocation: The source location to attribute any caught error to.
+  ///   - configuration: The test configuration to use when recording an issue.
+  ///     The default value is ``Configuration/current``.
+  ///   - body: A closure that might throw an error.
+  ///
+  /// - Returns: The issue representing the caught error, if any error was
+  ///   caught, otherwise `nil`.
+  @discardableResult
+  static func recordingErrors(
+    at sourceLocation: SourceLocation,
+    configuration: Configuration? = nil,
+    _ body: () throws -> Void
+  ) -> (any Error)? {
+    // Ensure that we are capturing backtraces for errors before we start
+    // expecting to see them.
+    Backtrace.startCachingForThrownErrors()
+    defer {
+      Backtrace.flushThrownErrorCache()
+    }
+
+    do {
+      try body()
+    } catch is ExpectationFailedError {
+      // This error is thrown by expectation checking functions to indicate a
+      // condition evaluated to `false`. Those functions record their own issue,
+      // so we don't need to record another one redundantly.
+    } catch {
+      Issue.record(
+        .errorCaught(error),
+        comments: [],
+        backtrace: Backtrace(forFirstThrowOf: error),
+        sourceLocation: sourceLocation,
+        configuration: configuration
+      )
+      return error
+    }
+
+    return nil
+  }
+
+  /// Catch any error thrown from an asynchronous closure and record it as an
+  /// issue instead of allowing it to propagate to the caller.
+  ///
+  /// - Parameters:
+  ///   - sourceLocation: The source location to attribute any caught error to.
+  ///   - configuration: The test configuration to use when recording an issue.
+  ///     The default value is ``Configuration/current``.
+  ///   - body: An asynchronous closure that might throw an error.
+  ///
+  /// - Returns: The issue representing the caught error, if any error was
+  ///   caught, otherwise `nil`.
+  @discardableResult
+  static func recordingErrors(
+    at sourceLocation: SourceLocation,
+    configuration: Configuration? = nil,
+    _ body: () async throws -> Void
+  ) async -> (any Error)? {
+    // Ensure that we are capturing backtraces for errors before we start
+    // expecting to see them.
+    Backtrace.startCachingForThrownErrors()
+    defer {
+      Backtrace.flushThrownErrorCache()
+    }
+
+    do {
+      try await body()
+    } catch is ExpectationFailedError {
+      // This error is thrown by expectation checking functions to indicate a
+      // condition evaluated to `false`. Those functions record their own issue,
+      // so we don't need to record another one redundantly.
+    } catch {
+      Issue.record(
+        .errorCaught(error),
+        comments: [],
+        backtrace: Backtrace(forFirstThrowOf: error),
+        sourceLocation: sourceLocation,
+        configuration: configuration
+      )
+      return error
+    }
+
+    return nil
+  }
 }
+
+// MARK: - Debugging failures
 
 /// A function called by the testing library when a failure occurs.
 ///

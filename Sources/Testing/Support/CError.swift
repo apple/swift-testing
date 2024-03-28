@@ -8,7 +8,7 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
-private import TestingInternals
+internal import TestingInternals
 
 /// A type representing an error from a C function such as `fopen()`.
 ///
@@ -19,6 +19,18 @@ private import TestingInternals
 struct CError: Error, RawRepresentable {
   var rawValue: CInt
 }
+
+#if os(Windows)
+/// A type representing a Windows error from a Win32 API function.
+///
+/// Values of this type are in the domain described by Microsoft
+/// [here](https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes).
+///
+/// This type is not part of the public interface of the testing library.
+struct Win32Error: Error, RawRepresentable {
+  var rawValue: DWORD
+}
+#endif
 
 // MARK: - CustomStringConvertible
 

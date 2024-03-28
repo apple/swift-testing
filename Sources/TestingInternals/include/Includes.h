@@ -27,6 +27,9 @@
 /// - Note: Avoid including headers that aren't actually used.
 
 #include <errno.h>
+#if __has_include(<signal.h>)
+#include <signal.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -58,6 +61,10 @@
 
 #if __has_include(<pty.h>)
 #include <pty.h>
+#endif
+
+#if __has_include(<limits.h>)
+#include <limits.h>
 #endif
 
 #if defined(_WIN32)

@@ -8,6 +8,8 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
+private import TestingInternals
+
 // MARK: Boolean expression checking
 
 /// Check that an expectation has passed after a condition has been evaluated.
@@ -402,4 +404,224 @@
   sourceLocation: SourceLocation = SourceLocation(),
   performing expression: () async throws -> R,
   throws errorMatcher: (any Error) async throws -> Bool
+) = #externalMacro(module: "TestingMacros", type: "RequireMacro")
+
+// MARK: - Exit tests
+
+/// An enumeration describing possible conditions under which an exit test will
+/// succeed or fail.
+///
+/// Values of this type can be passed to
+/// ``expect(exitsWith:_:sourceLocation:performing:)`` or
+/// ``require(exitsWith:_:sourceLocation:performing:)`` to configure which exit
+/// statuses should be considered successful.
+@_spi(Experimental)
+#if SWT_NO_EXIT_TESTS
+@available(*, unavailable, message: "Exit tests are not available on this platform.")
+#elseif !SWIFT_PM_SUPPORTS_SWIFT_TESTING
+@available(*, unavailable, message: "A newer version of Swift Package Manager is needed to run exit tests.")
+#endif
+public enum ExitCondition: Sendable {
+  /// The process terminated successfully with status `EXIT_SUCCESS`.
+  public static var success: Self { .exitCode(EXIT_SUCCESS) }
+
+  /// The process terminated abnormally with any status other than
+  /// `EXIT_SUCCESS` or with any signal.
+  case failure
+
+  /// The process terminated with the given exit code.
+  ///
+  /// - Parameters:
+  ///   - exitCode: The exit code yielded by the process.
+  ///
+  /// The C programming language defines two [standard exit codes](https://en.cppreference.com/w/c/program/EXIT_status),
+  /// `EXIT_SUCCESS` and `EXIT_FAILURE`. Platforms may additionally define their
+  /// own non-standard exit codes:
+  ///
+  /// | Platform | Header |
+  /// |-|-|
+  /// | macOS | [`<stdlib.h>`](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/signal.3.html), [`<sysexits.h>`](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/sysexits.3.html) |
+  /// | Linux | `<stdlib.h>`, `<sysexits.h>` |
+  /// | Windows | [`<stdlib.h>`](https://learn.microsoft.com/en-us/cpp/c-runtime-library/exit-success-exit-failure) |
+  ///
+  /// On POSIX-like systems including macOS and Linux, only the low unsigned 8
+  /// bits (0&ndash;255) of the exit code are reliably preserved and reported to
+  /// a parent process.
+  case exitCode(_ exitCode: CInt)
+
+  /// The process terminated with the given signal.
+  ///
+  /// - Parameters:
+  ///   - signal: The signal that terminated the process.
+  ///
+  /// The C programming language defines a number of [standard signals](https://en.cppreference.com/w/c/program/SIG_types).
+  /// Platforms may additionally define their own non-standard signal codes:
+  ///
+  /// | Platform | Header |
+  /// |-|-|
+  /// | macOS | [`<signal.h>`](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/signal.3.html) |
+  /// | Linux | `<signal.h>` |
+  /// | Windows | [`<signal.h>`](https://learn.microsoft.com/en-us/cpp/c-runtime-library/signal-constants) |
+#if os(Windows)
+  @available(*, unavailable, message: "On Windows, use .failure instead.")
+#endif
+  case signal(_ signal: CInt)
+}
+
+/// Check that an expression causes the process to terminate in a given fashion.
+///
+/// - Parameters:
+///   - exitCondition: The expected exit condition.
+///   - comment: A comment describing the expectation.
+///   - sourceLocation: The source location to which recorded expectations and
+///     issues should be attributed.
+///   - expression: The expression to be evaluated.
+///
+/// Use this overload of `#expect()` when an expression will cause the current
+/// process to terminate and the nature of that termination will determine if
+/// the test passes or fails. For example, to test that calling `fatalError()`
+/// causes a process to terminate:
+///
+/// ```swift
+/// await #expect(exitsWith: .failure) {
+///   fatalError()
+/// }
+/// ```
+///
+/// - Note: A call to this expectation macro is called an "exit test."
+///
+/// ## How exit tests are run
+///
+/// When an exit test is performed at runtime, the testing library starts a new
+/// process with the same executable as the current process. The current task is
+/// then suspended (as with `await`) and waits for the child process to
+/// terminate. `expression` is not called in the parent process.
+///
+/// Meanwhile, in the child process, the current test function is run again, but
+/// when the exit test is performed again, `expression` is finally called. If
+/// `expression` does not terminate the child process, the remainder of the test
+/// is allowed to execute. If the test function contains other exit tests, they
+/// are ignored.
+///
+/// The standard I/O streams in the child process are forwarded to those of the
+/// current process.
+///
+/// Once the child process terminates, the parent process resumes and compares
+/// its exit status against `exitCondition`. If they match, the exit test has
+/// passed; otherwise, it has failed and an issue is recorded.
+///
+/// ## Runtime constraints
+///
+/// Take care not to place an exit test within a loop. At runtime, the loop will
+/// be iterated in the parent process and then in each child process. For
+/// example, the following loop will fail because each child process will call
+/// `exit(0)` and will not have a chance to call `exit(n)` when `n > 0`:
+///
+/// ```swift
+/// for n in 0 ..< 5 {
+///   await #expect(exitsWith: .exitCode(CInt(n))) { // expects 0, 1, ...
+///     exit(CInt(n)) // always called with 0 first
+///   }
+/// }
+/// ```
+///
+/// Additionally, an exit test:
+///
+/// - _must_ run within a test function (or a function called by one);
+/// - cannot run within another exit test;
+/// - cannot run within a parameterized test; and
+/// - cannot be run on a detached child task, a dispatch queue, or a background
+///   thread.
+@_spi(Experimental)
+#if SWT_NO_EXIT_TESTS
+@available(*, unavailable, message: "Exit tests are not available on this platform.")
+#elseif !SWIFT_PM_SUPPORTS_SWIFT_TESTING
+@available(*, unavailable, message: "A newer version of Swift Package Manager is needed to run exit tests.")
+#endif
+@freestanding(expression) public macro expect(
+  exitsWith exitCondition: ExitCondition,
+  _ comment: @autoclosure () -> Comment? = nil,
+  sourceLocation: SourceLocation = SourceLocation(),
+  performing expression: () async throws -> Void
+) = #externalMacro(module: "TestingMacros", type: "ExpectMacro")
+
+/// Check that an expression causes the process to terminate in a given fashion
+/// and throw an error if it did not.
+///
+/// - Parameters:
+///   - exitCondition: The expected exit condition.
+///   - comment: A comment describing the expectation.
+///   - sourceLocation: The source location to which recorded expectations and
+///     issues should be attributed.
+///   - expression: The expression to be evaluated.
+///
+/// - Throws: An instance of ``ExpectationFailedError`` if `condition` evaluates
+///   to `false`.
+///
+/// Use this overload of `#expect()` when an expression will cause the current
+/// process to terminate and the nature of that termination will determine if
+/// the test passes or fails. For example, to test that calling `fatalError()`
+/// causes a process to terminate:
+///
+/// ```swift
+/// try await #expect(exitsWith: .failure) {
+///   fatalError()
+/// }
+/// ```
+///
+/// - Note: A call to this expectation macro is called an "exit test."
+///
+/// ## How exit tests are run
+///
+/// When an exit test is performed at runtime, the testing library starts a new
+/// process with the same executable as the current process. The current task is
+/// then suspended (as with `await`) and waits for the child process to
+/// terminate. `expression` is not called in the parent process.
+///
+/// Meanwhile, in the child process, the current test function is run again, but
+/// when the exit test is performed again, `expression` is finally called. If
+/// `expression` does not terminate the child process, the remainder of the test
+/// is allowed to execute. If the test function contains other exit tests, they
+/// are ignored.
+///
+/// The standard I/O streams in the child process are forwarded to those of the
+/// current process.
+///
+/// Once the child process terminates, the parent process resumes and compares
+/// its exit status against `exitCondition`. If they match, the exit test has
+/// passed; otherwise, it has failed and an issue is recorded.
+///
+/// ## Runtime constraints
+///
+/// Take care not to place an exit test within a loop. At runtime, the loop will
+/// be iterated in the parent process and then in each child process. For
+/// example, the following loop will fail because each child process will call
+/// `exit(0)` and will not have a chance to call `exit(n)` when `n > 0`:
+///
+/// ```swift
+/// for n in 0 ..< 5 {
+///   try await #require(exitsWith: .exitCode(CInt(n))) { // expects 0, 1, ...
+///     exit(CInt(n)) // always called with 0 first
+///   }
+/// }
+/// ```
+///
+/// Additionally, an exit test:
+///
+/// - _must_ run within a test function (or a function called by one);
+/// - cannot run within another exit test;
+/// - cannot run within a parameterized test; and
+/// - cannot be run on a detached child task, a dispatch queue, or a background
+///   thread.
+@_spi(Experimental)
+#if SWT_NO_EXIT_TESTS
+@available(*, unavailable, message: "Exit tests are not available on this platform.")
+#elseif !SWIFT_PM_SUPPORTS_SWIFT_TESTING
+@available(*, unavailable, message: "A newer version of Swift Package Manager is needed to run exit tests.")
+#endif
+@freestanding(expression) public macro require(
+  exitsWith exitCondition: ExitCondition,
+  _ comment: @autoclosure () -> Comment? = nil,
+  sourceLocation: SourceLocation = SourceLocation(),
+  performing expression: () async throws -> Void
 ) = #externalMacro(module: "TestingMacros", type: "RequireMacro")

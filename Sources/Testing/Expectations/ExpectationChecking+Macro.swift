@@ -8,6 +8,11 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
+private import TestingInternals
+#if canImport(Foundation) && (os(macOS) || os(Linux) || os(Windows))
+private import Foundation
+#endif
+
 /// Check that an expectation has passed after a condition has been evaluated
 /// and throw an error if it failed.
 ///
@@ -1071,6 +1076,176 @@ public func __checkClosureCall<R>(
     sourceLocation: sourceLocation
   )
 }
+
+// MARK: - Exit tests
+
+#if !SWT_NO_EXIT_TESTS
+/// Get the source location of the exit test this process should run, if any.
+///
+/// - Parameters:
+///   - args: The command-line arguments to this process.
+///
+/// - Returns: The source location of the exit test this process should run, or
+///   `nil` if it is not expected to run any.
+func currentExitTestSourceLocation(withArguments args: [String] = CommandLine.arguments()) -> SourceLocation? {
+  if let runArgIndex = args.firstIndex(of: "--run-exit-test-body-at"), runArgIndex < args.endIndex {
+    if let sourceLocationData = args[args.index(after: runArgIndex)].data(using: .utf8) {
+      return try? JSONDecoder().decode(SourceLocation.self, from: sourceLocationData)
+    }
+  }
+  return nil
+}
+
+#if SWIFT_PM_SUPPORTS_SWIFT_TESTING
+/// A type that provides task-local context for exit tests.
+private enum _ExitTestContext {
+  /// Whether or not the current process and task are running an exit test.
+  @TaskLocal
+  static var isRunning = false
+}
+
+/// Whether or not the current process is running an exit test.
+///
+/// The value of this property is `false` for the initially-executed test
+/// process, and true for the child processes it creates when running exit
+/// tests.
+@_spi(Experimental)
+public var isExitTestRunning: Bool {
+  currentExitTestSourceLocation() != nil
+}
+
+/// Check that an expression always exits (terminates the current process) with
+/// a given status.
+///
+/// This overload is used for `await #expect(exitsWith:) { }` invocations.
+///
+/// - Warning: This function is used to implement the `#expect()` and
+///   `#require()` macros. Do not call it directly.
+@_spi(Experimental)
+public func __checkClosureCall(
+  exitsWith exitCondition: ExitCondition,
+  performing body: () async -> Void,
+  expression: Expression,
+  comments: @autoclosure () -> [Comment],
+  isRequired: Bool,
+  sourceLocation: SourceLocation
+) async -> Result<Void, any Error> {
+  // FIXME: use lexicalContext to capture this misuse at compile time.
+  precondition(!_ExitTestContext.isRunning, "Running an exit test within another exit test is unsupported.")
+
+  if let requestedSourceLocation = currentExitTestSourceLocation() {
+    return if sourceLocation == requestedSourceLocation {
+      await _ExitTestContext.$isRunning.withValue(true) {
+        await .success(body())
+      }
+    } else {
+      // This is some other expectation in the same test. Ignore it.
+      .success(())
+    }
+  }
+
+  // FIXME: use lexicalContext to capture these misuses at compile time.
+  guard let test = Test.current else {
+    preconditionFailure("A test must be running on the current task to use #expect(exitsWith:).")
+  }
+  precondition(!test.isParameterized, "Running an exit test within a parameterized test function is unsupported.")
+
+  let actualExitCode: Int32
+  let wasSignalled: Bool
+  do {
+    let childProcessURL: URL = try URL(fileURLWithPath: CommandLine.executablePath, isDirectory: false)
+    let escapedTestID: String = String(describing: test.id).lazy
+      .map { character in
+        if character.isLetter || character.isWholeNumber {
+          String(character)
+        } else {
+          #"\\#(character)"#
+        }
+      }.joined()
+    let childArguments = [
+      "--run-exit-test-body-at",
+      try String(data: JSONEncoder().encode(sourceLocation), encoding: .utf8)!,
+      "--filter",
+      escapedTestID,
+    ]
+    // By default, inherit the environment from the parent process.
+    var childEnvironment: [String: String]? = nil
+#if os(Linux)
+    if Environment.variable(named: "SWIFT_BACKTRACE") == nil {
+      // Disable interactive backtraces unless explicitly enabled to reduce
+      // the noise level during the exit test. Only needed on Linux.
+      childEnvironment = ProcessInfo.processInfo.environment
+      childEnvironment?["SWIFT_BACKTRACE"] = "enable=no"
+    }
+#endif
+
+    (actualExitCode, wasSignalled) = try await withCheckedThrowingContinuation { continuation in
+      do {
+        let process = Process()
+        process.executableURL = childProcessURL
+        process.arguments = childArguments
+        if let childEnvironment {
+          process.environment = childEnvironment
+        }
+        process.terminationHandler = { process in
+          continuation.resume(returning: (process.terminationStatus, process.terminationReason == .uncaughtSignal))
+        }
+        try process.run()
+      } catch {
+        continuation.resume(throwing: error)
+      }
+    }
+  } catch {
+    // An error here would indicate a problem finding the process' path,
+    // constructing arguments to the subprocess, or spawning the subprocess.
+    // These are not expected to be common issues, however they would constitute
+    // a failure of the test infrastructure rather than the test itself and
+    // should not cause the test to terminate early.
+    Issue.record(.errorCaught(error), comments: comments(), backtrace: .current(), sourceLocation: sourceLocation)
+    return __checkValue(
+      false,
+      expression: expression,
+      comments: comments(),
+      isRequired: isRequired,
+      sourceLocation: sourceLocation
+    )
+  }
+
+  // TODO: break out expected/actual values more cleanly
+  switch exitCondition {
+  case .failure:
+    return __checkValue(
+      wasSignalled || EXIT_SUCCESS != actualExitCode,
+      expression: expression,
+      expressionWithCapturedRuntimeValues: expression.capturingRuntimeValues(actualExitCode),
+      comments: comments(),
+      isRequired: isRequired,
+      sourceLocation: sourceLocation
+    )
+  case let .exitCode(expectedExitCode):
+    return __checkValue(
+      !wasSignalled && expectedExitCode == actualExitCode,
+      expression: expression,
+      expressionWithCapturedRuntimeValues: expression.capturingRuntimeValues(actualExitCode),
+      comments: comments(),
+      isRequired: isRequired,
+      sourceLocation: sourceLocation
+    )
+#if !os(Windows)
+  case let .signal(expectedSignal):
+    return __checkValue(
+      wasSignalled && expectedSignal == actualExitCode,
+      expression: expression,
+      expressionWithCapturedRuntimeValues: expression.capturingRuntimeValues(actualExitCode),
+      comments: comments(),
+      isRequired: isRequired,
+      sourceLocation: sourceLocation
+    )
+#endif
+  }
+}
+#endif
+#endif
 
 // MARK: -
 

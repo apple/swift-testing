@@ -58,7 +58,7 @@ private import Foundation
 
       // TODO: lower this flag directly to event handler once we remove XCTestScaffold
       let outputToConsole: Bool
-#if SWIFT_PM_SUPPORTS_SWIFT_TESTING && canImport(Foundation) && (os(macOS) || os(Linux) || os(Windows))
+#if !SWT_NO_EXIT_TESTS
       outputToConsole = currentExitTestSourceLocation(withArguments: args) == nil
 #else
       outputToConsole = true

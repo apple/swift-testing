@@ -11,7 +11,7 @@
 @testable @_spi(Experimental) @_spi(ForToolsIntegrationOnly) import Testing
 private import TestingInternals
 
-#if SWIFT_PM_SUPPORTS_SWIFT_TESTING && canImport(Foundation) && (os(macOS) || os(Linux) || os(Windows))
+#if !SWT_NO_EXIT_TESTS && SWIFT_PM_SUPPORTS_SWIFT_TESTING
 @Suite("Exit test tests") struct ExitTestTests {
   @Test("Exit tests (passing)") func passing() async {
     await #expect(exitsWith: .failure) {

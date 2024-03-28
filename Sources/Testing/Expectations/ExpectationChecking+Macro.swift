@@ -1079,14 +1079,7 @@ public func __checkClosureCall<R>(
 
 // MARK: - Exit tests
 
-#if SWIFT_PM_SUPPORTS_SWIFT_TESTING && canImport(Foundation) && (os(macOS) || os(Linux) || os(Windows))
-/// A type that provides task-local context for exit tests.
-private enum _ExitTestContext {
-  /// Whether or not the current process and task are running an exit test.
-  @TaskLocal
-  static var isRunning = false
-}
-
+#if !SWT_NO_EXIT_TESTS
 /// Get the source location of the exit test this process should run, if any.
 ///
 /// - Parameters:
@@ -1103,17 +1096,20 @@ func currentExitTestSourceLocation(withArguments args: [String] = CommandLine.ar
   return nil
 }
 
+#if SWIFT_PM_SUPPORTS_SWIFT_TESTING
+/// A type that provides task-local context for exit tests.
+private enum _ExitTestContext {
+  /// Whether or not the current process and task are running an exit test.
+  @TaskLocal
+  static var isRunning = false
+}
+
 /// Whether or not the current process is running an exit test.
 ///
 /// The value of this property is `false` for the initially-executed test
 /// process, and true for the child processes it creates when running exit
 /// tests.
 @_spi(Experimental)
-#if !(os(macOS) || os(Linux) || os(Windows))
-@available(*, unavailable, message: "Exit tests are not available on this platform.")
-#elseif !SWIFT_PM_SUPPORTS_SWIFT_TESTING
-@available(*, unavailable, message: "A newer version of Swift Package Manager is needed to run exit tests.")
-#endif
 public var isExitTestRunning: Bool {
   currentExitTestSourceLocation() != nil
 }
@@ -1126,11 +1122,6 @@ public var isExitTestRunning: Bool {
 /// - Warning: This function is used to implement the `#expect()` and
 ///   `#require()` macros. Do not call it directly.
 @_spi(Experimental)
-#if !(os(macOS) || os(Linux) || os(Windows))
-@available(*, unavailable, message: "Exit tests are not available on this platform.")
-#elseif !SWIFT_PM_SUPPORTS_SWIFT_TESTING
-@available(*, unavailable, message: "A newer version of Swift Package Manager is needed to run exit tests.")
-#endif
 public func __checkClosureCall(
   exitsWith exitCondition: ExitCondition,
   performing body: () async -> Void,
@@ -1253,6 +1244,7 @@ public func __checkClosureCall(
 #endif
   }
 }
+#endif
 #endif
 
 // MARK: -

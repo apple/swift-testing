@@ -416,7 +416,7 @@ private import TestingInternals
 /// ``require(exitsWith:_:sourceLocation:performing:)`` to configure which exit
 /// statuses should be considered successful.
 @_spi(Experimental)
-#if !(os(macOS) || os(Linux) || os(Windows))
+#if SWT_NO_EXIT_TESTS
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #elseif !SWIFT_PM_SUPPORTS_SWIFT_TESTING
 @available(*, unavailable, message: "A newer version of Swift Package Manager is needed to run exit tests.")
@@ -533,7 +533,7 @@ public enum ExitCondition: Sendable {
 /// - cannot be run on a detached child task, a dispatch queue, or a background
 ///   thread.
 @_spi(Experimental)
-#if !(os(macOS) || os(Linux) || os(Windows))
+#if SWT_NO_EXIT_TESTS
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #elseif !SWIFT_PM_SUPPORTS_SWIFT_TESTING
 @available(*, unavailable, message: "A newer version of Swift Package Manager is needed to run exit tests.")
@@ -614,7 +614,7 @@ public enum ExitCondition: Sendable {
 /// - cannot be run on a detached child task, a dispatch queue, or a background
 ///   thread.
 @_spi(Experimental)
-#if !(os(macOS) || os(Linux) || os(Windows))
+#if SWT_NO_EXIT_TESTS
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #elseif !SWIFT_PM_SUPPORTS_SWIFT_TESTING
 @available(*, unavailable, message: "A newer version of Swift Package Manager is needed to run exit tests.")

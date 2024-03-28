@@ -27,7 +27,9 @@
 /// - Note: Avoid including headers that aren't actually used.
 
 #include <errno.h>
+#if __has_include(<signal.h>)
 #include <signal.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

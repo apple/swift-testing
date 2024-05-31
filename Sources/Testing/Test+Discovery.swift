@@ -10,8 +10,10 @@
 
 #if SWT_BUILDING_WITH_CMAKE
 @_implementationOnly import _TestingInternals
+@_implementationOnly import _Imagery
 #else
 private import _TestingInternals
+internal import _Imagery
 #endif
 
 /// A protocol describing a type that contains tests.
@@ -51,15 +53,20 @@ extension Test {
   /// contain duplicates; callers should use ``all`` instead.
   private static var _all: some Sequence<Self> {
     get async {
-      await withTaskGroup(of: [Self].self) { taskGroup in
-        enumerateTypes(withNamesContaining: _testContainerTypeNameMagic) { type, _ in
-          if let type = type as? any __TestContainer.Type {
-            taskGroup.addTask {
-              await type.__tests
-            }
+      var types = [any __TestContainer.Type]()
+
+      enumerateTypes(withNamesContaining: _testContainerTypeNameMagic) { type in
+        if let type = type as? any __TestContainer.Type {
+          types.append(type)
+        }
+      }
+
+      return await withTaskGroup(of: [Self].self) { taskGroup in
+        for type in types {
+          taskGroup.addTask {
+            await type.__tests
           }
         }
-
         return await taskGroup.reduce(into: [], +=)
       }
     }
@@ -115,31 +122,88 @@ extension Test {
 
 // MARK: -
 
-/// The type of callback called by ``enumerateTypes(withNamesContaining:_:)``.
-///
-/// - Parameters:
-///   - type: A Swift type.
-///   - stop: An `inout` boolean variable indicating whether type enumeration
-///     should stop after the function returns. Set `stop` to `true` to stop
-///     type enumeration.
-typealias TypeEnumerator = (_ type: Any.Type, _ stop: inout Bool) -> Void
-
 /// Enumerate all types known to Swift found in the current process whose names
 /// contain a given substring.
 ///
 /// - Parameters:
 ///   - nameSubstring: A string which the names of matching classes all contain.
-///   - body: A function to invoke, once per matching type.
-func enumerateTypes(withNamesContaining nameSubstring: String, _ typeEnumerator: TypeEnumerator) {
-  withoutActuallyEscaping(typeEnumerator) { typeEnumerator in
-    withUnsafePointer(to: typeEnumerator) { context in
-      swt_enumerateTypes(withNamesContaining: nameSubstring, .init(mutating: context)) { type, stop, context in
-        let typeEnumerator = context!.load(as: TypeEnumerator.self)
-        let type = unsafeBitCast(type, to: Any.Type.self)
-        var stop2 = false
-        typeEnumerator(type, &stop2)
-        stop.pointee = stop2
+///   - typeEnumerator: A function to invoke, once per matching type.
+///
+/// - Bug: This function uses `rethrows` instead of typed throws due to a bug in
+///   the Swift compiler. ([128710064](rdar://128710064))
+func enumerateTypes(withNamesContaining nameSubstring: String, _ typeEnumerator: (_ type: Any.Type) throws -> Void) rethrows {
+#if !SWT_TARGET_OS_APPLE
+  swift_enumerateAllMetadataSections({ sections, _ in
+    FileHandle.stderr.write("~~~ Type metadata section at \(String(reflecting: sections.pointee.swift5_type_metadata))\n")
+  }, nil)
+#endif
+
+  try Image.forEach { image in
+    try enumerateTypes(in: image, withNamesContaining: nameSubstring, typeEnumerator)
+  }
+}
+
+/// Enumerate all types known to Swift found in a given image loaded into the
+/// current process whose names contain a given substring.
+///
+/// - Parameters:
+///   - image: The image in which to look for types.
+///   - nameSubstring: A string which the names of matching classes all contain.
+///   - typeEnumerator: A function to invoke, once per matching type.
+///
+/// - Bug: This function uses `rethrows` instead of typed throws due to a bug in
+///   the Swift compiler. [(128710064)](rdar://128710064)
+func enumerateTypes<E>(in image: borrowing Image, withNamesContaining nameSubstring: String, _ typeEnumerator: (_ type: Any.Type) throws(E) -> Void) throws(E) {
+#if SWT_TARGET_OS_APPLE
+  let sectionName = "__TEXT,__swift5_types"
+#elseif os(Linux)
+  let sectionName = "swift5_type_metadata"
+#elseif os(Windows)
+  let sectionName = ".sw5tymd"
+#endif
+  guard let section = image.section(named: sectionName) else {
+    return
+  }
+
+#if SWT_TARGET_OS_APPLE
+  let flags = image.withUnsafePointerToBaseAddress { $0.load(as: mach_header.self).flags }
+  if 0 != (flags & MH_DYLIB_IN_CACHE) {
+    // Ignore this Mach header if it is in the shared cache. On platforms that
+    // support it (Darwin), most system images are containined in this range.
+    // System images can be expected not to contain test declarations, so we
+    // don't need to walk them.
+    return
+  }
+#endif
+
+  var result: Result<Void, E> = .success(())
+
+  typealias Enumerator = (UnsafeRawPointer, _ stop: UnsafeMutablePointer<CBool>) -> Void
+  let body: Enumerator = { type, stop in
+    do {
+      let type = unsafeBitCast(type, to: Any.Type.self)
+      try typeEnumerator(type)
+    } catch {
+      result = .failure(error as! E)
+      stop.pointee = true
+    }
+  }
+
+  withoutActuallyEscaping(body) { body in
+    withUnsafePointer(to: body) { body in
+      section.withUnsafeRawBufferPointer { buffer in
+        swt_enumerateTypes(
+          withNamesContaining: nameSubstring,
+          inSectionStartingAt: buffer.baseAddress!,
+          byteCount: buffer.count,
+          .init(mutating: body)
+        ) { type, stop, context in
+          let body = context!.load(as: Enumerator.self)
+          body(type, stop)
+        }
       }
     }
   }
+
+  return try result.get()
 }

@@ -23,6 +23,8 @@
 
 #include <algorithm>
 #include <array>
+
+#include "../_ImageryInternals/Image.h"
 #endif
 
 void *swt_getFunctionWithName(void *handle, const char *symbolName) {
@@ -37,21 +39,18 @@ void *swt_getFunctionWithName(void *handle, const char *symbolName) {
     return reinterpret_cast<void*>(GetProcAddress(hModule, symbolName));
   }
 
-  // Find all the modules loaded in the current process.
-  std::array<HMODULE, 1024> hModules;
-  DWORD byteCountNeeded = 0;
-  if (!EnumProcessModules(GetCurrentProcess(), &hModules[0], hModules.size() * sizeof(HMODULE), &byteCountNeeded)) {
-    return nullptr;
-  }
-  DWORD hModuleCount = std::min(hModules.size(), byteCountNeeded / sizeof(HMODULE));
+  void *result = nullptr;
 
   // Enumerate all modules looking for one containing the given symbol.
-  for (DWORD i = 0; i < hModuleCount; i++) {
-    if (auto result = GetProcAddress(hModules[i], symbolName)) {
-      return reinterpret_cast<void*>(result);
+  sml_enumerateImages(&result, [] (const SMLImage *image, bool *stop, void *context) {
+    auto result = reinterpret_cast<void **>(context);
+    if (auto address = GetProcAddress(const_cast<HMODULE>(image->base), symbolName)) {
+      *result = reinterpret_cast<void *>(address);
+      *stop = true;
     }
-  }
-  return nullptr;
+  });
+
+  return result;
 #else
 #warning Platform-specific implementation missing: Dynamic loading unavailable
   return nullptr;

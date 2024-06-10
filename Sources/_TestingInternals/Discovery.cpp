@@ -26,14 +26,14 @@
 #include <os/lock.h>
 #endif
 
-/// Enumerate over all Swift type metadata sections in the current process.
+/// Enumerate over all Swift images in the current process.
 ///
 /// - Parameters:
-///   - body: A function to call once for every section in the current process.
-///     A pointer to the first type metadata record and the number of records
-///     are passed to this function.
-template <typename SectionEnumerator>
-static void enumerateTypeMetadataSections(const SectionEnumerator& body);
+///   - body: A function to call once for every image in the current process
+///     that contains Swift code. A reference to an instance of
+///     ``SWTMetadataSections`` is passed to this function for each image.
+template <typename ImageEnumerator>
+static void enumerateImages(const ImageEnumerator& body);
 
 #pragma mark - Swift ABI
 
@@ -159,6 +159,54 @@ public:
   }
 };
 
+/// Specifies the address range corresponding to a section.
+struct SWTMetadataSectionRange {
+  uintptr_t start;
+  size_t length;
+};
+
+/// Identifies the address space ranges for the Swift metadata required by the
+/// Swift runtime.
+///
+/// - Note: Most of the fields in this structure are zeroed on Apple platforms
+///   since we don't need them. On Linux and Windows, they are generally
+///   populated (as provided by the Swift runtime.) The following fields can be
+///   relied upon:
+///
+///   - ``version``
+///   - ``baseAddress`` (unless `SWT_NO_DYNAMIC_LINKING` is defined.)
+///   - ``swift5_type_metadata``
+///   - ``swift5_tests`` (if ``version`` is at least equal to
+///     ``SWT_METADATA_SECTION_MINIMUM_VERSION_WITH_TESTS``.)
+struct SWTMetadataSections {
+  uintptr_t version;
+  std::atomic<const void *> baseAddress;
+
+  void *unused0;
+  void *unused1;
+
+  SWTMetadataSectionRange swift5_protocols;
+  SWTMetadataSectionRange swift5_protocol_conformances;
+  SWTMetadataSectionRange swift5_type_metadata;
+  SWTMetadataSectionRange swift5_typeref;
+  SWTMetadataSectionRange swift5_reflstr;
+  SWTMetadataSectionRange swift5_fieldmd;
+  SWTMetadataSectionRange swift5_assocty;
+  SWTMetadataSectionRange swift5_replace;
+  SWTMetadataSectionRange swift5_replac2;
+  SWTMetadataSectionRange swift5_builtin;
+  SWTMetadataSectionRange swift5_capture;
+  SWTMetadataSectionRange swift5_mpenum;
+  SWTMetadataSectionRange swift5_accessible_functions;
+  SWTMetadataSectionRange swift5_runtime_attributes;
+  SWTMetadataSectionRange swift5_tests;
+};
+
+/// The minimum value of ``SWTMetadataSections/version`` if that instance of
+/// ``SWTMetadataSections`` contains the ``SWTMetadataSections/swift5_tests``
+/// field.
+static constexpr uintptr_t SWT_METADATA_SECTION_MINIMUM_VERSION_WITH_TESTS = 4;
+
 #if defined(SWT_NO_DYNAMIC_LINKING)
 #pragma mark - Statically-linked implementation
 
@@ -166,13 +214,32 @@ public:
 // only one image (this one) with Swift code in it.
 // SEE: https://github.com/apple/swift/tree/main/stdlib/public/runtime/ImageInspectionStatic.cpp
 
-extern "C" const char sectionBegin __asm("section$start$__TEXT$__swift5_types");
-extern "C" const char sectionEnd __asm("section$end$__TEXT$__swift5_types");
+extern "C" const char typesSectionBegin __asm("section$start$__TEXT$__swift5_types");
+extern "C" const char typesSectionEnd __asm("section$end$__TEXT$__swift5_types");
 
-template <typename SectionEnumerator>
-static void enumerateTypeMetadataSections(const SectionEnumerator& body) {
-  auto size = std::distance(&sectionBegin, &sectionEnd);
-  body(&sectionBegin, size);
+extern "C" const char testsSectionBegin __asm("section$start$__DATA_CONST$__swift5_tests");
+extern "C" const char testsSectionEnd __asm("section$end$__DATA_CONST$__swift5_tests");
+
+// Ensure the tests section is actually emitted.
+__attribute__((used)) __attribute__((section("__DATA_CONST,__swift5_tests")))
+constinit const SWTTestGetter ensureTestSectionIsEmitted = std::make_pair(nullptr, nullptr);
+
+template <typename ImageEnumerator>
+static void enumerateImages(const ImageEnumerator& body) {
+  SWTMetadataSections sections = {};
+
+  auto typesSectionSize = std::distance(&typesSectionBegin, &typesSectionEnd);
+  sections.swift5_type_metadata = { reinterpret_cast<uintptr_t>(&typesSectionBegin), typesSectionSize };
+
+  auto testsSectionSize = std::distance(&testsSectionBegin, &testsSectionEnd);
+  if (testsSectionSize > sizeof(SWTTestGetter)) {
+    // Account for the `ensureTestSectionIsEmitted` value above. If it's the
+    // only value in the section, the section is empty.
+    sections.version = SWT_METADATA_SECTION_MINIMUM_VERSION_WITH_TESTS;
+    sections.swift5_tests = { &testsSectionBegin, testsSectionSize };
+  }
+
+  body(sections);
 }
 
 #elif defined(__APPLE__)
@@ -266,68 +333,47 @@ static SWTMachHeaderList getMachHeaders(void) {
   return result;
 }
 
-template <typename SectionEnumerator>
-static void enumerateTypeMetadataSections(const SectionEnumerator& body) {
+template <typename ImageEnumerator>
+static void enumerateImages(const ImageEnumerator& body) {
   SWTMachHeaderList machHeaders = getMachHeaders();
   for (auto mh : machHeaders) {
-    unsigned long size = 0;
-    const void *section = getsectiondata(mh, SEG_TEXT, "__swift5_types", &size);
-    if (section && size > 0) {
-      body(section, size);
+    SWTMetadataSections sections = {};
+    sections.baseAddress.store(mh, std::memory_order_relaxed);
+
+    unsigned long typesSectionSize = 0;
+    const void *typesSection = getsectiondata(mh, SEG_TEXT, "__swift5_types", &typesSectionSize);
+    if (typesSection && typesSectionSize > 0) {
+      sections.swift5_type_metadata = { reinterpret_cast<uintptr_t>(typesSection), typesSectionSize };
     }
+
+    unsigned long testsSectionSize = 0;
+    const void *testsSection = getsectiondata(mh, "__DATA_CONST", "__swift5_tests", &testsSectionSize);
+    if (testsSection && testsSectionSize > 0) {
+      sections.version = SWT_METADATA_SECTION_MINIMUM_VERSION_WITH_TESTS;
+      sections.swift5_tests = { reinterpret_cast<uintptr_t>(testsSection), testsSectionSize };
+    }
+
+    body(sections);
   }
 }
 
 #elif defined(__linux__) || defined(_WIN32) || defined(__wasi__)
 #pragma mark - Linux/Windows implementation
 
-/// Specifies the address range corresponding to a section.
-struct MetadataSectionRange {
-  uintptr_t start;
-  size_t length;
-};
-
-/// Identifies the address space ranges for the Swift metadata required by the
-/// Swift runtime.
-struct MetadataSections {
-  uintptr_t version;
-  std::atomic<const void *> baseAddress;
-
-  void *unused0;
-  void *unused1;
-
-  MetadataSectionRange swift5_protocols;
-  MetadataSectionRange swift5_protocol_conformances;
-  MetadataSectionRange swift5_type_metadata;
-  MetadataSectionRange swift5_typeref;
-  MetadataSectionRange swift5_reflstr;
-  MetadataSectionRange swift5_fieldmd;
-  MetadataSectionRange swift5_assocty;
-  MetadataSectionRange swift5_replace;
-  MetadataSectionRange swift5_replac2;
-  MetadataSectionRange swift5_builtin;
-  MetadataSectionRange swift5_capture;
-  MetadataSectionRange swift5_mpenum;
-  MetadataSectionRange swift5_accessible_functions;
-};
-
 /// A function exported by the Swift runtime that enumerates all metadata
 /// sections loaded into the current process.
 SWT_IMPORT_FROM_STDLIB void swift_enumerateAllMetadataSections(
-  bool (* body)(const MetadataSections *sections, void *context),
+  bool (* body)(const SWTMetadataSections *sections, void *context),
   void *context
 );
 
-template <typename SectionEnumerator>
-static void enumerateTypeMetadataSections(const SectionEnumerator& body) {
-  swift_enumerateAllMetadataSections([] (const MetadataSections *sections, void *context) {
-    const auto& body = *reinterpret_cast<const SectionEnumerator *>(context);
-    MetadataSectionRange section = sections->swift5_type_metadata;
-    if (section.start && section.length > 0) {
-      body(reinterpret_cast<const void *>(section.start), section.length);
-    }
+template <typename ImageEnumerator>
+static void enumerateImages(const ImageEnumerator& body) {
+  swift_enumerateAllMetadataSections([] (const SWTMetadataSections *sections, void *context) {
+    const auto& body = *reinterpret_cast<const ImageEnumerator *>(context);
+    body(*sections);
     return true;
-  }, const_cast<SectionEnumerator *>(&body));
+  }, const_cast<ImageEnumerator *>(&body));
 }
 #else
 #warning Platform-specific implementation missing: Runtime test discovery unavailable
@@ -338,35 +384,60 @@ static void enumerateTypeMetadataSections(const SectionEnumerator& body) {}
 #pragma mark -
 
 void swt_enumerateTypesWithNamesContaining(const char *nameSubstring, void *context, SWTTypeEnumerator body) {
-  enumerateTypeMetadataSections([=] (const void *section, size_t size) {
-    auto records = reinterpret_cast<const SWTTypeMetadataRecord *>(section);
-    size_t recordCount = size / sizeof(SWTTypeMetadataRecord);
-
-    bool stop = false;
-    for (size_t i = 0; i < recordCount && !stop; i++) {
-      const auto& record = records[i];
-
-      auto contextDescriptor = record.getContextDescriptor();
-      if (!contextDescriptor) {
-        // This type metadata record is invalid (or we don't understand how to
-        // get its context descriptor), so skip it.
-        continue;
-      } else if (contextDescriptor->isGeneric()) {
-        // Generic types cannot be fully instantiated without generic
-        // parameters, which is not something we can know abstractly.
-        continue;
+  enumerateImages([=] (const SWTMetadataSections& sections) {
+    // If this image has a tests section, then it should be used instead of the
+    // image's type metadata section.
+    if (sections.version >= SWT_METADATA_SECTION_MINIMUM_VERSION_WITH_TESTS) {
+      const auto& section = sections.swift5_tests;
+      if (section.start != 0 && section.length > 0) {
+        #error Disrupts exit tests by preventing their discovery. Need to plumb through whether or not to prefer tests section.
+        return; // continue
       }
+    }
 
-      // Check that the type's name passes. This will be more expensive than the
-      // checks above, but should be cheaper than realizing the metadata.
-      const char *typeName = contextDescriptor->getName();
-      bool nameOK = typeName && nullptr != std::strstr(typeName, nameSubstring);
-      if (!nameOK) {
-        continue;
+    if (auto records = reinterpret_cast<const SWTTypeMetadataRecord *>(sections.swift5_type_metadata.start)) {
+      size_t recordCount = sections.swift5_type_metadata.length / sizeof(SWTTypeMetadataRecord);
+      bool stop = false;
+      for (size_t i = 0; i < recordCount && !stop; i++) {
+        const auto& record = records[i];
+
+        auto contextDescriptor = record.getContextDescriptor();
+        if (!contextDescriptor) {
+          // This type metadata record is invalid (or we don't understand how to
+          // get its context descriptor), so skip it.
+          continue;
+        } else if (contextDescriptor->isGeneric()) {
+          // Generic types cannot be fully instantiated without generic
+          // parameters, which is not something we can know abstractly.
+          continue;
+        }
+
+        // Check that the type's name passes. This will be more expensive than the
+        // checks above, but should be cheaper than realizing the metadata.
+        const char *typeName = contextDescriptor->getName();
+        bool nameOK = typeName && nullptr != std::strstr(typeName, nameSubstring);
+        if (!nameOK) {
+          continue;
+        }
+
+        if (void *typeMetadata = contextDescriptor->getMetadata()) {
+          body(typeMetadata, &stop, context);
+        }
       }
+    }
+  });
+}
 
-      if (void *typeMetadata = contextDescriptor->getMetadata()) {
-        body(typeMetadata, &stop, context);
+void swt_enumerateTestGetters(void *_Null_unspecified context, SWTTestGetterEnumerator body) {
+  enumerateImages([=] (const SWTMetadataSections& sections) {
+    if (sections.version >= SWT_METADATA_SECTION_MINIMUM_VERSION_WITH_TESTS) {
+      if (auto fps = reinterpret_cast<const SWTTestGetter *>(sections.swift5_tests.start)) {
+        size_t fpCount = sections.swift5_tests.length / sizeof(SWTTestGetter);
+        for (size_t i = 0; i < fpCount; i++) {
+          if (auto fp = fps[i]) {
+            body(fp, context);
+          }
+        }
       }
     }
   });

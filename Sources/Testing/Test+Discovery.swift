@@ -24,6 +24,21 @@ public protocol __TestContainer {
   static var __tests: [Test] { get async }
 }
 
+/// A function type for functions that produce tests.
+///
+/// - Parameters:
+///   - taskGroup: A pointer to a task group specialized to `Array<Test>`. This
+///     task group provides an asynchronous context suitable for getting tests.
+///
+/// This type is not simply an `async` Swift function that returns an instance
+/// of ``Test`` because the `@_section` attribute does not currently function
+/// correctly when provided with such a value.
+/// ([rdar://123327436](rdar://123327436)).
+///
+/// - Warning: This typealias is used to implement the `@Test` macro. Do not use
+///   it directly.
+public typealias __TestGetter = @Sendable @convention(c) (_ taskGroup: UnsafeMutableRawPointer) -> Void
+
 extension Test {
   /// A string that appears within all auto-generated types conforming to the
   /// `__TestContainer` protocol.
@@ -52,6 +67,11 @@ extension Test {
   private static var _all: some Sequence<Self> {
     get async {
       await withTaskGroup(of: [Self].self) { taskGroup in
+        // Look for tests in the dedicated tests section first.
+        swt_enumerateTestGetters(&taskGroup) { fp, context in
+          fp(context!)
+        }
+
         enumerateTypes(withNamesContaining: _testContainerTypeNameMagic) { type, _ in
           if let type = type as? any __TestContainer.Type {
             taskGroup.addTask {

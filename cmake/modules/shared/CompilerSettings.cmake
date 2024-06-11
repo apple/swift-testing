@@ -28,3 +28,7 @@ endif()
 if(CMAKE_SYSTEM_NAME IN_LIST "iOS;watchOS;tvOS;visionOS;WASI")
   add_compile_definitions("SWT_NO_EXIT_TESTS")
 endif()
+
+# Enable libc++ hardened mode as outlined here: https://libcxx.llvm.org/Hardening.html
+add_compile_definitions(
+  "$<$<COMPILE_LANGUAGE:CXX>:_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_EXTENSIVE>")

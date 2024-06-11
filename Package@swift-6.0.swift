@@ -156,6 +156,9 @@ extension Array where Element == PackageDescription.CXXSetting {
   static var packageSettings: Self {
     var result = Self()
 
+    // Enable libc++ hardened mode as outlined here: https://libcxx.llvm.org/Hardening.html
+    result.append(.define("_LIBCPP_HARDENING_MODE", to: "_LIBCPP_HARDENING_MODE_EXTENSIVE"))
+
     // Capture the testing library's version as a C++ string constant.
     if let git = Context.gitInformation {
       let testingLibraryVersion = if let tag = git.currentTag {

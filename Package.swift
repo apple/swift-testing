@@ -156,6 +156,8 @@ extension Array where Element == PackageDescription.CXXSetting {
   /// Analogous to project-level build settings in an Xcode project.
   static var packageSettings: Self {
     [
+      // Enable libc++ hardened mode as outlined here: https://libcxx.llvm.org/Hardening.html
+      .define("_LIBCPP_HARDENING_MODE", to: "_LIBCPP_HARDENING_MODE_EXTENSIVE"),
       .define("_SWT_TESTING_LIBRARY_VERSION", to: #""unknown (Swift 5.10 toolchain)""#),
     ]
   }

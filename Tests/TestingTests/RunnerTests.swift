@@ -878,5 +878,14 @@ final class RunnerTests: XCTestCase {
     await runTest(for: DeprecatedVersionTests.self, configuration: configuration)
     await fulfillment(of: [testStarted, testSkipped], timeout: 0.0)
   }
+
+  func testTestIsRunning() async {
+    // Only XCTest is running here.
+    XCTAssertFalse(Test.isRunning)
+
+    await Test {
+      XCTAssertTrue(Test.isRunning)
+    }.run(configuration: .init())
+  }
 }
 #endif

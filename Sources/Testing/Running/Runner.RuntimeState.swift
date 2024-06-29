@@ -106,6 +106,14 @@ extension Configuration {
     _all.rawValue.instances.values
   }
 
+  /// The number of instances of this type that are currently set as the current
+  /// configuration for a task.
+  static var currentCount: Int {
+    _all.withLock { all in
+      all.instances.count
+    }
+  }
+
   /// Add this instance to ``Configuration/all``.
   ///
   /// - Returns: A unique number identifying `self` that can be
@@ -147,6 +155,9 @@ extension Test {
   /// by using [`Thread.detachNewThread(_:)`](https://developer.apple.com/documentation/foundation/thread/2088563-detachnewthread)
   /// or [`DispatchQueue.async(execute:)`](https://developer.apple.com/documentation/dispatch/dispatchqueue/2016103-async)),
   /// the value of this property may be `nil`.
+  ///
+  /// To determine if any test is running on any task in the current process,
+  /// use ``Test/isRunning``.
   public static var current: Self? {
     Runner.RuntimeState.current?.test
   }
@@ -164,6 +175,15 @@ extension Test {
     var runtimeState = Runner.RuntimeState.current ?? .init()
     runtimeState.test = test
     return try await Runner.RuntimeState.$current.withValue(runtimeState, operation: body)
+  }
+
+  /// Whether or not any test is running in the current process.
+  ///
+  /// To get an instance of ``Test`` representing the test running on the
+  /// current task, use ``Test/current``.
+  @_spi(Experimental)
+  public static var isRunning: Bool {
+    Configuration.currentCount > 0
   }
 }
 

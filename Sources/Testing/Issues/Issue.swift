@@ -65,6 +65,7 @@ public struct Issue: Sendable {
 
     /// An issue due to a failure in the underlying system, not due to a failure
     /// within the tests being run.
+    @_spi(ForToolsIntegrationOnly)
     case system
   }
 
@@ -93,9 +94,9 @@ public struct Issue: Sendable {
   ///     occurred. This defaults to a default source context returned by
   ///     calling ``SourceContext/init(backtrace:sourceLocation:)`` with zero
   ///     arguments.
-  init(
+  public init(
     kind: Kind,
-    comments: [Comment],
+    comments: [Comment] = [],
     sourceContext: SourceContext = .init()
   ) {
     self.kind = kind

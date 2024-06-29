@@ -57,13 +57,22 @@ extension Issue {
   /// Record this issue by wrapping it in an ``Event`` and passing it to the
   /// current event handler.
   ///
+  /// - Returns: The issue that was recorded (`self` or a modified copy of it.)
+  @discardableResult
+  public func record() -> Self {
+    record(configuration: nil)
+  }
+
+  /// Record this issue by wrapping it in an ``Event`` and passing it to the
+  /// current event handler.
+  ///
   /// - Parameters:
   ///   - configuration: The test configuration to use when recording the issue.
   ///     The default value is ``Configuration/current``.
   ///
   /// - Returns: The issue that was recorded (`self` or a modified copy of it.)
   @discardableResult
-  func record(configuration: Configuration? = nil) -> Self {
+  func record(configuration: Configuration?) -> Self {
     // If this issue is a caught error of kind SystemError, reinterpret it as a
     // testing system issue instead (per the documentation for SystemError.)
     if case let .errorCaught(error) = kind, let error = error as? SystemError {

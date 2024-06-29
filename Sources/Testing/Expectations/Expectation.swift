@@ -18,7 +18,6 @@ public struct Expectation: Sendable {
   ///
   /// If this expectation passed, the value of this property is `nil` because no
   /// error mismatch occurred.
-  @_spi(ForToolsIntegrationOnly)
   public var mismatchedErrorDescription: String?
 
   /// A description of the difference between the operands in the expression
@@ -27,7 +26,6 @@ public struct Expectation: Sendable {
   /// If this expectation passed, the value of this property is `nil` because
   /// the difference is only computed when necessary to assist with diagnosing
   /// test failures.
-  @_spi(ForToolsIntegrationOnly)
   public var differenceDescription: String?
 
   /// Whether the expectation passed or failed.
@@ -41,6 +39,38 @@ public struct Expectation: Sendable {
 
   /// The source location where this expectation was evaluated.
   public var sourceLocation: SourceLocation
+
+  ///
+  public init(
+    mismatchedErrorDescription: String? = nil,
+    differenceDescription: String? = nil,
+    isPassing: Bool,
+    isRequired: Bool,
+    sourceLocation: SourceLocation
+  ) {
+    self.evaluatedExpression = Expression("")
+    self.mismatchedErrorDescription = mismatchedErrorDescription
+    self.differenceDescription = differenceDescription
+    self.isPassing = isPassing
+    self.isRequired = isRequired
+    self.sourceLocation = sourceLocation
+  }
+
+  init(
+    evaluatedExpression: Expression,
+    mismatchedErrorDescription: String? = nil,
+    differenceDescription: String? = nil,
+    isPassing: Bool,
+    isRequired: Bool,
+    sourceLocation: SourceLocation
+  ) {
+    self.evaluatedExpression = evaluatedExpression
+    self.mismatchedErrorDescription = mismatchedErrorDescription
+    self.differenceDescription = differenceDescription
+    self.isPassing = isPassing
+    self.isRequired = isRequired
+    self.sourceLocation = sourceLocation
+  }
 }
 
 /// A type describing an error thrown when an expectation fails during

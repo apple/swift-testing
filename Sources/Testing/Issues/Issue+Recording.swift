@@ -115,6 +115,32 @@ extension Issue {
     let issue = Issue(kind: .unconditional, comments: Array(comment), sourceContext: sourceContext)
     return issue.record()
   }
+
+  /// Record an issue on behalf of a tool or library.
+  ///
+  /// - Parameters:
+  ///   - comment: A comment describing the expectation.
+  ///   - toolContext: Any tool-specific context about the issue including the
+  ///     name of the tool that recorded it.
+  ///   - sourceLocation: The source location to which the issue should be
+  ///     attributed.
+  ///
+  /// - Returns: The issue that was recorded.
+  ///
+  /// Test authors do not generally need to use this function. Rather, a tool
+  /// or library based on the testing library can use it to record a
+  /// domain-specific issue and to propagatre additional information about that
+  /// issue to other layers of the testing library's infrastructure.
+  @_spi(Experimental)
+  @discardableResult public static func record(
+    _ comment: Comment? = nil,
+    context toolContext: some Issue.Kind.ToolContext,
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) -> Self {
+    let sourceContext = SourceContext(backtrace: .current(), sourceLocation: sourceLocation)
+    let issue = Issue(kind: .recordedByTool(toolContext), comments: Array(comment), sourceContext: sourceContext)
+    return issue.record()
+  }
 }
 
 // MARK: - Recording issues for errors

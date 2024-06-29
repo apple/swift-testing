@@ -994,6 +994,41 @@ final class IssueTests: XCTestCase {
     }.run(configuration: configuration)
   }
 
+  func testFailBecauseOfToolSpecificIssue() async throws {
+    struct ToolContext: Issue.Kind.ToolContext {
+      var value: Int
+      var toolName: String {
+        "Swift Testing Itself"
+      }
+    }
+
+    var configuration = Configuration()
+    configuration.eventHandler = { event, _ in
+      guard case let .issueRecorded(issue) = event.kind else {
+        return
+      }
+      XCTAssertFalse(issue.isKnown)
+      guard case let .recordedByTool(toolContext) = issue.kind else {
+        XCTFail("Unexpected issue kind \(issue.kind)")
+        return
+      }
+      guard let toolContext = toolContext as? ToolContext else {
+        XCTFail("Unexpected tool context \(toolContext)")
+        return
+      }
+      XCTAssertEqual(toolContext.toolName, "Swift Testing Itself")
+      XCTAssertEqual(toolContext.value, 12345)
+
+      XCTAssertEqual(String(describingForTest: issue), "Something went wrong (from 'Swift Testing Itself')")
+      XCTAssertEqual(String(describingForTest: issue.kind), "'Swift Testing Itself' recorded an issue")
+    }
+
+    await Test {
+      let toolContext = ToolContext(value: 12345)
+      Issue.record("Something went wrong", context: toolContext)
+    }.run(configuration: configuration)
+  }
+
   func testErrorPropertyValidForThrownErrors() async throws {
     var configuration = Configuration()
     configuration.eventHandler = { event, _ in

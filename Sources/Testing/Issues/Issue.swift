@@ -66,6 +66,33 @@ public struct Issue: Sendable {
     /// An issue due to a failure in the underlying system, not due to a failure
     /// within the tests being run.
     case system
+
+    /// A protocol describing additional context provided by an external tool or
+    /// library that recorded an issue of kind
+    /// ``Issue/Kind/recordedByTool(_:)``.
+    ///
+    /// Test authors do not generally need to use this protocol. Rather, a tool
+    /// or library based on the testing library can use it to propagate
+    /// additional information about an issue to other layers of the testing
+    /// library's infrastructure.
+    ///
+    /// A tool or library may conform as many types as it needs to this
+    /// protocol. Instances of types conforming to this protocol must be
+    /// encodable as JSON so that they can be included in event streams produced
+    /// by the testing library.
+    public protocol ToolContext: Sendable, Encodable {
+      /// The human-readable name of the tool that recorded the issue.
+      var toolName: String { get }
+    }
+
+    /// An issue recorded by an external tool or library that uses the testing
+    /// library.
+    ///
+    /// - Parameters:
+    ///   - toolContext: Any tool-specific context about the issue including the
+    ///     name of the tool that recorded it.
+    @_spi(Experimental)
+    indirect case recordedByTool(_ toolContext: any ToolContext)
   }
 
   /// The kind of issue this value represents.
@@ -135,7 +162,11 @@ extension Issue: CustomStringConvertible, CustomDebugStringConvertible {
     let joinedComments = comments.lazy
       .map(\.rawValue)
       .joined(separator: "\n")
-    return "\(kind): \(joinedComments)"
+    if case let .recordedByTool(toolContext) = kind {
+      return "\(joinedComments) (from '\(toolContext.toolName)')"
+    } else {
+      return "\(kind): \(joinedComments)"
+    }
   }
 
   public var debugDescription: String {
@@ -172,6 +203,8 @@ extension Issue.Kind: CustomStringConvertible {
       "An API was misused"
     case .system:
       "A system failure occurred"
+    case let .recordedByTool(toolContext):
+      "'\(toolContext.toolName)' recorded an issue"
     }
   }
 }
@@ -310,6 +343,8 @@ extension Issue.Kind {
           .apiMisused
       case .system:
           .system
+      case .recordedByTool:
+          .unconditional // TBD
       }
     }
 

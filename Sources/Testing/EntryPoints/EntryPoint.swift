@@ -25,8 +25,8 @@ private import _TestingInternals
 ///     to this function.
 ///
 /// External callers cannot call this function directly. The can use
-/// ``copyABIEntryPoint_v0()`` to get a reference to an ABI-stable version of
-/// this function.
+/// ``ABIv0/entryPoint-swift.type.property`` to get a reference to an ABI-stable
+/// version of this function.
 func entryPoint(passing args: __CommandLineArguments_v0?, eventHandler: Event.Handler?) async -> CInt {
   let exitCode = Locked(rawValue: EXIT_SUCCESS)
 
@@ -200,7 +200,7 @@ public struct __CommandLineArguments_v0: Sendable {
   /// The value of the `--xunit-output` argument.
   public var xunitOutput: String?
 
-  /// The value of the `--experimental-event-stream-output` argument.
+  /// The value of the `--event-stream-output` argument.
   ///
   /// Data is written to this file in the [JSON Lines](https://jsonlines.org)
   /// text format. For each event handled by the resulting event handler, a JSON
@@ -215,10 +215,10 @@ public struct __CommandLineArguments_v0: Sendable {
   ///
   /// The file is closed when this process terminates or the test run completes,
   /// whichever occurs first.
-  public var experimentalEventStreamOutput: String?
+  public var eventStreamOutput: String?
 
   /// The version of the event stream schema to use when writing events to
-  /// ``experimentalEventStreamOutput``.
+  /// ``eventStreamOutput``.
   ///
   /// If the value of this property is `nil`, events are encoded verbatim (using
   /// ``Event/Snapshot``.) Otherwise, the corresponding stable schema is used
@@ -226,7 +226,7 @@ public struct __CommandLineArguments_v0: Sendable {
   ///
   /// - Warning: The behavior of this property will change when the ABI version
   ///   0 JSON schema is finalized.
-  public var experimentalEventStreamVersion: Int?
+  public var eventStreamVersion: Int?
 
   /// The value(s) of the `--filter` argument.
   public var filter: [String]?
@@ -252,8 +252,8 @@ extension __CommandLineArguments_v0: Codable {
     case quiet
     case _verbosity = "verbosity"
     case xunitOutput
-    case experimentalEventStreamOutput
-    case experimentalEventStreamVersion
+    case eventStreamOutput
+    case eventStreamVersion
     case filter
     case skip
     case repetitions
@@ -288,7 +288,8 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
   // NOTE: While the output event stream is opened later, it is necessary to
   // open the configuration file early (here) in order to correctly construct
   // the resulting __CommandLineArguments_v0 instance.
-  if let configurationIndex = args.firstIndex(of: "--experimental-configuration-path"), !isLastArgument(at: configurationIndex) {
+  if let configurationIndex = args.firstIndex(of: "--configuration-path") ?? args.firstIndex(of: "--experimental-configuration-path"),
+     !isLastArgument(at: configurationIndex) {
     let path = args[args.index(after: configurationIndex)]
     let file = try FileHandle(forReadingAtPath: path)
     let configurationJSON = try file.readToEnd()
@@ -302,12 +303,14 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
   }
 
   // Event stream output (experimental)
-  if let eventOutputIndex = args.firstIndex(of: "--experimental-event-stream-output"), !isLastArgument(at: eventOutputIndex) {
-    result.experimentalEventStreamOutput = args[args.index(after: eventOutputIndex)]
+  if let eventOutputIndex = args.firstIndex(of: "--event-stream-output") ?? args.firstIndex(of: "--experimental-event-stream-output"),
+     !isLastArgument(at: eventOutputIndex) {
+    result.eventStreamOutput = args[args.index(after: eventOutputIndex)]
   }
   // Event stream output (experimental)
-  if let eventOutputVersionIndex = args.firstIndex(of: "--experimental-event-stream-version"), !isLastArgument(at: eventOutputVersionIndex) {
-    result.experimentalEventStreamVersion = Int(args[args.index(after: eventOutputVersionIndex)])
+  if let eventOutputVersionIndex = args.firstIndex(of: "--event-stream-version") ?? args.firstIndex(of: "--experimental-event-stream-version"),
+     !isLastArgument(at: eventOutputVersionIndex) {
+    result.eventStreamVersion = Int(args[args.index(after: eventOutputVersionIndex)])
   }
 #endif
 
@@ -404,9 +407,9 @@ public func configurationForEntryPoint(from args: __CommandLineArguments_v0) thr
 
 #if canImport(Foundation)
   // Event stream output (experimental)
-  if let eventStreamOutputPath = args.experimentalEventStreamOutput {
+  if let eventStreamOutputPath = args.eventStreamOutput {
     let file = try FileHandle(forWritingAtPath: eventStreamOutputPath)
-    let eventHandler = try eventHandlerForStreamingEvents(version: args.experimentalEventStreamVersion) { json in
+    let eventHandler = try eventHandlerForStreamingEvents(version: args.eventStreamVersion) { json in
       try? _writeJSONLine(json, to: file)
     }
     configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
@@ -487,7 +490,7 @@ func eventHandlerForStreamingEvents(version: Int?, forwardingTo eventHandler: @e
   case 0:
     ABIv0.Record.eventHandler(forwardingTo: eventHandler)
   case let .some(unsupportedVersion):
-    throw _EntryPointError.invalidArgument("--experimental-event-stream-version", value: "\(unsupportedVersion)")
+    throw _EntryPointError.invalidArgument("--event-stream-version", value: "\(unsupportedVersion)")
   }
 }
 

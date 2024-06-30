@@ -15,7 +15,7 @@ extension ABIv0.Record {
   ///
   /// - Parameters:
   ///   - eventHandler: The event handler to forward events to. See
-  ///     ``ABIv0/EntryPoint`` for more information.
+  ///     ``ABIv0/EntryPoint-swift.typealias`` for more information.
   ///
   /// - Returns: An event handler.
   ///
@@ -74,7 +74,7 @@ extension EventAndContextSnapshot: Codable {}
 ///
 /// - Parameters:
 ///   - eventHandler: The event handler to forward events to. See
-///     ``ABIEntryPoint_v0`` for more information.
+///     ``ABIv0/EntryPoint-swift.typealias`` for more information.
 ///
 /// - Returns: An event handler.
 ///

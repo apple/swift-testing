@@ -167,8 +167,10 @@ struct SwiftPMTests {
   }
 
 #if canImport(Foundation)
-  @Test("--experimental-configuration-path argument")
-  func configurationPath() async throws {
+  @Test("--configuration-path argument", arguments: [
+    "--configuration-path", "--experimental-configuration-path",
+  ])
+  func configurationPath(argumentName: String) async throws {
     let tempDirPath = try temporaryDirectory()
     let temporaryFilePath = appendPathComponent("\(UInt64.random(in: 0 ..< .max))", to: tempDirPath)
     defer {
@@ -186,7 +188,7 @@ struct SwiftPMTests {
         """
       )
     }
-    let args = try parseCommandLineArguments(from: ["PATH", "--experimental-configuration-path", temporaryFilePath])
+    let args = try parseCommandLineArguments(from: ["PATH", argumentName, temporaryFilePath])
     #expect(args.verbose == nil)
     #expect(args.quiet == nil)
     #expect(args.verbosity == 50)
@@ -205,8 +207,12 @@ struct SwiftPMTests {
       }
   }
 
-  @Test("--experimental-event-stream-output argument (writes to a stream and can be read back)")
-  func eventStreamOutput() async throws {
+  @Test("--event-stream-output argument (writes to a stream and can be read back)",
+        arguments: [
+          ("--event-stream-output", "--event-stream-version", "0"),
+          ("--experimental-event-stream-output", "--experimental-event-stream-version", "0"),
+        ])
+  func eventStreamOutput(outputArgumentName: String, versionArgumentName: String, version: String) async throws {
     // Test that JSON records are successfully streamed to a file and can be
     // read back as snapshots.
     let tempDirPath = try temporaryDirectory()
@@ -215,7 +221,7 @@ struct SwiftPMTests {
       _ = remove(temporaryFilePath)
     }
     do {
-      let configuration = try configurationForEntryPoint(withArguments: ["PATH", "--experimental-event-stream-output", temporaryFilePath, "--experimental-event-stream-version", "0"])
+      let configuration = try configurationForEntryPoint(withArguments: ["PATH", outputArgumentName, temporaryFilePath, versionArgumentName, version])
       let eventContext = Event.Context()
 
       let test = Test {}

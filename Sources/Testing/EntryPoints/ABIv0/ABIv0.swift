@@ -9,4 +9,5 @@
 //
 
 /// A namespace for ABI version 0 symbols.
-enum ABIv0: Sendable {}
+@_spi(ForToolsIntegrationOnly)
+public enum ABIv0: Sendable {}

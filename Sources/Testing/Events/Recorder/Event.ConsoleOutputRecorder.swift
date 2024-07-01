@@ -97,6 +97,12 @@ extension Event {
         }
       }
 
+      /// A prefix to apply to all lines of text in the output.
+      ///
+      /// If set, the value of this property is written _before_ any symbol or
+      /// library-supplied text.
+      public var prefix: String?
+
       public init() {}
     }
 
@@ -309,15 +315,16 @@ extension Event.ConsoleOutputRecorder {
   @discardableResult public func record(_ event: borrowing Event, in context: borrowing Event.Context) -> Bool {
     let messages = _humanReadableOutputRecorder.record(event, in: context, verbosity: options.verbosity)
     for message in messages {
+      let prefix = options.prefix ?? ""
       let symbol = message.symbol?.stringValue(options: options) ?? " "
 
       if case .details = message.symbol, options.useANSIEscapeCodes, options.ansiColorBitDepth > 1 {
         // Special-case the detail symbol to apply grey to the entire line of
         // text instead of just the symbol.
-        write("\(_ansiEscapeCodePrefix)90m\(symbol) \(message.stringValue)\(_resetANSIEscapeCode)\n")
+        write("\(prefix)\(_ansiEscapeCodePrefix)90m\(symbol) \(message.stringValue)\(_resetANSIEscapeCode)\n")
       } else {
         let colorDots = context.test.map(\.tags).map { self.colorDots(for: $0) } ?? ""
-        write("\(symbol) \(colorDots)\(message.stringValue)\n")
+        write("\(prefix)\(symbol) \(colorDots)\(message.stringValue)\n")
       }
     }
     return !messages.isEmpty
@@ -336,7 +343,8 @@ extension Event.ConsoleOutputRecorder {
   ///
   /// The caller is responsible for presenting this message to the user.
   static func warning(_ message: String, options: Event.ConsoleOutputRecorder.Options) -> String {
+    let prefix = options.prefix ?? ""
     let symbol = Event.Symbol.warning.stringValue(options: options)
-    return "\(symbol) \(message)\n"
+    return "\(prefix)\(symbol) \(message)\n"
   }
 }

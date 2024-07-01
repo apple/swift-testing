@@ -250,6 +250,24 @@ struct SwiftPMTests {
     #expect(eventRecords.count == 4)
   }
 #endif
+  @Test("--experimental-console-output-prefix argument")
+  func experimentalConsoleOutputPrefixArgument() throws {
+    let prefix = ">>What light through yonder prefix breaks?<<"
+    let args = try parseCommandLineArguments(from: ["PATH", "--experimental-console-output-prefix", prefix])
+    #expect(args.experimentalConsoleOutputPrefix == prefix)
+  }
+
+  @Test("SWT_EXPERIMENTAL_CONSOLE_OUTPUT_PREFIX environment variable")
+  func experimentalConsoleOutputPrefixEnvironmentVariable() throws {
+    let prefix = ">>My horse, my horse, my prefix for a horse!<<"
+    let oldValue = Environment.variable(named: "SWT_EXPERIMENTAL_CONSOLE_OUTPUT_PREFIX")
+    Environment.setVariable(prefix, named: "SWT_EXPERIMENTAL_CONSOLE_OUTPUT_PREFIX")
+    defer {
+      Environment.setVariable(oldValue, named: "SWT_EXPERIMENTAL_CONSOLE_OUTPUT_PREFIX")
+    }
+    let args = try parseCommandLineArguments(from: ["PATH"])
+    #expect(args.experimentalConsoleOutputPrefix == prefix)
+  }
 #endif
 
   @Test("--repetitions argument (alone)")

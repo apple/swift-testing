@@ -145,6 +145,31 @@ struct EventRecorderTests {
     }
   }
 
+  @Test("Output with prefix on each line")
+  func prefixedOutput() async throws {
+    let stream = Stream()
+    let prefix = ">>What Fools These Prefixes Be<<"
+
+    var options = Event.ConsoleOutputRecorder.Options()
+    options.prefix = prefix
+
+    var configuration = Configuration()
+    configuration.deliverExpectationCheckedEvents = true
+    let eventRecorder = Event.ConsoleOutputRecorder(options: options, writingUsing: stream.write)
+    configuration.eventHandler = { event, context in
+      eventRecorder.record(event, in: context)
+    }
+
+    await runTest(for: WrittenTests.self, configuration: configuration)
+
+    let buffer = stream.buffer.rawValue
+    #expect(buffer.contains(prefix))
+
+    if testsWithSignificantIOAreEnabled {
+      print(buffer, terminator: "")
+    }
+  }
+
 #if !os(Windows)
   @available(_regexAPI, *)
   @Test(

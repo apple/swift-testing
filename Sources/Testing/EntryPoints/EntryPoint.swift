@@ -66,6 +66,9 @@ func entryPoint(passing args: __CommandLineArguments_v0?, eventHandler: Event.Ha
       var options = Event.ConsoleOutputRecorder.Options()
       options = .for(.stderr)
       options.verbosity = args.verbosity
+      if let prefix = args.experimentalConsoleOutputPrefix {
+        options.prefix = prefix
+      }
       let eventRecorder = Event.ConsoleOutputRecorder(options: options) { string in
         try? FileHandle.stderr.write(string)
       }
@@ -228,6 +231,9 @@ public struct __CommandLineArguments_v0: Sendable {
   ///   0 JSON schema is finalized.
   public var experimentalEventStreamVersion: Int?
 
+  /// The value of the `--experimental-console-output-prefix` argument.
+  public var experimentalConsoleOutputPrefix: String?
+
   /// The value(s) of the `--filter` argument.
   public var filter: [String]?
 
@@ -339,6 +345,13 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
   }
   if args.contains("--quiet") || args.contains("-q") {
     result.quiet = true
+  }
+
+  // Console output prefix
+  if let prefixIndex = args.firstIndex(of: "--experimental-console-output-prefix"), !isLastArgument(at: prefixIndex) {
+    result.experimentalConsoleOutputPrefix = args[args.index(after: prefixIndex)]
+  } else if let prefix = Environment.variable(named: "SWT_EXPERIMENTAL_CONSOLE_OUTPUT_PREFIX") {
+    result.experimentalConsoleOutputPrefix = prefix
   }
 
   // Filtering

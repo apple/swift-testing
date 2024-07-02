@@ -110,13 +110,14 @@ struct UnsuccessfulConfirmationTests {
   }
 
   @Test(.hidden, arguments: [
-    1 ... 2 as any RangeExpression<Int>,
+    1 ... 2 as any RangeExpression & Sendable,
     1 ..< 2,
     ..<2,
     ...2,
     999...,
   ])
-  func confirmedOutOfRange(_ range: any RangeExpression<Int>) async {
+  func confirmedOutOfRange(_ range: any RangeExpression & Sendable) async {
+    let range = range as! any RangeExpression<Int>
     await confirmation(expectedCount: range) { (thingHappened) async in
       thingHappened(count: 3)
     }

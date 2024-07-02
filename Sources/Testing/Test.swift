@@ -127,6 +127,23 @@ public struct Test: Sendable {
       return testCases
     }
   }
+  
+  /// Equivalent to ``testCases``, but without requiring that the test cases be
+  /// evaluated first.
+  ///
+  /// Most callers should not use this property and should prefer ``testCases``
+  /// since it will help catch logic errors in the testing library. Use this
+  /// property if you are interested in the test's test cases, but the test has
+  /// not been evaluated by an instance of ``Runner/Plan`` (e.g. if you are
+  /// implementing `swift test list`.)
+  var uncheckedTestCases: (some Sequence<Test.Case>)? {
+    testCasesState.flatMap { testCasesState in
+      if case let .evaluated(testCases) = testCasesState {
+        return testCases
+      }
+      return nil
+    }
+  }
 
   /// Evaluate this test's cases if they have not been evaluated yet.
   ///

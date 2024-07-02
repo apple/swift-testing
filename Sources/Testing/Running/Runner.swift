@@ -27,8 +27,8 @@ public struct Runner: Sendable {
   ///   - tests: The tests to run.
   ///   - configuration: The configuration to use for running.
   public init(testing tests: [Test], configuration: Configuration = .init()) async {
-    self.plan = await Plan(tests: tests, configuration: configuration)
-    self.configuration = configuration
+    let plan = await Plan(tests: tests, configuration: configuration)
+    self.init(plan: plan, configuration: configuration)
   }
 
   /// Initialize an instance of this type that runs the tests in the specified
@@ -40,6 +40,12 @@ public struct Runner: Sendable {
   public init(plan: Plan, configuration: Configuration = .init()) {
     self.plan = plan
     self.configuration = configuration
+
+    // Post an event for every test in the resulting test plan. These events are
+    // turned into JSON objects if JSON output is enabled.
+    for test in plan.steps.lazy.map(\.test) {
+      Event.post(.testDiscovered, for: test, testCase: nil, configuration: configuration)
+    }
   }
 
   /// Initialize an instance of this type that runs all tests found in the
@@ -321,7 +327,7 @@ extension Runner {
     }
 
     await Configuration.withCurrent(runner.configuration) {
-      Event.post(.runStarted(runner.plan), for: nil, testCase: nil, configuration: runner.configuration)
+      Event.post(.runStarted, for: nil, testCase: nil, configuration: runner.configuration)
       defer {
         Event.post(.runEnded, for: nil, testCase: nil, configuration: runner.configuration)
       }

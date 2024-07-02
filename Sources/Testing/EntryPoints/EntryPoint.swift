@@ -25,22 +25,12 @@ private import _TestingInternals
 ///     to this function.
 ///
 /// External callers cannot call this function directly. The can use
-/// ``copyABIEntryPoint_v0()`` to get a reference to an ABI-stable version of
-/// this function.
+/// ``ABIv0/entryPoint-swift.type.property`` to get a reference to an ABI-stable
+/// version of this function.
 func entryPoint(passing args: __CommandLineArguments_v0?, eventHandler: Event.Handler?) async -> CInt {
   let exitCode = Locked(rawValue: EXIT_SUCCESS)
 
   do {
-    let args = try args ?? parseCommandLineArguments(from: CommandLine.arguments)
-    if args.listTests ?? false {
-      for testID in await listTestsForEntryPoint(Test.all) {
-#if SWT_TARGET_OS_APPLE && !SWT_NO_FILE_IO
-        try? FileHandle.stdout.write("\(testID)\n")
-#else
-        print(testID)
-#endif
-      }
-    } else {
 #if !SWT_NO_EXIT_TESTS
       // If an exit test was specified, run it. `exitTest` returns `Never`.
       if let exitTest = ExitTest.findInEnvironmentForEntryPoint() {
@@ -48,41 +38,59 @@ func entryPoint(passing args: __CommandLineArguments_v0?, eventHandler: Event.Ha
       }
 #endif
 
-      // Configure the test runner.
-      var configuration = try configurationForEntryPoint(from: args)
+    let args = try args ?? parseCommandLineArguments(from: CommandLine.arguments)
+    // Configure the test runner.
+    var configuration = try configurationForEntryPoint(from: args)
 
-      // Set up the event handler.
-      configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
-        if case let .issueRecorded(issue) = event.kind, !issue.isKnown {
-          exitCode.withLock { exitCode in
-            exitCode = EXIT_FAILURE
-          }
+    // Set up the event handler.
+    configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
+      if case let .issueRecorded(issue) = event.kind, !issue.isKnown {
+        exitCode.withLock { exitCode in
+          exitCode = EXIT_FAILURE
         }
-        oldEventHandler(event, context)
       }
+      oldEventHandler(event, context)
+    }
 
 #if !SWT_NO_FILE_IO
-      // Configure the event recorder to write events to stderr.
-      var options = Event.ConsoleOutputRecorder.Options()
-      options = .for(.stderr)
-      options.verbosity = args.verbosity
-      let eventRecorder = Event.ConsoleOutputRecorder(options: options) { string in
-        try? FileHandle.stderr.write(string)
-      }
-      configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
-        eventRecorder.record(event, in: context)
-        oldEventHandler(event, context)
-      }
+    // Configure the event recorder to write events to stderr.
+    var options = Event.ConsoleOutputRecorder.Options()
+    options = .for(.stderr)
+    options.verbosity = args.verbosity
+    let eventRecorder = Event.ConsoleOutputRecorder(options: options) { string in
+      try? FileHandle.stderr.write(string)
+    }
+    configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
+      eventRecorder.record(event, in: context)
+      oldEventHandler(event, context)
+    }
 #endif
 
-      // If the caller specified an alternate event handler, hook it up too.
-      if let eventHandler {
-        configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
-          eventHandler(event, context)
-          oldEventHandler(event, context)
-        }
+    // If the caller specified an alternate event handler, hook it up too.
+    if let eventHandler {
+      configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
+        eventHandler(event, context)
+        oldEventHandler(event, context)
+      }
+    }
+
+    if args.listTests ?? false {
+      let tests = await Test.all
+      for testID in listTestsForEntryPoint(tests) {
+        // Print the test ID to stdout (classical CLI behavior.)
+#if SWT_TARGET_OS_APPLE && !SWT_NO_FILE_IO
+        try? FileHandle.stdout.write("\(testID)\n")
+#else
+        print(testID)
+#endif
       }
 
+      // Post an event for every discovered test. These events are turned into
+      // JSON objects if JSON output is enabled.
+      for test in tests {
+        Event.post(.testDiscovered, for: test, testCase: nil, configuration: configuration)
+      }
+    } else {
       // Run the tests.
       let runner = await Runner(configuration: configuration)
       await runner.run()
@@ -200,7 +208,7 @@ public struct __CommandLineArguments_v0: Sendable {
   /// The value of the `--xunit-output` argument.
   public var xunitOutput: String?
 
-  /// The value of the `--experimental-event-stream-output` argument.
+  /// The value of the `--event-stream-output` argument.
   ///
   /// Data is written to this file in the [JSON Lines](https://jsonlines.org)
   /// text format. For each event handled by the resulting event handler, a JSON
@@ -215,10 +223,10 @@ public struct __CommandLineArguments_v0: Sendable {
   ///
   /// The file is closed when this process terminates or the test run completes,
   /// whichever occurs first.
-  public var experimentalEventStreamOutput: String?
+  public var eventStreamOutput: String?
 
   /// The version of the event stream schema to use when writing events to
-  /// ``experimentalEventStreamOutput``.
+  /// ``eventStreamOutput``.
   ///
   /// If the value of this property is `nil`, events are encoded verbatim (using
   /// ``Event/Snapshot``.) Otherwise, the corresponding stable schema is used
@@ -226,7 +234,7 @@ public struct __CommandLineArguments_v0: Sendable {
   ///
   /// - Warning: The behavior of this property will change when the ABI version
   ///   0 JSON schema is finalized.
-  public var experimentalEventStreamVersion: Int?
+  public var eventStreamVersion: Int?
 
   /// The value(s) of the `--filter` argument.
   public var filter: [String]?
@@ -252,8 +260,8 @@ extension __CommandLineArguments_v0: Codable {
     case quiet
     case _verbosity = "verbosity"
     case xunitOutput
-    case experimentalEventStreamOutput
-    case experimentalEventStreamVersion
+    case eventStreamOutput
+    case eventStreamVersion
     case filter
     case skip
     case repetitions
@@ -288,7 +296,8 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
   // NOTE: While the output event stream is opened later, it is necessary to
   // open the configuration file early (here) in order to correctly construct
   // the resulting __CommandLineArguments_v0 instance.
-  if let configurationIndex = args.firstIndex(of: "--experimental-configuration-path"), !isLastArgument(at: configurationIndex) {
+  if let configurationIndex = args.firstIndex(of: "--configuration-path") ?? args.firstIndex(of: "--experimental-configuration-path"),
+     !isLastArgument(at: configurationIndex) {
     let path = args[args.index(after: configurationIndex)]
     let file = try FileHandle(forReadingAtPath: path)
     let configurationJSON = try file.readToEnd()
@@ -302,12 +311,14 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
   }
 
   // Event stream output (experimental)
-  if let eventOutputIndex = args.firstIndex(of: "--experimental-event-stream-output"), !isLastArgument(at: eventOutputIndex) {
-    result.experimentalEventStreamOutput = args[args.index(after: eventOutputIndex)]
+  if let eventOutputIndex = args.firstIndex(of: "--event-stream-output") ?? args.firstIndex(of: "--experimental-event-stream-output"),
+     !isLastArgument(at: eventOutputIndex) {
+    result.eventStreamOutput = args[args.index(after: eventOutputIndex)]
   }
   // Event stream output (experimental)
-  if let eventOutputVersionIndex = args.firstIndex(of: "--experimental-event-stream-version"), !isLastArgument(at: eventOutputVersionIndex) {
-    result.experimentalEventStreamVersion = Int(args[args.index(after: eventOutputVersionIndex)])
+  if let eventOutputVersionIndex = args.firstIndex(of: "--event-stream-version") ?? args.firstIndex(of: "--experimental-event-stream-version"),
+     !isLastArgument(at: eventOutputVersionIndex) {
+    result.eventStreamVersion = Int(args[args.index(after: eventOutputVersionIndex)])
   }
 #endif
 
@@ -404,9 +415,9 @@ public func configurationForEntryPoint(from args: __CommandLineArguments_v0) thr
 
 #if canImport(Foundation)
   // Event stream output (experimental)
-  if let eventStreamOutputPath = args.experimentalEventStreamOutput {
+  if let eventStreamOutputPath = args.eventStreamOutput {
     let file = try FileHandle(forWritingAtPath: eventStreamOutputPath)
-    let eventHandler = try eventHandlerForStreamingEvents(version: args.experimentalEventStreamVersion) { json in
+    let eventHandler = try eventHandlerForStreamingEvents(version: args.eventStreamVersion) { json in
       try? _writeJSONLine(json, to: file)
     }
     configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
@@ -487,7 +498,7 @@ func eventHandlerForStreamingEvents(version: Int?, forwardingTo eventHandler: @e
   case 0:
     ABIv0.Record.eventHandler(forwardingTo: eventHandler)
   case let .some(unsupportedVersion):
-    throw _EntryPointError.invalidArgument("--experimental-event-stream-version", value: "\(unsupportedVersion)")
+    throw _EntryPointError.invalidArgument("--event-stream-version", value: "\(unsupportedVersion)")
   }
 }
 

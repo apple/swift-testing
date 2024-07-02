@@ -296,6 +296,11 @@ extension Event.HumanReadableOutputRecorder {
 
     // Finally, produce any messages for the event.
     switch event.kind {
+    case .testDiscovered:
+      // Suppress events of this kind from output as they are not generally
+      // interesting in human-readable output.
+      break
+
     case .runStarted:
       var comments = [Comment]()
       if verbosity > 0 {

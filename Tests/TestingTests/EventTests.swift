@@ -48,7 +48,7 @@ struct EventTests {
                 sourceLocation: nil)
             )
           ),
-          Event.Kind.runStarted(Runner.Plan(steps: [])),
+          Event.Kind.runStarted,
           Event.Kind.runEnded,
           Event.Kind.testCaseStarted,
           Event.Kind.testCaseEnded,

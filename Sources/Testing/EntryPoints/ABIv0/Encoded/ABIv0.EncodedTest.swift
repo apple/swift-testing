@@ -81,7 +81,7 @@ extension ABIv0 {
         let testIsParameterized = test.isParameterized
         isParameterized = testIsParameterized
         if testIsParameterized {
-          _testCases = test.testCases?.map(EncodedTestCase.init(encoding:))
+          _testCases = test.uncheckedTestCases?.map(EncodedTestCase.init(encoding:))
         }
       }
       name = test.name

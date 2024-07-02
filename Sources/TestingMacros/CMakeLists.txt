@@ -22,9 +22,12 @@ if(WIN32)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 endif()
 
-include(FetchContent)
 find_package(SwiftSyntax CONFIG GLOBAL)
-if(NOT SwiftSyntax_FOUND)
+
+if(SwiftTesting_BuildMacrosAsExecutables)
+  # When building the macro plugin as an executable, clone and build
+  # swift-syntax.
+  include(FetchContent)
   set(FETCHCONTENT_BASE_DIR ${CMAKE_BINARY_DIR}/_d)
   # TODO: Update GIT_TAG to the 6.0 release tag once it is available.
   FetchContent_Declare(SwiftSyntax
@@ -33,9 +36,31 @@ if(NOT SwiftSyntax_FOUND)
   FetchContent_MakeAvailable(SwiftSyntax)
 endif()
 
+# Include these modules _after_ swift-syntax is declared above, but _before_ the
+# macro plugin target is declared below, so that its settings are not applied to
+# the former but are applied to the latter.
 include(AvailabilityDefinitions)
 include(CompilerSettings)
-add_executable(TestingMacros
+
+if(SwiftTesting_BuildMacrosAsExecutables)
+  # When swift-syntax is built locally, the macro plugin must be built as an
+  # executable.
+  add_executable(TestingMacros)
+
+  set_target_properties(TestingMacros PROPERTIES
+    ENABLE_EXPORTS TRUE)
+
+  # Parse the module as a library, even though it's an executable, because it
+  # uses an `@main` type to define its entry point.
+  target_compile_options(TestingMacros PRIVATE -parse-as-library)
+
+  # Include the .swift file which contains its `@main` entry point type.
+  target_compile_definitions(TestingMacros PRIVATE SWT_NO_LIBRARY_MACRO_PLUGINS)
+else()
+  add_library(TestingMacros SHARED)
+endif()
+
+target_sources(TestingMacros PRIVATE
   ConditionMacro.swift
   SourceLocationMacro.swift
   SuiteDeclarationMacro.swift
@@ -61,14 +86,13 @@ add_executable(TestingMacros
   TagMacro.swift
   TestDeclarationMacro.swift
   TestingMacrosMain.swift)
-set_target_properties(TestingMacros PROPERTIES
-  ENABLE_EXPORTS TRUE)
-target_compile_options(TestingMacros PRIVATE -parse-as-library)
+
 target_link_libraries(TestingMacros PRIVATE
-  SwiftSyntax::SwiftCompilerPlugin
   SwiftSyntax::SwiftSyntax
   SwiftSyntax::SwiftSyntaxMacroExpansion
-  SwiftSyntax::SwiftSyntaxMacros
-  SwiftSyntax509
-  SwiftSyntax510
-  SwiftSyntax600)
+  SwiftSyntax::SwiftSyntaxMacros)
+if(SwiftTesting_BuildMacrosAsExecutables)
+  # Link the 'SwiftCompilerPlugin' target, but only when built as an executable.
+  target_link_libraries(TestingMacros PRIVATE
+    SwiftSyntax::SwiftCompilerPlugin)
+endif()

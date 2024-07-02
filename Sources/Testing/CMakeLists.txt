@@ -96,9 +96,7 @@ target_link_libraries(Testing PRIVATE
   _TestingInternals)
 add_dependencies(Testing
   TestingMacros)
-target_compile_definitions(Testing PRIVATE
-  SWT_BUILDING_WITH_CMAKE)
 target_compile_options(Testing PUBLIC
-  -load-plugin-executable "${TestingMacrosPath}")
+  ${SwiftTesting_MacroPluginFlags})
 target_compile_options(Testing PRIVATE
   -enable-library-evolution)

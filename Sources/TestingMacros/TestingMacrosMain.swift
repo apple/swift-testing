@@ -8,7 +8,7 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
-#if canImport(SwiftCompilerPlugin)
+#if SWT_NO_LIBRARY_MACRO_PLUGINS
 import SwiftCompilerPlugin
 import SwiftSyntaxMacros
 

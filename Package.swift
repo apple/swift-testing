@@ -68,6 +68,10 @@ let package = Package(
       ],
       exclude: ["CMakeLists.txt"],
       swiftSettings: .packageSettings + [
+        // When building as a package, the macro plugin always builds as an
+        // executable rather than a library.
+        .define("SWT_NO_LIBRARY_MACRO_PLUGINS"),
+
         // The only target which needs the ability to import this macro
         // implementation target's module is its unit test target. Users of the
         // macros this target implements use them via their declarations in the

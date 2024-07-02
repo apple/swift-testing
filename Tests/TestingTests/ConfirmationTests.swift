@@ -29,17 +29,25 @@ struct ConfirmationTests {
 
   @Test("Unsuccessful confirmations")
   func unsuccessfulConfirmations() async {
-    await confirmation("Issue recorded", expectedCount: 3) { issueRecorded in
-      var configuration = Configuration()
-      configuration.eventHandler = { event, _ in
-        if case let .issueRecorded(issue) = event.kind,
-           case .confirmationMiscounted = issue.kind {
-          issueRecorded()
+    await confirmation("Miscount recorded", expectedCount: 3) { miscountRecorded in
+      await confirmation("Unconditional issue recorded", expectedCount: 5) { unconditionalRecorded in
+        var configuration = Configuration()
+        configuration.eventHandler = { event, _ in
+          if case let .issueRecorded(issue) = event.kind {
+            switch issue.kind {
+            case .confirmationMiscounted:
+              miscountRecorded()
+            case .unconditional:
+              unconditionalRecorded()
+            default:
+              break
+            }
+          }
         }
+        let testPlan = await Runner.Plan(selecting: UnsuccessfulConfirmationTests.self)
+        let runner = Runner(plan: testPlan, configuration: configuration)
+        await runner.run()
       }
-      let testPlan = await Runner.Plan(selecting: UnsuccessfulConfirmationTests.self)
-      let runner = Runner(plan: testPlan, configuration: configuration)
-      await runner.run()
     }
   }
 
@@ -98,6 +106,20 @@ struct UnsuccessfulConfirmationTests {
   func confirmedTooManyTimes() async {
     await confirmation(expectedCount: 3) { (thingHappened) async in
       thingHappened(count: 10)
+    }
+  }
+
+  @Test(.hidden, arguments: [
+    1 ... 2 as any RangeExpression & Sendable,
+    1 ..< 2,
+    ..<2,
+    ...2,
+    999...,
+  ])
+  func confirmedOutOfRange(_ range: any RangeExpression & Sendable) async {
+    let range = range as! any RangeExpression<Int>
+    await confirmation(expectedCount: range) { (thingHappened) async in
+      thingHappened(count: 3)
     }
   }
 }

@@ -158,6 +158,8 @@ extension _OptionalNilComparisonType: CustomTestStringConvertible {
   }
 }
 
+// MARK: - Strings
+
 extension CustomTestStringConvertible where Self: StringProtocol {
   public var testDescription: String {
     "\"\(self)\""
@@ -166,3 +168,35 @@ extension CustomTestStringConvertible where Self: StringProtocol {
 
 extension String: CustomTestStringConvertible {}
 extension Substring: CustomTestStringConvertible {}
+
+// MARK: - Ranges
+
+extension ClosedRange: CustomTestStringConvertible {
+  public var testDescription: String {
+    "\(String(describingForTest: lowerBound)) ... \(String(describingForTest: upperBound))"
+  }
+}
+
+extension PartialRangeFrom: CustomTestStringConvertible {
+  public var testDescription: String {
+    "\(String(describingForTest: lowerBound))..."
+  }
+}
+
+extension PartialRangeThrough: CustomTestStringConvertible {
+  public var testDescription: String {
+    "...\(String(describingForTest: upperBound))"
+  }
+}
+
+extension PartialRangeUpTo: CustomTestStringConvertible {
+  public var testDescription: String {
+    "..<\(String(describingForTest: upperBound))"
+  }
+}
+
+extension Range: CustomTestStringConvertible {
+  public var testDescription: String {
+    "\(String(describingForTest: lowerBound)) ..< \(String(describingForTest: upperBound))"
+  }
+}

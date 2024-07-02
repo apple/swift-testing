@@ -175,9 +175,9 @@ public func confirmation<R>(
         // TODO: define an issue kind for out-of-range confirmation failures
         issueKind = .unconditional
         comment = if let comment {
-          "\(comment) - expected \(expectedCount) confirmations"
+          "\(comment) - expected \(String(describingForTest: expectedCount)) confirmations"
         } else {
-          "expected \(expectedCount) confirmations"
+          "expected \(String(describingForTest: expectedCount)) confirmations"
         }
       }
       Issue.record(

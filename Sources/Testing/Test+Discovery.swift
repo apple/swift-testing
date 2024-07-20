@@ -80,32 +80,15 @@ extension Test {
   ///
   /// - Parameters:
   ///   - tests: A dictionary of tests to amend.
-  ///
-  /// - Returns: The number of key-value pairs added to `tests`.
-  @discardableResult private static func _synthesizeSuiteTypes(into tests: inout [ID: Self]) -> Int {
-    let originalCount = tests.count
-
-    // Find any instances of Test in the input that are *not* suites. We'll be
-    // checking the containing types of each one.
-    for test in tests.values where !test.isSuite {
-      guard let suiteTypeInfo = test.containingTypeInfo else {
-        continue
-      }
-      let suiteID = ID(typeInfo: suiteTypeInfo)
-      if tests[suiteID] == nil {
-        tests[suiteID] = Test(traits: [], sourceLocation: test.sourceLocation, containingTypeInfo: suiteTypeInfo, isSynthesized: true)
-
-        // Also synthesize any ancestral suites that don't have tests.
-        for ancestralSuiteTypeInfo in suiteTypeInfo.allContainingTypeInfo {
-          let ancestralSuiteID = ID(typeInfo: ancestralSuiteTypeInfo)
-          if tests[ancestralSuiteID] == nil {
-            tests[ancestralSuiteID] = Test(traits: [], sourceLocation: test.sourceLocation, containingTypeInfo: ancestralSuiteTypeInfo, isSynthesized: true)
-          }
+  private static func _synthesizeSuiteTypes(into tests: inout [ID: Self]) {
+    for test in tests.values {
+      for ancestorTypeInfo in test.allContainingTypeInfo {
+        let ancestorSuiteID = ID(typeInfo: ancestorTypeInfo)
+        if tests[ancestorSuiteID] == nil {
+          tests[ancestorSuiteID] = Test(traits: [], sourceLocation: test.sourceLocation, containingTypeInfo: ancestorTypeInfo, isSynthesized: true)
         }
       }
     }
-
-    return tests.count - originalCount
   }
 }
 

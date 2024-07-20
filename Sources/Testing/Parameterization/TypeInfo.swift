@@ -263,11 +263,18 @@ extension TypeInfo {
     }
     return nil
   }
+}
 
-  /// A sequence of instances of this type representing the types that
-  /// recursively contain it, starting with the immediate parent (if any.)
-  var allContainingTypeInfo: some Sequence<Self> {
-    sequence(first: self, next: \.containingTypeInfo).dropFirst()
+extension Test {
+  /// A sequence of ``TypeInfo`` instances representing the types that
+  /// recursively contain this test, if any.
+  ///
+  /// If a test is associated with a global function or static function, the
+  /// value of this property is `nil`.
+  var allContainingTypeInfo: some Sequence<TypeInfo> {
+    sequence(first: containingTypeInfo) { element in
+      element?.containingTypeInfo
+    }.compactMap { $0 }
   }
 }
 

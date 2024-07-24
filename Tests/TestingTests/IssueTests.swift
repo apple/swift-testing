@@ -317,6 +317,60 @@ final class IssueTests: XCTestCase {
     await fulfillment(of: [expectationChecked], timeout: 0.0)
   }
 
+  func testPropertyAccessExpressionExpansion() async {
+    let expectationFailed = expectation(description: "Expectation failed")
+
+    var configuration = Configuration()
+    configuration.eventHandler = { event, _ in
+      guard case let .issueRecorded(issue) = event.kind,
+            case let .expectationFailed(expectation) = issue.kind
+      else {
+        return
+      }
+
+      let desc = expectation.evaluatedExpression.expandedDescription()
+      XCTAssertEqual(desc, "!([].isEmpty → true)")
+      expectationFailed.fulfill()
+    }
+
+    await Test {
+      #expect(![].isEmpty)
+    }.run(configuration: configuration)
+    await fulfillment(of: [expectationFailed], timeout: 0.0)
+  }
+
+  func testChainedOptionalPropertyAccessExpressionExpansion() async {
+    let expectationFailed = expectation(description: "Expectation failed")
+
+    var configuration = Configuration()
+    configuration.eventHandler = { event, _ in
+      guard case let .issueRecorded(issue) = event.kind,
+            case let .expectationFailed(expectation) = issue.kind
+      else {
+        return
+      }
+
+      let desc = expectation.evaluatedExpression.expandedDescription()
+      XCTAssertEqual(desc, "(outer.middle.inner → Inner(value: nil)).value → nil")
+      expectationFailed.fulfill()
+    }
+
+    await Test {
+      struct Outer {
+        struct Middle {
+          struct Inner {
+            var value: Int? = nil
+          }
+          var inner = Inner()
+        }
+        var middle = Middle()
+      }
+      let outer = Outer()
+      _ = try #require(outer.middle.inner.value)
+    }.run(configuration: configuration)
+    await fulfillment(of: [expectationFailed], timeout: 0.0)
+  }
+
   func testExpressionLiterals() async {
     func expectIssue(containing content: String, in testFunction: @escaping @Sendable () async throws -> Void) async {
       let issueRecorded = expectation(description: "Issue recorded")
@@ -1174,7 +1228,8 @@ final class IssueTests: XCTestCase {
         return
       }
       let expression = expectation.evaluatedExpression
-      XCTAssertTrue(expression.expandedDescription().contains("<not evaluated>"))
+      let expandedDescription = expression.expandedDescription()
+      XCTAssertTrue(expandedDescription.contains("<not evaluated>"), "expandedDescription: \(expandedDescription)")
     }
 
     @Sendable func rhs() -> Bool {

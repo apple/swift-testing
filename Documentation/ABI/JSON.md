@@ -59,9 +59,13 @@ TODO: implement input/configuration
 
 A single configuration is passed into the testing library prior to running any
 tests and, as the name suggests, configures the test run. The configuration is
-encoded as a single [JSON Lines](https://jsonlines.org) value.
+encoded as a single [JSON Lines](https://jsonlines.org) value. Alternatively,
+a single `"list"` request may be passed in, which will result in the testing
+library listing all available tests as output.
 
 ```
+<input-record> ::= <configuration-record> | <list-record>
+
 <configuration-record> ::= {
   <version>,
   "kind": "configuration",
@@ -91,6 +95,11 @@ encoded as a single [JSON Lines](https://jsonlines.org) value.
 <test-filter-id> ::= {
   "action": <test-filter-action>,
   "id": <test-id> ; the ID of the test to filter in/out
+}
+
+<list-record> ::= {
+  <version>,
+  "kind": "list",
 }
 ```
 -->

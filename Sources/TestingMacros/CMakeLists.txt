@@ -58,6 +58,13 @@ if(SwiftTesting_BuildMacrosAsExecutables)
   target_compile_definitions(TestingMacros PRIVATE SWT_NO_LIBRARY_MACRO_PLUGINS)
 else()
   add_library(TestingMacros SHARED)
+
+  # Install the macro plugin to the default location.
+  #
+  # This is not the plugin's actual, final install location -- it's only
+  # relative to this external project's install dir. The final location is
+  # determined by the "outer" project.
+  install(TARGETS TestingMacros)
 endif()
 
 target_sources(TestingMacros PRIVATE

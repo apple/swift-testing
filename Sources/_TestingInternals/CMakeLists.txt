@@ -6,6 +6,8 @@
 # See http://swift.org/LICENSE.txt for license information
 # See http://swift.org/CONTRIBUTORS.txt for Swift project authors
 
+set(CMAKE_CXX_SCAN_FOR_MODULES 0)
+
 include(LibraryVersion)
 add_library(_TestingInternals STATIC
   Discovery.cpp

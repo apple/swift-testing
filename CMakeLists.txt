@@ -28,4 +28,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_Swift_LANGUAGE_VERSION 6)
 set(CMAKE_Swift_MODULE_DIRECTORY ${CMAKE_BINARY_DIR}/swift)
 
+if(NOT SWIFT_SYSTEM_NAME)
+  if(CMAKE_SYSTEM_NAME STREQUAL Darwin)
+    set(SWIFT_SYSTEM_NAME macosx)
+  else()
+    set(SWIFT_SYSTEM_NAME "$<LOWER_CASE:${CMAKE_SYSTEM_NAME}>")
+  endif()
+endif()
+
 add_subdirectory(Sources)

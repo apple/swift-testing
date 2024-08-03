@@ -97,7 +97,8 @@ target_link_libraries(Testing PRIVATE
 add_dependencies(Testing
   TestingMacros)
 target_compile_options(Testing PRIVATE
-  -enable-library-evolution)
+  -enable-library-evolution
+  -emit-module-interface -emit-module-interface-path $<TARGET_PROPERTY:Testing,Swift_MODULE_DIRECTORY>/Testing.swiftinterface)
 
 if(SwiftTesting_BuildMacrosAsExecutables)
   if(CMAKE_HOST_WIN32)
@@ -110,3 +111,10 @@ else()
   target_compile_options(Testing PUBLIC
     "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-plugin-path ${BINARY_DIR}>")
 endif()
+
+# TODO: @rpath-relative install name
+# This may or may not involve the `-(no-)toolchain-stdlib-rpath` Swift flag.
+
+include(SwiftModuleInstallation)
+# TODO: Finalize the install path
+_swift_testing_install_target(Testing)

@@ -62,6 +62,11 @@ public enum ExitCondition: Sendable {
   /// | macOS | [`<signal.h>`](https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/signal.3.html) |
   /// | Linux | `<signal.h>` |
   /// | Windows | [`<signal.h>`](https://learn.microsoft.com/en-us/cpp/c-runtime-library/signal-constants) |
+  ///
+  /// On Windows, by default, the C runtime will terminate a process with exit
+  /// code `-3` if a raised signal is not handled, exactly as if `exit(-3)` were
+  /// called. As a result, this case is unavailable on that platform. Developers
+  /// should use ``failure`` instead when testing signal handling on Windows.
 #if os(Windows)
   @available(*, unavailable, message: "On Windows, use .failure instead.")
 #endif

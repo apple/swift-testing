@@ -82,7 +82,7 @@ extension __Expression {
   ///
   /// - Warning: This function is used to implement the `@Test`, `@Suite`,
   ///   `#expect()` and `#require()` macros. Do not call it directly.
-  public static func __fromPropertyAccess(_ value: Self, _ keyPath: Self) -> Self {
+  public static func __fromPropertyAccess(_ value: Self, _ keyPath: String) -> Self {
     return Self(kind: .propertyAccess(value: value, keyPath: keyPath))
   }
 

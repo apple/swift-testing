@@ -92,7 +92,7 @@ func createExpressionExprForFunctionCall(_ value: (any SyntaxProtocol)?, _ funct
 func createExpressionExprForPropertyAccess(_ value: ExprSyntax, _ keyPath: DeclReferenceExprSyntax) -> ExprSyntax {
   let arguments = LabeledExprListSyntax {
     LabeledExprSyntax(expression: createExpressionExpr(from: value))
-    LabeledExprSyntax(expression: createExpressionExpr(from: keyPath.baseName))
+    LabeledExprSyntax(expression: StringLiteralExprSyntax(content: keyPath.baseName.text))
   }
 
   return ".__fromPropertyAccess(\(arguments))"

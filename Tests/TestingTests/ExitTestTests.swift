@@ -197,6 +197,24 @@ private import _TestingInternals
       }.run(configuration: configuration)
     }
   }
+
+#if !os(Linux)
+  @Test("Exit test reports > 8 bits of the exit code")
+  func fullWidthExitCode() async {
+    // On macOS and Linux, we use waitid() which per POSIX should report the
+    // full exit code, not just the low 8 bits. This behaviour is not
+    // well-documented and while Darwin correctly reports the full value, Linux
+    // does not (at least as of this writing) and other POSIX-like systems may
+    // also have issues. This test serves as a canary when adding new platforms
+    // that we need to document the difference.
+    //
+    // Windows does not have the 8-bit exit code restriction and always reports
+    // the full CInt value back to the testing library.
+    await #expect(exitsWith: .exitCode(512)) {
+      exit(512)
+    }
+  }
+#endif
 }
 
 // MARK: - Fixtures

@@ -44,9 +44,9 @@ public enum ExitCondition: Sendable {
   /// | Linux | [`<stdlib.h>`](https://sourceware.org/glibc/manual/latest/html_node/Exit-Status.html), `<sysexits.h>` |
   /// | Windows | [`<stdlib.h>`](https://learn.microsoft.com/en-us/cpp/c-runtime-library/exit-success-exit-failure) |
   ///
-  /// On POSIX-like systems including macOS and Linux, only the low unsigned 8
-  /// bits (0&ndash;255) of the exit code are reliably preserved and reported to
-  /// a parent process.
+  /// On macOS and Windows, the full exit code reported by the process is
+  /// yielded to the parent process. Linux and other POSIX-like systems may only
+  /// reliably report the low unsigned 8 bits (0&ndash;255) of the exit code.
   case exitCode(_ exitCode: CInt)
 
   /// The process terminated with the given signal.

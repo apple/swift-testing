@@ -97,16 +97,8 @@ target_link_libraries(Testing PRIVATE
 add_dependencies(Testing
   TestingMacros)
 target_compile_options(Testing PRIVATE
-  -enable-library-evolution)
+  -enable-library-evolution
+  -emit-module-interface -emit-module-interface-path $<TARGET_PROPERTY:Testing,Swift_MODULE_DIRECTORY>/Testing.swiftinterface)
 
-if(SwiftTesting_BuildMacrosAsExecutables)
-  if(CMAKE_HOST_WIN32)
-    set(_TestingMacros_ExecutableSuffix ".exe")
-  endif()
-
-  target_compile_options(Testing PUBLIC
-    "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-load-plugin-executable ${BINARY_DIR}/TestingMacros${_TestingMacros_ExecutableSuffix}#TestingMacros>")
-else()
-  target_compile_options(Testing PUBLIC
-    "SHELL:$<$<COMPILE_LANGUAGE:Swift>:-plugin-path ${BINARY_DIR}>")
-endif()
+include(SwiftModuleInstallation)
+_swift_testing_install_target(Testing)

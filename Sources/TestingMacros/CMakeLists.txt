@@ -58,6 +58,22 @@ if(SwiftTesting_BuildMacrosAsExecutables)
   target_compile_definitions(TestingMacros PRIVATE SWT_NO_LIBRARY_MACRO_PLUGINS)
 else()
   add_library(TestingMacros SHARED)
+
+  target_link_options(TestingMacros PRIVATE "-no-toolchain-stdlib-rpath")
+  # Not setting RPATH means it requires all the dependencies are already loaded
+  # in the process, because 'plugin' directory wouldn't contain any dependencies.
+  set_property(TARGET TestingMacros PROPERTY INSTALL_RPATH)
+  set_property(TARGET TestingMacros PROPERTY BUILD_WITH_INSTALL_RPATH YES)
+
+  if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(plugin_destination_dir "lib/swift/host/plugins/testing")
+  else()
+    set(plugin_destination_dir "lib/swift/host/plugins")
+  endif()
+
+  install(TARGETS TestingMacros
+    LIBRARY DESTINATION "${plugin_destination_dir}"
+    RUNTIME DESTINATION bin)
 endif()
 
 target_sources(TestingMacros PRIVATE

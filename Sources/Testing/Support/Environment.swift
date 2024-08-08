@@ -188,7 +188,7 @@ enum Environment {
               return nil
             case let errorCode:
               let error = Win32Error(rawValue: errorCode)
-              fatalError("unexpected error when getting environment variable '\(name)': \(error) (\(errorCode))")
+              fatalError("Unexpected error when getting environment variable '\(name)': \(error) (\(errorCode))")
             }
           } else if count > buffer.count {
             // Try again with the larger count.

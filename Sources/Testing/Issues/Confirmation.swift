@@ -179,6 +179,22 @@ public func confirmation<R>(
   return try await body(confirmation)
 }
 
+/// An overload of ``confirmation(_:expectedCount:sourceLocation:_:)-9bfdc``
+/// that handles the unbounded range operator (`...`).
+///
+/// This overload is necessary because `UnboundedRange` does not conform to
+/// `RangeExpression`. It effectively always succeeds because any number of
+/// confirmations matches, so it is marked unavailable and is not implemented.
+@available(*, unavailable, message: "Unbounded range '...' has no effect when used with a confirmation.")
+public func confirmation<R>(
+  _ comment: Comment? = nil,
+  expectedCount: UnboundedRange,
+  sourceLocation: SourceLocation = #_sourceLocation,
+  _ body: (Confirmation) async throws -> R
+) async rethrows -> R {
+  fatalError("Unsupported")
+}
+
 @_spi(Experimental)
 extension Confirmation {
   /// A protocol that describes a range expression that can be used with

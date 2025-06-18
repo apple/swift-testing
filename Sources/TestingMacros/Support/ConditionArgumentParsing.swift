@@ -517,10 +517,8 @@ private func _parseCondition(from expr: ExprSyntax, for macro: some Freestanding
 /// - Returns: An instance of ``Condition`` describing `expr`.
 func parseCondition(from expr: ExprSyntax, for macro: some FreestandingMacroExpansionSyntax, in context: some MacroExpansionContext) -> Condition {
   // If the condition involves the `unsafe`, `try`, or `await` keywords, assume
-  // we cannot expand it. This check cannot handle expressions like
-  // `try #expect(a.b(c))` where `b()` is throwing because the `try` keyword is
-  // outside the macro expansion. SEE: rdar://109470248
-  let effectKeywordsToApply = findEffectKeywords(in: expr, context: context)
+  // we cannot expand it.
+  let effectKeywordsToApply = findEffectKeywords(in: expr).union(findEffectKeywords(in: context))
   guard effectKeywordsToApply.intersection([.unsafe, .try, .await]).isEmpty else {
     return Condition(expression: expr)
   }

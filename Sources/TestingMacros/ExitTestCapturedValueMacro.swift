@@ -8,6 +8,7 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
+import SwiftParser
 public import SwiftSyntax
 import SwiftSyntaxBuilder
 public import SwiftSyntaxMacros
@@ -50,5 +51,28 @@ public struct ExitTestBadCapturedValueMacro: ExpressionMacro, Sendable {
     context.diagnose(.capturedValueMustBeSendableAndCodable(expr, name: nameExpr))
 
     return #"Swift.fatalError("Unsupported")"#
+  }
+}
+
+/// The implementation of the `#__capturedValue()` macro when the type we
+/// inferred for the value was incorrect.
+///
+/// This type is used to implement the `#__capturedValue()` macro. Do not use it
+/// directly.
+public struct ExitTestIncorrectlyCapturedValueMacro: ExpressionMacro, Sendable {
+  public static func expansion(
+    of macro: some FreestandingMacroExpansionSyntax,
+    in context: some MacroExpansionContext
+  ) throws -> ExprSyntax {
+    let arguments = Array(macro.arguments)
+    let expr = arguments[0].expression
+    let nameExpr = arguments[1].expression.cast(StringLiteralExprSyntax.self)
+
+    // Diagnose that the type of 'expr' is invalid.
+    let name = nameExpr.representedLiteralValue ?? expr.trimmedDescription
+    let capture = ClosureCaptureSyntax(name: .identifier(name))
+    context.diagnose(.typeOfCaptureIsAmbiguous(capture))
+
+    return expr
   }
 }

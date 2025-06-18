@@ -479,12 +479,16 @@ private import _TestingInternals
       }
     }(i)
 
+#if false // intentionally fails to compile
     // FAILS TO COMPILE: shadowing `i` with a variable of a different type will
     // prevent correct expansion (we need an equivalent of decltype() for that.)
-//    let i = String(i)
-//    await #expect(processExitsWith: .success) { [i] in
-//      #expect(!i.isEmpty)
-//    }
+    func g(i: Int) async {
+      let i = String(i)
+      await #expect(processExitsWith: .success) { [i] in
+        #expect(!i.isEmpty)
+      }
+    }
+#endif
   }
 
   @Test("Capturing a literal expression")

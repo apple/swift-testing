@@ -36,6 +36,13 @@ extension TypeSyntaxProtocol {
       .contains(.keyword(.some))
   }
 
+  /// Whether or not this type is `any T` or a type derived from such a type.
+  var isAny: Bool {
+    tokens(viewMode: .fixedUp).lazy
+      .map(\.tokenKind)
+      .contains(.keyword(.any))
+  }
+
   /// Check whether or not this type is named with the specified name and
   /// module.
   ///

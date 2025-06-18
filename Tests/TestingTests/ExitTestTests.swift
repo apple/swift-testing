@@ -407,9 +407,10 @@ private import _TestingInternals
 
     @Test("self in capture list")
     func captureListWithSelf() async {
-      await #expect(processExitsWith: .success) { [self, x = self] in
+      await #expect(processExitsWith: .success) { [self, x = self, y = self as Self] in
         #expect(self.property == 456)
         #expect(x.property == 456)
+        #expect(y.property == 456)
       }
     }
   }
@@ -505,6 +506,41 @@ private import _TestingInternals
       #expect(sl.fileID == #fileID)
     }
   }
+
+  @Test("Capturing an optional value")
+  func captureListWithOptionalValue() async throws {
+    await #expect(processExitsWith: .success) { [x = nil as Int?] in
+      #expect(x != 1)
+    }
+    await #expect(processExitsWith: .success) { [x = (0 as Any) as? String] in
+      #expect(x == nil)
+    }
+  }
+
+  @Test("Capturing an effectful expression")
+  func captureListWithEffectfulExpression() async throws {
+    func f() async throws -> Int { 0 }
+    try await #require(processExitsWith: .success) { [f = try await f() as Int] in
+      #expect(f == 0)
+    }
+    try await #expect(processExitsWith: .success) { [f = f() as Int] in
+      #expect(f == 0)
+    }
+  }
+
+#if false // intentionally fails to compile
+  @Test("Capturing a tuple")
+  func captureListWithTuple() async throws {
+    // A tuple whose elements conform to Codable does not itself conform to
+    // Codable, so we cannot actually express this capture list in a way that
+    // works with #expect().
+    await #expect(processExitsWith: .success) { [x = (0 as Int, 1 as Double, "2" as String)] in
+      #expect(x.0 == 0)
+      #expect(x.1 == 1)
+      #expect(x.2 == "2")
+    }
+  }
+#endif
 
 #if false // intentionally fails to compile
   struct NonCodableValue {}

@@ -461,6 +461,10 @@ struct ConditionMacroTests {
             "Type of captured value 'a' is ambiguous",
           "#expectExitTest(processExitsWith: x) { [a = b] in }":
             "Type of captured value 'a' is ambiguous",
+          "#expectExitTest(processExitsWith: x) { [a = b as any T] in }":
+            "Type of captured value 'a' is ambiguous",
+          "#expectExitTest(processExitsWith: x) { [a = b as some T] in }":
+            "Type of captured value 'a' is ambiguous",
           "struct S<T> { func f() { #expectExitTest(processExitsWith: x) { [a] in } } }":
             "Cannot call macro ''#expectExitTest(processExitsWith:_:)'' within generic structure 'S'",
         ]

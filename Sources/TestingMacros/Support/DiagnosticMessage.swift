@@ -657,10 +657,16 @@ struct DiagnosticMessage: SwiftDiagnostics.DiagnosticMessage {
     fromArgument argumentContainingDisplayName: LabeledExprListSyntax.Element,
     using attribute: AttributeSyntax
   ) -> Self {
-    Self(
+    // If the name of the ambiguously-named symbol should be derived from a raw
+    // identifier, this situation is an error. If the name is not raw but is
+    // still surrounded by backticks (e.g. "func `foo`()" or "struct `if`") then
+    // lower the severity to a warning. That way, existing code structured this
+    // way doesn't suddenly fail to build.
+    let severity: DiagnosticSeverity = (decl.name.rawIdentifier != nil) ? .error : .warning
+    return Self(
       syntax: Syntax(decl),
-      message: "Attribute \(_macroName(attribute)) specifies display name '\(displayNameFromAttribute.representedLiteralValue!)' for \(_kindString(for: decl)) with implicit display name '\(decl.name.rawIdentifier!)'",
-      severity: .error,
+      message: "Attribute \(_macroName(attribute)) specifies display name '\(displayNameFromAttribute.representedLiteralValue!)' for \(_kindString(for: decl)) with implicit display name '\(decl.name.textWithoutBackticks)'",
+      severity: severity,
       fixIts: [
         FixIt(
           message: MacroExpansionFixItMessage("Remove '\(displayNameFromAttribute.representedLiteralValue!)'"),

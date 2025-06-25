@@ -144,8 +144,9 @@ struct AttributeInfo {
        let rawIdentifier = namedDecl.name.rawIdentifier {
       if let displayName, let displayNameArgument {
         context.diagnose(.declaration(namedDecl, hasExtraneousDisplayName: displayName, fromArgument: displayNameArgument, using: attribute))
+      } else {
+        displayName = StringLiteralExprSyntax(content: rawIdentifier)
       }
-      displayName = StringLiteralExprSyntax(content: rawIdentifier)
     }
 
     // Remove leading "Self." expressions from the arguments of the attribute.

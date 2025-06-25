@@ -315,6 +315,11 @@ struct MiscellaneousTests {
     let displayName = try #require(suite.displayName)
     #expect(displayName == "Suite With De Facto Display Name")
   }
+
+  @Test(arguments: [0])
+  func `Test with raw identifier and raw identifier parameter labels can compile`(`argument name` i: Int) {
+    #expect(i == 0)
+  }
 #endif
 
   @Test("Free functions are runnable")

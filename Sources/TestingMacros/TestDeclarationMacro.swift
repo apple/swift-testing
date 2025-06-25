@@ -160,6 +160,8 @@ public struct TestDeclarationMacro: PeerMacro, Sendable {
       for (label, parameter) in parametersWithLabels {
         if parameter.firstName.tokenKind == .wildcard {
           LabeledExprSyntax(expression: label)
+        } else if let rawIdentifier = parameter.firstName.rawIdentifier {
+          LabeledExprSyntax(label: "`\(rawIdentifier)`", expression: label)
         } else {
           LabeledExprSyntax(label: parameter.firstName.textWithoutBackticks, expression: label)
         }

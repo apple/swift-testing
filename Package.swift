@@ -129,7 +129,7 @@ let package = Package(
         "_Testing_Foundation",
         "MemorySafeTestingTests",
       ],
-      swiftSettings: .packageSettings + .disableMandatoryOptimizationsSettings
+      swiftSettings: .packageSettings
     ),
 
     // Use a plain `.target` instead of a `.testTarget` to avoid the unnecessary
@@ -234,7 +234,7 @@ package.targets.append(contentsOf: [
       "Testing",
       "TestingMacros",
     ],
-    swiftSettings: .packageSettings + .disableMandatoryOptimizationsSettings
+    swiftSettings: .packageSettings
   )
 ])
 #endif
@@ -396,20 +396,6 @@ extension Array where Element == PackageDescription.SwiftSetting {
 #else
     []
 #endif
-  }
-
-  /// Settings which disable Swift's mandatory optimizations pass.
-  ///
-  /// This is intended only to work around a build failure caused by a Swift
-  /// compiler regression which is expected to be resolved in
-  /// [swiftlang/swift#82034](https://github.com/swiftlang/swift/pull/82034).
-  ///
-  /// @Comment {
-  ///   - Bug: This should be removed once the CI issue is resolved.
-  ///     [swiftlang/swift-testin#1138](https://github.com/swiftlang/swift-testing/issues/1138).
-  /// }
-  static var disableMandatoryOptimizationsSettings: Self {
-    [.unsafeFlags(["-Xllvm", "-sil-disable-pass=mandatory-performance-optimizations"])]
   }
 }
 

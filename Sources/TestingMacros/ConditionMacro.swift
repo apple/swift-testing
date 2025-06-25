@@ -98,7 +98,20 @@ extension ConditionMacro {
     if let trailingClosureIndex {
       // Assume that the comment, if present is the last argument in the
       // argument list prior to the trailing closure that has no label.
+#if SWT_FIXED_154221449
       commentIndex = macroArguments[..<trailingClosureIndex].lastIndex { $0.label == nil }
+#else
+      commentIndex = macroArguments[..<trailingClosureIndex].lastIndex { argument in
+        guard argument.label == nil else {
+          return false
+        }
+        if let expr = argument.expression.as(MacroExpansionExprSyntax.self),
+           expr.macroName.tokenKind == .identifier("__capturedValue") {
+          return false
+        }
+        return true
+      }
+#endif
     } else if macroArguments.count > 1 {
       // If there is no trailing closure argument and there is more than one
       // argument, then the comment is the last argument with no label (and also
@@ -547,6 +560,7 @@ extension ExitTestConditionMacro {
     var leadingArguments = [
       Argument(label: "identifiedBy", expression: idExpr),
     ]
+#if SWT_FIXED_154221449
     if !capturedValues.isEmpty {
       leadingArguments.append(
         Argument(
@@ -559,6 +573,19 @@ extension ExitTestConditionMacro {
         )
       )
     }
+#else
+    if let firstCapturedValue = capturedValues.first {
+      leadingArguments.append(
+        Argument(
+          label: "encodingCapturedValues",
+          expression: firstCapturedValue.typeCheckedExpression
+        )
+      )
+      leadingArguments += capturedValues.dropFirst()
+        .map(\.typeCheckedExpression)
+        .map { Argument(expression: $0) }
+    }
+#endif
     arguments = leadingArguments + arguments
 
     // Replace the exit test body (as an argument to the macro) with a stub

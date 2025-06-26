@@ -521,12 +521,10 @@ extension Event.HumanReadableOutputRecorder {
         break
       }
 
-      let status = verbosity > 0 ? " started" : ""
-
       return [
         Message(
           symbol: .default,
-          stringValue: "Test case passing \(arguments.count.counting("argument")) \(testCase.labeledArguments(includingQualifiedTypeNames: verbosity > 0)) to \(testName)\(status) started."
+          stringValue: "Test case passing \(arguments.count.counting("argument")) \(testCase.labeledArguments(includingQualifiedTypeNames: verbosity > 0)) to \(testName) started."
         )
       ]
 

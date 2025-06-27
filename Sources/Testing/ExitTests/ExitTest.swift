@@ -245,15 +245,30 @@ extension ExitTest {
 #if os(Windows)
     // Windows does not support signal handling to the degree UNIX-like systems
     // do. When a signal is raised in a Windows process, the default signal
-    // handler simply calls `exit()` and passes the constant value `3`. To allow
-    // us to handle signals on Windows, we install signal handlers for all
+    // handler simply calls `_exit()` and passes the constant value `3`. To
+    // allow us to handle signals on Windows, we install signal handlers for all
     // signals supported on Windows. These signal handlers exit with a specific
     // exit code that is unlikely to be encountered "in the wild" and which
     // encodes the caught signal. Corresponding code in the parent process looks
     // for these special exit codes and translates them back to signals.
+    //
+    // Microsoft's documentation for `_Exit()` and `_exit()` indicates they
+    // behave identically. Their documentation for abort() can be found at
+    // https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/abort?view=msvc-170
+    // and states: "[...] abort calls _exit to terminate the process with exit
+    // code 3 [...]".
+    //
+    // The Wine project's implementation of raise() calls `_exit(3)` by default.
+    // See https://github.com/wine-mirror/wine/blob/master/dlls/msvcrt/except.c
+    //
+    // Finally, an official copy of the UCRT sources (not up to date) is hosted
+    // at https://www.nuget.org/packages/Microsoft.Windows.SDK.CRTSource . That
+    // repository doesn't have an official GitHub mirror, but you can manually
+    // navigate to misc/signal.cpp:481 to see the implementation of SIG_DFL
+    // (which, again, calls `_exit(3)` unconditionally.)
     for sig in [SIGINT, SIGILL, SIGFPE, SIGSEGV, SIGTERM, SIGBREAK, SIGABRT, SIGABRT_COMPAT] {
       _ = signal(sig) { sig in
-        _Exit(STATUS_SIGNAL_CAUGHT_BITS | sig)
+        _exit(STATUS_SIGNAL_CAUGHT_BITS | sig)
       }
     }
 #endif

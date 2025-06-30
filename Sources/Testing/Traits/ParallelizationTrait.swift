@@ -31,6 +31,14 @@ public struct ParallelizationTrait: TestTrait, SuiteTrait {}
 // MARK: - TestScoping
 
 extension ParallelizationTrait: TestScoping {
+  public func scopeProvider(for test: Test, testCase: Test.Case?) -> Self? {
+    // When applied to a test function, this trait should provide scope to the
+    // test function itself, not its individual test cases, since that allows
+    // Runner to correctly interpret the configuration setting to disable
+    // parallelization.
+    test.isSuite || testCase == nil ? self : nil
+  }
+
   public func provideScope(for test: Test, testCase: Test.Case?, performing function: @Sendable () async throws -> Void) async throws {
     guard var configuration = Configuration.current else {
       throw SystemError(description: "There is no current Configuration when attempting to provide scope for test '\(test.name)'. Please file a bug report at https://github.com/swiftlang/swift-testing/issues/new")

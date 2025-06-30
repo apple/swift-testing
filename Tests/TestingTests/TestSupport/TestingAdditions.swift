@@ -108,6 +108,25 @@ extension Runner {
     inModuleOf fileID: String = #fileID,
     configuration: Configuration = .init()
   ) async {
+    let plan = await Runner.Plan(selecting: testName, inModuleOf: fileID, configuration: configuration)
+    self.init(plan: plan, configuration: configuration)
+  }
+}
+
+extension Runner.Plan {
+  /// Initialize an instance of this type that selects the free test function
+  /// named `testName` in the module specified in `fileID`.
+  ///
+  /// - Parameters:
+  ///   - testName: The name of the test function this instance should run.
+  ///   - fileID: The `#fileID` string whose module should be used to locate
+  ///     the test function to run.
+  ///   - configuration: The configuration to use for running.
+  init(
+    selecting testName: String,
+    inModuleOf fileID: String = #fileID,
+    configuration: Configuration = .init()
+  ) async {
     let moduleName = String(fileID[..<fileID.lastIndex(of: "/")!])
 
     var configuration = configuration
@@ -116,9 +135,7 @@ extension Runner {
 
     await self.init(configuration: configuration)
   }
-}
 
-extension Runner.Plan {
   /// Initialize an instance of this type with the specified suite type.
   ///
   /// - Parameters:

@@ -29,6 +29,12 @@
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
+/// limits.h must be included before stdlib.h with glibc, otherwise the
+/// fortified realpath() in this module will differ from the one in SwiftGlibc.
+/// glibc bug: https://sourceware.org/bugzilla/show_bug.cgi?id=30516
+#if __has_include(<limits.h>)
+#include <limits.h>
+#endif
 /// Guard against including `signal.h` on WASI. The `signal.h` header file
 /// itself is available in wasi-libc, but it's just a stub that doesn't actually
 /// do anything. And also including it requires a special macro definition
@@ -95,10 +101,6 @@
 
 #if __has_include(<pwd.h>)
 #include <pwd.h>
-#endif
-
-#if __has_include(<limits.h>)
-#include <limits.h>
 #endif
 
 #if __has_include(<spawn.h>)

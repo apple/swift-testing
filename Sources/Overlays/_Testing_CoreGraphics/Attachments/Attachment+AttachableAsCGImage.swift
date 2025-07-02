@@ -36,6 +36,8 @@ extension Attachment {
   /// ``AttachableAsCGImage`` protocol and can be attached to a test:
   ///
   /// - [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage)
+  /// - [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage)
+  ///   (macOS)
   ///
   /// The testing library uses the image format specified by `contentType`. Pass
   /// `nil` to let the testing library decide which image format to use. If you
@@ -80,6 +82,8 @@ extension Attachment {
   /// ``AttachableAsCGImage`` protocol and can be attached to a test:
   ///
   /// - [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage)
+  /// - [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage)
+  ///   (macOS)
   ///
   /// The testing library uses the image format specified by `contentType`. Pass
   /// `nil` to let the testing library decide which image format to use. If you

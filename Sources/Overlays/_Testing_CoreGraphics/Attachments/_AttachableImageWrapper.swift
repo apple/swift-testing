@@ -47,6 +47,8 @@ import UniformTypeIdentifiers
 /// to the ``AttachableAsCGImage`` protocol and can be attached to a test:
 ///
 /// - [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage)
+/// - [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage)
+///   (macOS)
 @_spi(Experimental)
 @available(_uttypesAPI, *)
 public struct _AttachableImageWrapper<Image>: Sendable where Image: AttachableAsCGImage {

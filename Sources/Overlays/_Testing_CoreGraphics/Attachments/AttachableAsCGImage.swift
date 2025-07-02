@@ -24,6 +24,8 @@ private import ImageIO
 /// be attached to a test:
 ///
 /// - [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage)
+/// - [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage)
+///   (macOS)
 ///
 /// You do not generally need to add your own conformances to this protocol. If
 /// you have an image in another format that needs to be attached to a test,

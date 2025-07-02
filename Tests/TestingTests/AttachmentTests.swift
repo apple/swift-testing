@@ -10,6 +10,10 @@
 
 @testable @_spi(ForToolsIntegrationOnly) import Testing
 private import _TestingInternals
+#if canImport(AppKit)
+import AppKit
+@_spi(Experimental) import _Testing_AppKit
+#endif
 #if canImport(Foundation)
 import Foundation
 import _Testing_Foundation
@@ -577,6 +581,71 @@ extension AttachmentTests {
       }
     }
 #endif
+
+#if canImport(AppKit)
+    static var nsImage: NSImage {
+      get throws {
+        let cgImage = try cgImage.get()
+        let size = CGSize(width: CGFloat(cgImage.width), height: CGFloat(cgImage.height))
+        return NSImage(cgImage: cgImage, size: size)
+      }
+    }
+
+    @available(_uttypesAPI, *)
+    @Test func attachNSImage() throws {
+      let image = try Self.nsImage
+      let attachment = Attachment(image, named: "diamond.jpg")
+      #expect(attachment.attachableValue.size == image.size) // NSImage makes a copy
+      try attachment.attachableValue.withUnsafeBytes(for: attachment) { buffer in
+        #expect(buffer.count > 32)
+      }
+    }
+
+    @available(_uttypesAPI, *)
+    @Test func attachNSImageWithCustomRep() throws {
+      let image = NSImage(size: NSSize(width: 32.0, height: 32.0), flipped: false) { rect in
+        NSColor.red.setFill()
+        rect.fill()
+        return true
+      }
+      let attachment = Attachment(image, named: "diamond.jpg")
+      #expect(attachment.attachableValue.size == image.size) // NSImage makes a copy
+      try attachment.attachableValue.withUnsafeBytes(for: attachment) { buffer in
+        #expect(buffer.count > 32)
+      }
+    }
+
+    @available(_uttypesAPI, *)
+    @Test func attachNSImageWithSubclassedNSImage() throws {
+      let image = MyImage(size: NSSize(width: 32.0, height: 32.0))
+      image.addRepresentation(NSCustomImageRep(size: image.size, flipped: false) { rect in
+        NSColor.green.setFill()
+        rect.fill()
+        return true
+      })
+
+      let attachment = Attachment(image, named: "diamond.jpg")
+      #expect(attachment.attachableValue === image)
+      #expect(attachment.attachableValue.size == image.size) // NSImage makes a copy
+      try attachment.attachableValue.withUnsafeBytes(for: attachment) { buffer in
+        #expect(buffer.count > 32)
+      }
+    }
+
+    @available(_uttypesAPI, *)
+    @Test func attachNSImageWithSubclassedRep() throws {
+      let image = NSImage(size: NSSize(width: 32.0, height: 32.0))
+      image.addRepresentation(MyImageRep<Int>())
+
+      let attachment = Attachment(image, named: "diamond.jpg")
+      #expect(attachment.attachableValue.size == image.size) // NSImage makes a copy
+      let firstRep = try #require(attachment.attachableValue.representations.first)
+      #expect(!(firstRep is MyImageRep<Int>))
+      try attachment.attachableValue.withUnsafeBytes(for: attachment) { buffer in
+        #expect(buffer.count > 32)
+      }
+    }
+#endif
 #endif
   }
 }
@@ -663,6 +732,45 @@ final class MyCodableAndSecureCodingAttachable: NSObject, Codable, NSSecureCodin
 
   required init?(coder: NSCoder) {
     string = (coder.decodeObject(of: NSString.self, forKey: "string") as? String) ?? ""
+  }
+}
+#endif
+
+#if canImport(AppKit)
+private final class MyImage: NSImage {
+  override init(size: NSSize) {
+    super.init(size: size)
+  }
+
+  required init(pasteboardPropertyList propertyList: Any, ofType type: NSPasteboard.PasteboardType) {
+    fatalError("Unimplemented")
+  }
+
+  required init(coder: NSCoder) {
+    fatalError("Unimplemented")
+  }
+
+  override func copy(with zone: NSZone?) -> Any {
+    // Intentionally make a copy as NSImage instead of MyImage to exercise the
+    // cast-failed code path in the overlay.
+    NSImage()
+  }
+}
+
+private final class MyImageRep<T>: NSImageRep {
+  override init() {
+    super.init()
+    size = NSSize(width: 32.0, height: 32.0)
+  }
+
+  required init?(coder: NSCoder) {
+    fatalError("Unimplemented")
+  }
+
+  override func draw() -> Bool {
+    NSColor.blue.setFill()
+    NSRect(origin: .zero, size: size).fill()
+    return true
   }
 }
 #endif

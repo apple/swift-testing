@@ -84,6 +84,16 @@ let package = Package(
     )
 #endif
 
+    result += [
+      .library(
+        name: "_Testing_ExperimentalImageAttachments",
+        targets: [
+          "_Testing_AppKit",
+          "_Testing_CoreGraphics",
+        ]
+      )
+    ]
+
     result.append(
       .library(
         name: "_TestDiscovery",

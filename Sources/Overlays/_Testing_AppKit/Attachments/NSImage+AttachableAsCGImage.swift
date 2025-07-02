@@ -10,7 +10,7 @@
 
 #if SWT_TARGET_OS_APPLE && canImport(AppKit)
 public import AppKit
-@_spi(ForSwiftTestingOnly) @_spi(Experimental) public import _Testing_CoreGraphics
+@_spi(Experimental) public import _Testing_CoreGraphics
 
 @_spi(Experimental)
 extension NSImage: AttachableAsCGImage {

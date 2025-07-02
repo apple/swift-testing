@@ -198,7 +198,7 @@ let package = Package(
         "_Testing_CoreGraphics",
       ],
       path: "Sources/Overlays/_Testing_AppKit",
-      swiftSettings: .packageSettings
+      swiftSettings: .packageSettings + .enableLibraryEvolution()
     ),
     .target(
       name: "_Testing_CoreGraphics",

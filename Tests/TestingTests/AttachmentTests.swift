@@ -538,6 +538,23 @@ extension AttachmentTests {
     }
 
     @available(_uttypesAPI, *)
+    @Test func attachCGImageDirectly() async throws {
+      await confirmation("Attachment detected") { valueAttached in
+        var configuration = Configuration()
+        configuration.eventHandler = { event, _ in
+          if case .valueAttached = event.kind {
+            valueAttached()
+          }
+        }
+
+        await Test {
+          let image = try Self.cgImage.get()
+          Attachment.record(image, named: "diamond.jpg")
+        }.run(configuration: configuration)
+      }
+    }
+
+    @available(_uttypesAPI, *)
     @Test(arguments: [Float(0.0).nextUp, 0.25, 0.5, 0.75, 1.0], [.png as UTType?, .jpeg, .gif, .image, nil])
     func attachCGImage(quality: Float, type: UTType?) throws {
       let image = try Self.cgImage.get()

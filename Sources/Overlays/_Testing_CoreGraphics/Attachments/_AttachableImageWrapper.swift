@@ -48,6 +48,7 @@ import UniformTypeIdentifiers
 ///
 /// - [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage)
 @_spi(Experimental)
+@available(_uttypesAPI, *)
 public struct _AttachableImageWrapper<Image>: Sendable where Image: AttachableAsCGImage {
   /// The underlying image.
   ///
@@ -61,7 +62,7 @@ public struct _AttachableImageWrapper<Image>: Sendable where Image: AttachableAs
   var encodingQuality: Float
 
   /// Storage for ``contentType``.
-  private var _contentType: (any Sendable)?
+  private var _contentType: UTType?
 
   /// The content type to use when encoding the image.
   ///
@@ -70,14 +71,9 @@ public struct _AttachableImageWrapper<Image>: Sendable where Image: AttachableAs
   ///
   /// If the value of this property does not conform to [`UTType.image`](https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/image),
   /// the result is undefined.
-  @available(_uttypesAPI, *)
   var contentType: UTType {
     get {
-      if let contentType = _contentType as? UTType {
-        return contentType
-      } else {
-        return encodingQuality < 1.0 ? .jpeg : .png
-      }
+      _contentType ?? .image
     }
     set {
       precondition(
@@ -92,34 +88,17 @@ public struct _AttachableImageWrapper<Image>: Sendable where Image: AttachableAs
   /// type for `UTType.image`.
   ///
   /// This property is not part of the public interface of the testing library.
-  @available(_uttypesAPI, *)
   var computedContentType: UTType {
-    if let contentType = _contentType as? UTType, contentType != .image {
-      contentType
-    } else {
-      encodingQuality < 1.0 ? .jpeg : .png
+    if contentType == .image {
+      return encodingQuality < 1.0 ? .jpeg : .png
     }
+    return contentType
   }
 
-  /// The type identifier (as a `CFString`) corresponding to this instance's
-  /// ``computedContentType`` property.
-  ///
-  /// The value of this property is used by ImageIO when serializing an image.
-  ///
-  /// This property is not part of the public interface of the testing library.
-  /// It is used by ImageIO below.
-  var typeIdentifier: CFString {
-    if #available(_uttypesAPI, *) {
-      computedContentType.identifier as CFString
-    } else {
-      encodingQuality < 1.0 ? kUTTypeJPEG : kUTTypePNG
-    }
-  }
-
-  init(image: Image, encodingQuality: Float, contentType: (any Sendable)?) {
+  init(image: Image, encodingQuality: Float, contentType: UTType?) {
     self.image = image._makeCopyForAttachment()
     self.encodingQuality = encodingQuality
-    if #available(_uttypesAPI, *), let contentType = contentType as? UTType {
+    if let contentType {
       self.contentType = contentType
     }
   }
@@ -127,6 +106,7 @@ public struct _AttachableImageWrapper<Image>: Sendable where Image: AttachableAs
 
 // MARK: -
 
+@available(_uttypesAPI, *)
 extension _AttachableImageWrapper: AttachableWrapper {
   public var wrappedValue: Image {
     image
@@ -139,6 +119,7 @@ extension _AttachableImageWrapper: AttachableWrapper {
     let attachableCGImage = try image.attachableCGImage
 
     // Create the image destination.
+    let typeIdentifier = computedContentType.identifier as CFString
     guard let dest = CGImageDestinationCreateWithData(data as CFMutableData, typeIdentifier, 1, nil) else {
       throw ImageAttachmentError.couldNotCreateImageDestination
     }
@@ -168,11 +149,7 @@ extension _AttachableImageWrapper: AttachableWrapper {
   }
 
   public borrowing func preferredName(for attachment: borrowing Attachment<Self>, basedOn suggestedName: String) -> String {
-    if #available(_uttypesAPI, *) {
-      return (suggestedName as NSString).appendingPathExtension(for: computedContentType)
-    }
-
-    return suggestedName
+    (suggestedName as NSString).appendingPathExtension(for: computedContentType)
   }
 }
 #endif

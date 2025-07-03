@@ -10,7 +10,7 @@
 
 @testable @_spi(Experimental) @_spi(ForToolsIntegrationOnly) import Testing
 
-@Suite("TestScoping-conforming Trait Tests")
+@Suite("TestScoping-conforming Trait Tests", .tags(.traitRelated))
 struct TestScopingTraitTests {
   @Test("Execute code before and after a non-parameterized test.")
   func executeCodeBeforeAndAfterNonParameterizedTest() async {

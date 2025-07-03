@@ -10,7 +10,7 @@
 
 @testable @_spi(Experimental) @_spi(ForToolsIntegrationOnly) import Testing
 
-@Suite("IssueHandlingTrait Tests")
+@Suite("IssueHandlingTrait Tests", .tags(.traitRelated))
 struct IssueHandlingTraitTests {
   @Test("Transforming an issue by appending a comment")
   func addComment() async throws {

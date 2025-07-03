@@ -369,7 +369,7 @@ struct PlanTests {
     #expect(!planTests.contains(testC))
   }
 
-  @Test("Recursive trait application")
+  @Test("Recursive trait application", .tags(.traitRelated))
   func recursiveTraitApplication() async throws {
     let outerTestType = try #require(await test(for: OuterTest.self))
     // Intentionally omitting intermediate tests here...
@@ -387,7 +387,7 @@ struct PlanTests {
     #expect(testWithTraitAdded.traits.contains { $0 is DummyRecursiveTrait })
   }
 
-  @Test("Relative order of recursively applied traits")
+  @Test("Relative order of recursively applied traits", .tags(.traitRelated))
   func recursiveTraitOrder() async throws {
     let testSuiteA = try #require(await test(for: RelativeTraitOrderingTests.A.self))
     let testSuiteB = try #require(await test(for: RelativeTraitOrderingTests.A.B.self))

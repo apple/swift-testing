@@ -133,7 +133,7 @@ struct SwiftPMTests {
     #expect(planTests.contains(test2))
   }
 
-  @Test(".hidden trait")
+  @Test(".hidden trait", .tags(.traitRelated))
   func hidden() async throws {
     let configuration = try configurationForEntryPoint(withArguments: ["PATH"])
     let test1 = Test(name: "hello") {}

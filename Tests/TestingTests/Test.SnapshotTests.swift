@@ -98,7 +98,7 @@ struct Test_SnapshotTests {
   private static let bug: Bug = Bug.bug(id: 12345, "Lorem ipsum")
 
   @available(_clockAPI, *)
-  @Test("timeLimit property", _timeLimitIfAvailable(minutes: 999_999_999))
+  @Test("timeLimit property", .tags(.traitRelated), _timeLimitIfAvailable(minutes: 999_999_999))
   func timeLimit() async throws {
     let test = try #require(Test.current)
     let snapshot = Test.Snapshot(snapshotting: test)

@@ -1175,7 +1175,6 @@ public func __checkClosureCall(
 ///
 /// - Warning: This function is used to implement the `#expect()` and
 ///   `#require()` macros. Do not call it directly.
-#if SWT_FIXED_154221449
 @_spi(Experimental)
 public func __checkClosureCall<each T>(
   identifiedBy exitTestID: (UInt64, UInt64, UInt64, UInt64),
@@ -1200,32 +1199,6 @@ public func __checkClosureCall<each T>(
     sourceLocation: sourceLocation
   )
 }
-#else
-@_spi(Experimental)
-public func __checkClosureCall<each T>(
-  identifiedBy exitTestID: (UInt64, UInt64, UInt64, UInt64),
-  encodingCapturedValues capturedValues: repeat each T,
-  processExitsWith expectedExitCondition: ExitTest.Condition,
-  observing observedValues: [any PartialKeyPath<ExitTest.Result> & Sendable] = [],
-  performing _: @convention(c) () -> Void,
-  expression: __Expression,
-  comments: @autoclosure () -> [Comment],
-  isRequired: Bool,
-  isolation: isolated (any Actor)? = #isolation,
-  sourceLocation: SourceLocation
-) async -> Result<ExitTest.Result?, any Error> where repeat each T: Codable & Sendable {
-  await callExitTest(
-    identifiedBy: exitTestID,
-    encodingCapturedValues: Array(repeat each capturedValues),
-    processExitsWith: expectedExitCondition,
-    observing: observedValues,
-    expression: expression,
-    comments: comments(),
-    isRequired: isRequired,
-    sourceLocation: sourceLocation
-  )
-}
-#endif
 #endif
 
 // MARK: -

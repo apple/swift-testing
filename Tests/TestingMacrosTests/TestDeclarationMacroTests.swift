@@ -67,6 +67,8 @@ struct TestDeclarationMacroTests {
         "Attribute 'Test' cannot be applied to a structure",
       "@Test enum E {}":
         "Attribute 'Test' cannot be applied to an enumeration",
+      "@Test func +() {}":
+        "Attribute 'Test' cannot be applied to an operator",
 
       // Availability
       "@available(*, unavailable) @Suite struct S {}":

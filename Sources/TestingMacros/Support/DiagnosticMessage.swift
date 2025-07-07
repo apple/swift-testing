@@ -93,7 +93,11 @@ struct DiagnosticMessage: SwiftDiagnostics.DiagnosticMessage {
     let result: (value: String, article: String)
     switch node.kind {
     case .functionDecl:
-      result = ("function", "a")
+      if node.cast(FunctionDeclSyntax.self).isOperator {
+        result = ("operator", "an")
+      } else {
+        result = ("function", "a")
+      }
     case .classDecl:
       result = ("class", "a")
     case .structDecl:

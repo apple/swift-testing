@@ -34,6 +34,16 @@ extension FunctionDeclSyntax {
       .contains(.keyword(.nonisolated))
   }
 
+  /// Whether or not this function declares an operator.
+  var isOperator: Bool {
+    switch name.tokenKind {
+    case .binaryOperator, .prefixOperator, .postfixOperator:
+      true
+    default:
+      false
+    }
+  }
+
   /// The name of this function including parentheses, parameter labels, and
   /// colons.
   var completeName: DeclReferenceExprSyntax {

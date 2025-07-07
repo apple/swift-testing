@@ -61,7 +61,7 @@ public struct TestDeclarationMacro: PeerMacro, Sendable {
     }
 
     // The @Test attribute is only supported on function declarations.
-    guard let function = declaration.as(FunctionDeclSyntax.self) else {
+    guard let function = declaration.as(FunctionDeclSyntax.self), !function.isOperator else {
       diagnostics.append(.attributeNotSupported(testAttribute, on: declaration))
       return false
     }

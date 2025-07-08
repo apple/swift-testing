@@ -28,6 +28,11 @@ extension ABI {
     ///
     /// - Warning: Severity is not yet part of the JSON schema.
     var _severity: Severity
+    
+    /// If the issue is a failing issue.
+    ///
+    /// - Warning: Non-failing issues are not yet part of the JSON schema.
+    var _isFailure: Bool
 
     /// Whether or not this issue is known to occur.
     var isKnown: Bool
@@ -50,6 +55,7 @@ extension ABI {
       case .warning: .warning
       case .error: .error
       }
+      _isFailure = issue.isFailure
       isKnown = issue.isKnown
       sourceLocation = issue.sourceLocation
       if let backtrace = issue.sourceContext.backtrace {

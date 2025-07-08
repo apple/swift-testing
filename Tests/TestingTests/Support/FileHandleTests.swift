@@ -201,6 +201,17 @@ struct FileHandleTests {
 #endif
   }
 #endif
+
+  @Test("Root directory path is correct")
+  func rootDirectoryPathIsCorrect() throws {
+#if os(Windows)
+    if let systemDrive = Environment.variable(named: "SYSTEMDRIVE") {
+      #expect(rootDirectoryPath.starts(with: systemDrive))
+    }
+#else
+    #expect(rootDirectoryPath == "/")
+#endif
+  }
 }
 
 // MARK: - Fixtures

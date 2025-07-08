@@ -284,25 +284,47 @@ func spawnExecutable(
       let commandLine = _escapeCommandLine(CollectionOfOne(executablePath) + arguments)
       let environ = environment.map { "\($0.key)=\($0.value)" }.joined(separator: "\0") + "\0\0"
 
+      // CreateProcessW() may modify the command line argument, so we must make
+      // a mutable copy of it. (environ is also passed as a mutable raw pointer,
+      // but it is not documented as actually being mutated.)
+      let commandLineCopy = commandLine.withCString(encodedAs: UTF16.self) { _wcsdup($0) }
+      defer {
+        free(commandLineCopy)
+      }
+
+      // On Windows, a process holds a reference to its current working
+      // directory, which prevents other processes from deleting it. This causes
+      // code to fail if it tries to set the working directory to a temporary
+      // path. SEE: https://github.com/swiftlang/swift-testing/issues/1209
+      //
+      // This problem manifests for us when we spawn a child process without
+      // setting its working directory, which causes it to default to that of
+      // the parent process. To avoid this problem, we set the working directory
+      // of the new process to the root directory of the boot volume (which is
+      // unlikely to be deleted, one hopes).
+      //
+      // SEE: https://devblogs.microsoft.com/oldnewthing/20101109-00/?p=12323
+      let workingDirectoryPath = rootDirectoryPath
+
       var flags = DWORD(CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT | EXTENDED_STARTUPINFO_PRESENT)
 #if DEBUG
       // Start the process suspended so we can attach a debugger if needed.
       flags |= DWORD(CREATE_SUSPENDED)
 #endif
 
-      return try commandLine.withCString(encodedAs: UTF16.self) { commandLine in
-        try environ.withCString(encodedAs: UTF16.self) { environ in
+      return try environ.withCString(encodedAs: UTF16.self) { environ in
+        try workingDirectoryPath.withCString(encodedAs: UTF16.self) { workingDirectoryPath in
           var processInfo = PROCESS_INFORMATION()
 
           guard CreateProcessW(
             nil,
-            .init(mutating: commandLine),
+            commandLineCopy,
             nil,
             nil,
             true, // bInheritHandles
             flags,
             .init(mutating: environ),
-            nil,
+            workingDirectoryPath,
             startupInfo.pointer(to: \.StartupInfo)!,
             &processInfo
           ) else {

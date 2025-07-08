@@ -719,4 +719,35 @@ func setFD_CLOEXEC(_ flag: Bool, onFileDescriptor fd: CInt) throws {
   }
 }
 #endif
+
+/// The path to the root directory of the boot volume.
+///
+/// On Windows, this string is usually of the form `"C:\"`. On UNIX-like
+/// platforms, it is always equal to `"/"`.
+let rootDirectoryPath: String = {
+#if os(Windows)
+  var result: String?
+
+  // The boot volume is, except in some legacy scenarios, the volume that
+  // contains the system Windows directory. For an explanation of the difference
+  // between the Windows directory and the _system_ Windows directory, see
+  // https://devblogs.microsoft.com/oldnewthing/20140723-00/?p=423 .
+  let count = GetSystemWindowsDirectoryW(nil, 0)
+  if count > 0 {
+    withUnsafeTemporaryAllocation(of: wchar_t.self, capacity: Int(count) + 1) { buffer in
+      _ = GetSystemWindowsDirectoryW(buffer.baseAddress!, UINT(buffer.count))
+      let rStrip = PathCchStripToRoot(buffer.baseAddress!, buffer.count)
+      if rStrip == S_OK || rStrip == S_FALSE {
+        result = String.decodeCString(buffer.baseAddress!, as: UTF16.self)?.result
+      }
+    }
+  }
+
+  // If we weren't able to get a path, fall back to "C:\" on the assumption that
+  // it's the common case and most likely correct.
+  return result ?? #"C:\"#
+#else
+  return "/"
+#endif
+}()
 #endif

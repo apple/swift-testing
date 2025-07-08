@@ -87,7 +87,7 @@ extension AttachableImageFormat {
   /// If the target image format does not support variable-quality encoding,
   /// the value of the `encodingQuality` argument is ignored.
   ///
-  /// If `imageFormat` is not `nil` and does not conform to [`UTType.image`](https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/image),
+  /// If `contentType` does not conform to [`UTType.image`](https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/image),
   /// the result is undefined.
   public init(_ contentType: UTType, encodingQuality: Float = 1.0) {
     precondition(

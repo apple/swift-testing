@@ -146,8 +146,8 @@ func makeLargeOrder(of food: Food, count: Int) async throws {
 ```
 
 Elements from the first collection are passed as the first argument to the test
-function, elements from the second collection are passed as the second argument,
-and so forth.
+function, and elements from the second collection are passed as the second
+argument.
 
 Assuming there are five cases in the `Food` enumeration, this test function
 will, when run, be invoked 500 times (5 x 100) with every possible combination

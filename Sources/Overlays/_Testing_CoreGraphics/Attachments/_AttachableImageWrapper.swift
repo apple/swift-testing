@@ -9,7 +9,7 @@
 //
 
 #if SWT_TARGET_OS_APPLE && canImport(CoreGraphics)
-public import Testing
+@_spi(Experimental) public import Testing
 private import CoreGraphics
 
 private import ImageIO
@@ -60,49 +60,12 @@ public struct _AttachableImageWrapper<Image>: Sendable where Image: AttachableAs
   /// instances of this type it creates hold "safe" `NSImage` instances.
   nonisolated(unsafe) var image: Image
 
-  /// The encoding quality to use when encoding the represented image.
-  var encodingQuality: Float
+  /// The image format to use when encoding the represented image.
+  var imageFormat: AttachableImageFormat?
 
-  /// Storage for ``contentType``.
-  private var _contentType: UTType?
-
-  /// The content type to use when encoding the image.
-  ///
-  /// The testing library uses this property to determine which image format to
-  /// encode the associated image as when it is attached to a test.
-  ///
-  /// If the value of this property does not conform to [`UTType.image`](https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/image),
-  /// the result is undefined.
-  var contentType: UTType {
-    get {
-      _contentType ?? .image
-    }
-    set {
-      precondition(
-        newValue.conforms(to: .image),
-        "An image cannot be attached as an instance of type '\(newValue.identifier)'. Use a type that conforms to 'public.image' instead."
-      )
-      _contentType = newValue
-    }
-  }
-
-  /// The content type to use when encoding the image, substituting a concrete
-  /// type for `UTType.image`.
-  ///
-  /// This property is not part of the public interface of the testing library.
-  var computedContentType: UTType {
-    if contentType == .image {
-      return encodingQuality < 1.0 ? .jpeg : .png
-    }
-    return contentType
-  }
-
-  init(image: Image, encodingQuality: Float, contentType: UTType?) {
+  init(image: Image, imageFormat: AttachableImageFormat?) {
     self.image = image._makeCopyForAttachment()
-    self.encodingQuality = encodingQuality
-    if let contentType {
-      self.contentType = contentType
-    }
+    self.imageFormat = imageFormat
   }
 }
 
@@ -121,8 +84,8 @@ extension _AttachableImageWrapper: AttachableWrapper {
     let attachableCGImage = try image.attachableCGImage
 
     // Create the image destination.
-    let typeIdentifier = computedContentType.identifier as CFString
-    guard let dest = CGImageDestinationCreateWithData(data as CFMutableData, typeIdentifier, 1, nil) else {
+    let contentType = AttachableImageFormat.computeContentType(for: imageFormat, withPreferredName: attachment.preferredName)
+    guard let dest = CGImageDestinationCreateWithData(data as CFMutableData, contentType.identifier as CFString, 1, nil) else {
       throw ImageAttachmentError.couldNotCreateImageDestination
     }
 
@@ -130,7 +93,7 @@ extension _AttachableImageWrapper: AttachableWrapper {
     let orientation = image._attachmentOrientation
     let scaleFactor = image._attachmentScaleFactor
     let properties: [CFString: Any] = [
-      kCGImageDestinationLossyCompressionQuality: CGFloat(encodingQuality),
+      kCGImageDestinationLossyCompressionQuality: CGFloat(imageFormat?.encodingQuality ?? 1.0),
       kCGImagePropertyOrientation: orientation,
       kCGImagePropertyDPIWidth: 72.0 * scaleFactor,
       kCGImagePropertyDPIHeight: 72.0 * scaleFactor,
@@ -151,7 +114,8 @@ extension _AttachableImageWrapper: AttachableWrapper {
   }
 
   public borrowing func preferredName(for attachment: borrowing Attachment<Self>, basedOn suggestedName: String) -> String {
-    (suggestedName as NSString).appendingPathExtension(for: computedContentType)
+    let contentType = AttachableImageFormat.computeContentType(for: imageFormat, withPreferredName: suggestedName)
+    return (suggestedName as NSString).appendingPathExtension(for: contentType)
   }
 }
 #endif

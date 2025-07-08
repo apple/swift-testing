@@ -562,7 +562,8 @@ extension AttachmentTests {
     @Test(arguments: [Float(0.0).nextUp, 0.25, 0.5, 0.75, 1.0], [.png as UTType?, .jpeg, .gif, .image, nil])
     func attachCGImage(quality: Float, type: UTType?) throws {
       let image = try Self.cgImage.get()
-      let attachment = Attachment(image, named: "diamond", as: type, encodingQuality: quality)
+      let format = type.map { AttachableImageFormat($0, encodingQuality: quality) }
+      let attachment = Attachment(image, named: "diamond", as: format)
       #expect(attachment.attachableValue === image)
       try attachment.attachableValue.withUnsafeBytes(for: attachment) { buffer in
         #expect(buffer.count > 32)
@@ -572,11 +573,26 @@ extension AttachmentTests {
       }
     }
 
+    @available(_uttypesAPI, *)
+    @Test(arguments: [AttachableImageFormat.png, .jpeg, .jpeg(withEncodingQuality: 0.5), .init(.tiff)])
+    func attachCGImage(format: AttachableImageFormat) throws {
+      let image = try Self.cgImage.get()
+      let attachment = Attachment(image, named: "diamond", as: format)
+      #expect(attachment.attachableValue === image)
+      try attachment.attachableValue.withUnsafeBytes(for: attachment) { buffer in
+        #expect(buffer.count > 32)
+      }
+      if let ext = format.contentType.preferredFilenameExtension {
+        #expect(attachment.preferredName == ("diamond" as NSString).appendingPathExtension(ext))
+      }
+    }
+
 #if !SWT_NO_EXIT_TESTS
     @available(_uttypesAPI, *)
     @Test func cannotAttachCGImageWithNonImageType() async {
       await #expect(processExitsWith: .failure) {
-        let attachment = Attachment(try Self.cgImage.get(), named: "diamond", as: .mp3)
+        let format = AttachableImageFormat(.mp3)
+        let attachment = Attachment(try Self.cgImage.get(), named: "diamond", as: format)
         try attachment.attachableValue.withUnsafeBytes(for: attachment) { _ in }
       }
     }

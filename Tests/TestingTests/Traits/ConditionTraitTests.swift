@@ -12,14 +12,12 @@
 
 @Suite("Condition Trait Tests", .tags(.traitRelated))
 struct ConditionTraitTests {
-  #if compiler(>=6.1)
   @Test(
     ".enabled trait",
     .enabled { true },
     .bug("https://github.com/swiftlang/swift/issues/76409", "Verify the custom trait with closure causes @Test macro to fail is fixed")
   )
   func enabledTraitClosure() throws {}
-  #endif
 
   @Test(
     ".enabled if trait",
@@ -27,14 +25,12 @@ struct ConditionTraitTests {
   )
   func enabledTraitIf() throws {}
 
-  #if compiler(>=6.1)
   @Test(
     ".disabled trait",
     .disabled { false },
     .bug("https://github.com/swiftlang/swift/issues/76409", "Verify the custom trait with closure causes @Test macro to fail is fixed")
   )
   func disabledTraitClosure() throws {}
-  #endif
 
   @Test(
     ".disabled if trait",

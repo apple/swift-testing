@@ -48,11 +48,10 @@ and install a toolchain.
 
 #### Installing a toolchain
 
-1. Download a toolchain. A recent **6.0 development snapshot** toolchain is
-   required to build the testing library. Visit
-   [swift.org](http://swift.org/install) and download the most recent toolchain
-   from the section titled **release/6.0** under **Development Snapshots** on
-   the page for your platform.
+1. Download a toolchain. A recent **development snapshot** toolchain is required
+   to build the testing library. Visit [swift.org](https://swift.org/install),
+   select your platform, and download the most recent toolchain from the section
+   titled **release/6.x** under **Development Snapshots**.
 
    Be aware that development snapshot toolchains aren't intended for day-to-day
    development and may contain defects that affect the programs built with them.

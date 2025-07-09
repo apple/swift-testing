@@ -308,11 +308,7 @@ extension TypeInfo {
     }
     switch _kind {
     case let .type(type):
-#if compiler(>=6.1)
       return _mangledTypeName(type)
-#else
-      return _mangledTypeName(unsafeBitCast(type, to: Any.Type.self))
-#endif
     case let .nameOnly(_, _, mangledName):
       return mangledName
     }
@@ -412,6 +408,7 @@ extension TypeInfo: Hashable {
   }
 }
 
+#if compiler(<6.2)
 // MARK: - ObjectIdentifier support
 
 extension ObjectIdentifier {
@@ -426,6 +423,7 @@ extension ObjectIdentifier {
     self.init(unsafeBitCast(type, to: Any.Type.self))
   }
 }
+#endif
 
 // MARK: - Codable
 

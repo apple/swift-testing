@@ -24,8 +24,10 @@ struct ExampleSuite {
   @Test func example() {}
 }
 
+#if !SWT_NO_EXIT_TESTS
 func exampleExitTest() async {
   await #expect(processExitsWith: .success) {}
 }
+#endif
 
 #endif

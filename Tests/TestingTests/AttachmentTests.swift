@@ -26,6 +26,10 @@ import CoreGraphics
 import CoreImage
 @_spi(Experimental) import _Testing_CoreImage
 #endif
+#if canImport(UIKit)
+import UIKit
+@_spi(Experimental) import _Testing_UIKit
+#endif
 #if canImport(UniformTypeIdentifiers)
 import UniformTypeIdentifiers
 #endif
@@ -673,6 +677,18 @@ extension AttachmentTests {
       #expect(attachment.attachableValue.size == image.size) // NSImage makes a copy
       let firstRep = try #require(attachment.attachableValue.representations.first)
       #expect(!(firstRep is MyImageRep<Int>))
+      try attachment.attachableValue.withUnsafeBytes(for: attachment) { buffer in
+        #expect(buffer.count > 32)
+      }
+    }
+#endif
+
+#if canImport(UIKit)
+    @available(_uttypesAPI, *)
+    @Test func attachUIImage() throws {
+      let image = UIImage(cgImage: try Self.cgImage.get())
+      let attachment = Attachment(image, named: "diamond.jpg")
+      #expect(attachment.attachableValue === image)
       try attachment.attachableValue.withUnsafeBytes(for: attachment) { buffer in
         #expect(buffer.count > 32)
       }

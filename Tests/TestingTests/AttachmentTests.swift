@@ -22,6 +22,10 @@ import _Testing_Foundation
 import CoreGraphics
 @_spi(Experimental) import _Testing_CoreGraphics
 #endif
+#if canImport(CoreImage)
+import CoreImage
+@_spi(Experimental) import _Testing_CoreImage
+#endif
 #if canImport(UniformTypeIdentifiers)
 import UniformTypeIdentifiers
 #endif
@@ -594,6 +598,18 @@ extension AttachmentTests {
         let format = AttachableImageFormat(.mp3)
         let attachment = Attachment(try Self.cgImage.get(), named: "diamond", as: format)
         try attachment.attachableValue.withUnsafeBytes(for: attachment) { _ in }
+      }
+    }
+#endif
+
+#if canImport(CoreImage)
+    @available(_uttypesAPI, *)
+    @Test func attachCIImage() throws {
+      let image = CIImage(cgImage: try Self.cgImage.get())
+      let attachment = Attachment(image, named: "diamond.jpg")
+      #expect(attachment.attachableValue === image)
+      try attachment.attachableValue.withUnsafeBytes(for: attachment) { buffer in
+        #expect(buffer.count > 32)
       }
     }
 #endif

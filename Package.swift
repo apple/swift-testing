@@ -90,6 +90,7 @@ let package = Package(
         targets: [
           "_Testing_AppKit",
           "_Testing_CoreGraphics",
+          "_Testing_CoreImage",
         ]
       )
     ]
@@ -137,6 +138,7 @@ let package = Package(
         "Testing",
         "_Testing_AppKit",
         "_Testing_CoreGraphics",
+        "_Testing_CoreImage",
         "_Testing_Foundation",
         "MemorySafeTestingTests",
       ],
@@ -216,6 +218,15 @@ let package = Package(
         "Testing",
       ],
       path: "Sources/Overlays/_Testing_CoreGraphics",
+      swiftSettings: .packageSettings + .enableLibraryEvolution()
+    ),
+    .target(
+      name: "_Testing_CoreImage",
+      dependencies: [
+        "Testing",
+        "_Testing_CoreGraphics",
+      ],
+      path: "Sources/Overlays/_Testing_CoreImage",
       swiftSettings: .packageSettings + .enableLibraryEvolution()
     ),
     .target(

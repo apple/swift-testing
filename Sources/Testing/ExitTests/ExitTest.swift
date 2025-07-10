@@ -153,7 +153,7 @@ extension ExitTest {
   ///
   /// A pointer is used for indirection because `ManagedBuffer` cannot yet hold
   /// move-only types.
-  private static nonisolated(unsafe) var _current: Locked<UnsafeMutablePointer<ExitTest?>> = {
+  private static nonisolated(unsafe) let _current: Locked<UnsafeMutablePointer<ExitTest?>> = {
     let current = UnsafeMutablePointer<ExitTest?>.allocate(capacity: 1)
     current.initialize(to: nil)
     return Locked(rawValue: current)

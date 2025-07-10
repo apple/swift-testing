@@ -12,6 +12,27 @@
 public import AppKit
 @_spi(Experimental) public import _Testing_CoreGraphics
 
+extension NSImageRep {
+  /// AppKit's bundle.
+  private static let _appKitBundle: Bundle = Bundle(for: NSImageRep.self)
+
+  /// Whether or not this image rep's class is effectively thread-safe and can
+  /// be treated as if it conforms to `Sendable`.
+  fileprivate var isEffectivelySendable: Bool {
+    if isMember(of: NSImageRep.self) || isKind(of: NSCustomImageRep.self) {
+      // NSImageRep itself is an abstract class. NSCustomImageRep includes an
+      // arbitrary rendering block that may not be concurrency-safe in Swift.
+      return false
+    }
+
+    // Treat all other classes declared in AppKit as safe. We can't reason about
+    // classes declared in other bundles, so treat them all as if they're unsafe.
+    return Bundle(for: Self.self) == Self._appKitBundle
+  }
+}
+
+// MARK: -
+
 @_spi(Experimental)
 extension NSImage: AttachableAsCGImage {
   public var attachableCGImage: CGImage {
@@ -32,29 +53,6 @@ extension NSImage: AttachableAsCGImage {
     return maxRepWidth ?? 1.0
   }
 
-  /// Get the base address of the loaded image containing `class`.
-  ///
-  /// - Parameters:
-  ///   - class: The class to look for.
-  ///
-  /// - Returns: The base address of the image containing `class`, or `nil` if
-  ///   no image was found (for instance, if the class is generic or dynamically
-  ///   generated.)
-  ///
-  /// "Image" in this context refers to a binary/executable image.
-  private static func _baseAddressOfImage(containing `class`: AnyClass) -> UnsafeRawPointer? {
-    let classAsAddress = Unmanaged.passUnretained(`class` as AnyObject).toOpaque()
-
-    var info = Dl_info()
-    guard 0 != dladdr(classAsAddress, &info) else {
-      return nil
-    }
-    return .init(info.dli_fbase)
-  }
-
-  /// The base address of the image containing AppKit's symbols, if known.
-  private static nonisolated(unsafe) let _appKitBaseAddress = _baseAddressOfImage(containing: NSImageRep.self)
-
   public func _makeCopyForAttachment() -> Self {
     // If this image is of an NSImage subclass, we cannot reliably make a deep
     // copy of it because we don't know what its `init(data:)` implementation
@@ -69,18 +67,7 @@ extension NSImage: AttachableAsCGImage {
 
     // Check whether the image contains any representations that we don't think
     // are safe. If it does, then make a "safe" copy.
-    let allImageRepsAreSafe = representations.allSatisfy { imageRep in
-      // NSCustomImageRep includes an arbitrary rendering block that may not be
-      // concurrency-safe in Swift.
-      if imageRep is NSCustomImageRep {
-        return false
-      }
-
-      // Treat all other classes declared in AppKit as safe. We can't reason
-      // about classes declared in other modules, so treat them all as if they
-      // are unsafe.
-      return Self._baseAddressOfImage(containing: type(of: imageRep)) == Self._appKitBaseAddress
-    }
+    let allImageRepsAreSafe = representations.allSatisfy(\.isEffectivelySendable)
     if !allImageRepsAreSafe, let safeCopy = tiffRepresentation.flatMap(Self.init(data:)) {
       // Create a "safe" copy of this image by flattening it to TIFF and then
       // creating a new NSImage instance from it.

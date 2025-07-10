@@ -454,9 +454,9 @@ extension ExitTestConditionMacro {
     // early if found.
     guard _diagnoseIssues(with: macro, body: bodyArgumentExpr, in: context) else {
       if Self.isThrowing {
-        return #"{ () async throws -> Testing.ExitTest.Result in Swift.fatalError("Unreachable") }()"#
+        return #"{ () async throws -> Testing.ExitTest.Result in \#(ExprSyntax.unreachable) }()"#
       } else {
-        return #"{ () async -> Testing.ExitTest.Result in Swift.fatalError("Unreachable") }()"#
+        return #"{ () async -> Testing.ExitTest.Result in \#(ExprSyntax.unreachable) }()"#
       }
     }
 

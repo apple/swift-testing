@@ -41,7 +41,7 @@ struct CapturedValueInfo {
 
   init(_ capture: ClosureCaptureSyntax, in context: some MacroExpansionContext) {
     self.capture = capture
-    self.expression = #"Swift.fatalError("Unsupported")"#
+    self.expression = .unreachable
     self.type = "Swift.Never"
 
     // We don't support capture specifiers at this time.

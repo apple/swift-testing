@@ -22,7 +22,7 @@ public struct TagMacro: PeerMacro, AccessorMacro, Sendable {
   /// This property is used rather than simply returning the empty array in
   /// order to suppress a compiler diagnostic about not producing any accessors.
   private static var _fallbackAccessorDecls: [AccessorDeclSyntax] {
-    [#"get { Swift.fatalError("Unreachable") }"#]
+    [#"get { \#(ExprSyntax.unreachable) }"#]
   }
 
   public static func expansion(

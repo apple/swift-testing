@@ -50,7 +50,7 @@ public struct ExitTestBadCapturedValueMacro: ExpressionMacro, Sendable {
     // Diagnose that the type of 'expr' is invalid.
     context.diagnose(.capturedValueMustBeSendableAndCodable(expr, name: nameExpr))
 
-    return #"Swift.fatalError("Unsupported")"#
+    return .unreachable
   }
 }
 

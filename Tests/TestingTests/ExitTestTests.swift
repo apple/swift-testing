@@ -350,6 +350,7 @@ private import _TestingInternals
     }
     #expect(result.exitStatus == .exitCode(EXIT_SUCCESS))
     #expect(result.standardOutputContent.contains("STANDARD OUTPUT".utf8))
+    #expect(!result.standardOutputContent.contains(ExitTest.barrierValue))
     #expect(result.standardErrorContent.isEmpty)
 
     result = try await #require(processExitsWith: .success, observing: [\.standardErrorContent]) {
@@ -360,6 +361,7 @@ private import _TestingInternals
     #expect(result.exitStatus == .exitCode(EXIT_SUCCESS))
     #expect(result.standardOutputContent.isEmpty)
     #expect(result.standardErrorContent.contains("STANDARD ERROR".utf8.reversed()))
+    #expect(!result.standardErrorContent.contains(ExitTest.barrierValue))
   }
 
   @Test("Arguments to the macro are not captured during expansion (do not need to be literals/const)")

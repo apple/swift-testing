@@ -545,6 +545,73 @@ extension ABI {
 
 @_spi(ForToolsIntegrationOnly)
 extension ExitTest {
+  /// A barrier value to insert into the standard output and standard error
+  /// streams immediately before and after the body of an exit test runs in
+  /// order to distinguish output produced by the host process.
+  ///
+  /// The value of this property was randomly generated. It could conceivably
+  /// show up in actual output from an exit test, but the statistical likelihood
+  /// of that happening is negligible.
+  static var barrierValue: [UInt8] {
+    [
+      0x39, 0x74, 0x87, 0x6d, 0x96, 0xdd, 0xf6, 0x17,
+      0x7f, 0x05, 0x61, 0x5d, 0x46, 0xeb, 0x37, 0x0c,
+      0x90, 0x07, 0xca, 0xe5, 0xed, 0x0b, 0xc4, 0xc4,
+      0x46, 0x36, 0xc5, 0xb8, 0x9c, 0xc7, 0x86, 0x57,
+    ]
+  }
+
+  /// Remove the leading and trailing barrier values from the given array of
+  /// bytes along.
+  ///
+  /// - Parameters:
+  ///   - buffer: The buffer to trim.
+  ///
+  /// - Returns: A copy of `buffer`. If a barrier value (equal to
+  ///   ``barrierValue``) is present in `buffer`, it and everything before it
+  ///   are trimmed from the beginning of the copy. If there is more than one
+  ///   barrier value present, the last one and everything after it are trimmed
+  ///   from the end of the copy. If no barrier value is present, `buffer` is
+  ///   returned verbatim.
+  private static func _trimToBarrierValues(_ buffer: [UInt8]) -> [UInt8] {
+    let barrierValue = barrierValue
+    let firstBarrierByte = barrierValue[0]
+
+    // If the buffer is too small to contain the barrier value, exit early.
+    guard buffer.count > barrierValue.count else {
+      return buffer
+    }
+
+    // Find all the indices where the first byte of the barrier is present.
+    let splits = buffer.indices.filter { buffer[$0] == firstBarrierByte }
+
+    // Trim off the leading barrier value. If we didn't find any barrier values,
+    // we do nothing.
+    let leadingIndex = splits.first { buffer[$0...].starts(with: barrierValue) }
+    guard let leadingIndex else {
+      return buffer
+    }
+    var trimmedBuffer = buffer[leadingIndex...].dropFirst(barrierValue.count)
+
+    // If there's a trailing barrier value, trim it too. If it's at the same
+    // index as the leading barrier value, that means only one barrier value
+    // was present and we should assume it's the leading one.
+    let trailingIndex = splits.last { buffer[$0...].starts(with: barrierValue) }
+    if let trailingIndex, trailingIndex > leadingIndex {
+      trimmedBuffer = trimmedBuffer[..<trailingIndex]
+    }
+
+    return Array(trimmedBuffer)
+  }
+
+  /// Write barrier values (equal to ``barrierValue``) to the standard output
+  /// and standard error streams of the current process.
+  private static func _writeBarrierValues() {
+    let barrierValue = Self.barrierValue
+    try? FileHandle.stdout.write(barrierValue)
+    try? FileHandle.stderr.write(barrierValue)
+  }
+
   /// A handler that is invoked when an exit test starts.
   ///
   /// - Parameters:
@@ -697,6 +764,13 @@ extension ExitTest {
     }
 
     result.body = { [configuration, body = result.body] exitTest in
+      Self._writeBarrierValues()
+      defer {
+        // We will generally not end up writing these values if the process
+        // exits abnormally.
+        Self._writeBarrierValues()
+      }
+
       try await Configuration.withCurrent(configuration) {
         try exitTest._decodeCapturedValuesForEntryPoint()
         try await body(&exitTest)
@@ -877,14 +951,14 @@ extension ExitTest {
         if let stdoutReadEnd {
           stdoutWriteEnd?.close()
           taskGroup.addTask {
-            let standardOutputContent = try stdoutReadEnd.readToEnd()
+            let standardOutputContent = try Self._trimToBarrierValues(stdoutReadEnd.readToEnd())
             return { $0.standardOutputContent = standardOutputContent }
           }
         }
         if let stderrReadEnd {
           stderrWriteEnd?.close()
           taskGroup.addTask {
-            let standardErrorContent = try stderrReadEnd.readToEnd()
+            let standardErrorContent = try Self._trimToBarrierValues(stderrReadEnd.readToEnd())
             return { $0.standardErrorContent = standardErrorContent }
           }
         }

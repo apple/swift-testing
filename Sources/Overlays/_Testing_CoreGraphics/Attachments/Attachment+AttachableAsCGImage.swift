@@ -34,6 +34,8 @@ extension Attachment {
   /// - [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage)
   /// - [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage)
   ///   (macOS)
+  /// - [`UIImage`](https://developer.apple.com/documentation/uikit/uiimage)
+  ///   (iOS, watchOS, tvOS, visionOS, and Mac Catalyst)
   ///
   /// The testing library uses the image format specified by `imageFormat`. Pass
   /// `nil` to let the testing library decide which image format to use. If you
@@ -72,6 +74,8 @@ extension Attachment {
   /// - [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage)
   /// - [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage)
   ///   (macOS)
+  /// - [`UIImage`](https://developer.apple.com/documentation/uikit/uiimage)
+  ///   (iOS, watchOS, tvOS, visionOS, and Mac Catalyst)
   ///
   /// The testing library uses the image format specified by `imageFormat`. Pass
   /// `nil` to let the testing library decide which image format to use. If you

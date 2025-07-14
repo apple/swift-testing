@@ -50,6 +50,8 @@ import UniformTypeIdentifiers
 /// - [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage)
 /// - [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage)
 ///   (macOS)
+/// - [`UIImage`](https://developer.apple.com/documentation/uikit/uiimage)
+///   (iOS, watchOS, tvOS, visionOS, and Mac Catalyst)
 @_spi(Experimental)
 @available(_uttypesAPI, *)
 public struct _AttachableImageWrapper<Image>: Sendable where Image: AttachableAsCGImage {

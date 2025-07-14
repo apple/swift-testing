@@ -27,6 +27,8 @@ private import ImageIO
 /// - [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage)
 /// - [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage)
 ///   (macOS)
+/// - [`UIImage`](https://developer.apple.com/documentation/uikit/uiimage)
+///   (iOS, watchOS, tvOS, visionOS, and Mac Catalyst)
 ///
 /// You do not generally need to add your own conformances to this protocol. If
 /// you have an image in another format that needs to be attached to a test,

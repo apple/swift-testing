@@ -83,6 +83,13 @@ extension Trait where Self == TimeLimitTrait {
   /// test cases individually. If a test has more than one time limit associated
   /// with it, the shortest one is used. A test run may also be configured with
   /// a maximum time limit per test case.
+  ///
+  /// If you apply this trait to a test suite, then it sets the time limit for
+  /// each test in the suite, or each test case in parameterized tests in the
+  /// suite.
+  /// For example, if a suite contains five tests and you apply a time limit trait
+  /// with a duration of one minute, then each test in the suite may run for up to
+  /// one minute.
   @_spi(Experimental)
   public static func timeLimit(_ timeLimit: Duration) -> Self {
     return Self(timeLimit: timeLimit)
@@ -116,6 +123,13 @@ extension Trait where Self == TimeLimitTrait {
   /// If a test is parameterized, this time limit is applied to each of its
   /// test cases individually. If a test has more than one time limit associated
   /// with it, the testing library uses the shortest time limit.
+  ///
+  /// If you apply this trait to a test suite, then it sets the time limit for
+  /// each test in the suite, or each test case in parameterized tests in the
+  /// suite.
+  /// For example, if a suite contains five tests and you apply a time limit trait
+  /// with a duration of one minute, then each test in the suite may run for up to
+  /// one minute.
   public static func timeLimit(_ timeLimit: Self.Duration) -> Self {
     return Self(timeLimit: timeLimit.underlyingDuration)
   }

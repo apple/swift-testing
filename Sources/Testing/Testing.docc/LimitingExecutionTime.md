@@ -40,8 +40,8 @@ hour (60 x 60 seconds) to execute, the task in which it's running is
 and the test fails with an issue of kind
 ``Issue/Kind-swift.enum/timeLimitExceeded(timeLimitComponents:)``.
 
-- Note: If multiple time limit traits apply to a test, the shortest time limit
-  is used.
+- Note: If multiple time limit traits apply to a test, the testing library uses
+  the shortest time limit.
 
 The testing library may adjust the specified time limit for performance reasons
 or to ensure tests have enough time to run. In particular, a granularity of (by
@@ -49,13 +49,20 @@ default) one minute is applied to tests. The testing library can also be
 configured with a maximum time limit per test that overrides any applied time
 limit traits.
 
-### Time limits applied to test suites
+### Apply time limits to test suites
 
-When a time limit is applied to a test suite, it's recursively applied to all
-test functions and child test suites within that suite.
+When you apply a time limit to a test suite, the testing library recursively
+applies it to all test functions and child test suites within that suite.
+The time limit applies to each test in the test suite and any child test suites,
+or each test case for parameterized tests.
 
-### Time limits applied to parameterized tests
+For example, if a suite contains five tests and you apply a time limit trait
+with a duration of one minute, then each test in the suite may run for up to
+one minute.
 
-When a time limit is applied to a parameterized test function, it's applied to
-each invocation _separately_ so that if only some arguments cause failures, then
-successful arguments aren't incorrectly marked as failing too.
+### Apply time limits to parameterized tests
+
+When you apply a time limit to a parameterized test function, the testing
+library applies it to each invocation _separately_ so that if only some
+cases cause failures due to timeouts, then the testing library doesn't
+incorrectly mark successful cases as failing.

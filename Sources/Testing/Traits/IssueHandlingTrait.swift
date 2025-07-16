@@ -24,7 +24,10 @@
 ///
 /// - ``Trait/compactMapIssues(_:)``
 /// - ``Trait/filterIssues(_:)``
-@_spi(Experimental)
+///
+/// @Metadata {
+///   @Available(Swift, introduced: 6.2)
+/// }
 public struct IssueHandlingTrait: TestTrait, SuiteTrait {
   /// A function which handles an issue and returns an optional replacement.
   ///
@@ -49,6 +52,10 @@ public struct IssueHandlingTrait: TestTrait, SuiteTrait {
   ///
   /// - Returns: An issue to replace `issue`, or else `nil` if the issue should
   ///   not be recorded.
+  ///
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.2)
+  /// }
   public func handleIssue(_ issue: Issue) -> Issue? {
     _handler(issue)
   }
@@ -58,6 +65,9 @@ public struct IssueHandlingTrait: TestTrait, SuiteTrait {
   }
 }
 
+/// @Metadata {
+///   @Available(Swift, introduced: 6.2)
+/// }
 extension IssueHandlingTrait: TestScoping {
   public func scopeProvider(for test: Test, testCase: Test.Case?) -> Self? {
     // Provide scope for tests at both the suite and test case levels, but not
@@ -111,9 +121,20 @@ extension IssueHandlingTrait: TestScoping {
       }
 
       if let newIssue {
-        // Prohibit assigning the issue's kind to system.
-        if case .system = newIssue.kind {
+        // Validate the value of the returned issue's 'kind' property.
+        switch (issue.kind, newIssue.kind) {
+        case (_, .system):
+          // Prohibited by ST-0011.
           preconditionFailure("Issue returned by issue handling closure cannot have kind 'system': \(newIssue)")
+        case (.apiMisused, .apiMisused):
+          // This is permitted, but must be listed explicitly before the
+          // wildcard case below.
+          break
+        case (_, .apiMisused):
+          // Prohibited by ST-0011.
+          preconditionFailure("Issue returned by issue handling closure cannot have kind 'apiMisused' when the passed-in issue had a different kind: \(newIssue)")
+        default:
+          break
         }
 
         var event = event
@@ -126,7 +147,6 @@ extension IssueHandlingTrait: TestScoping {
   }
 }
 
-@_spi(Experimental)
 extension Trait where Self == IssueHandlingTrait {
   /// Constructs an trait that transforms issues recorded by a test.
   ///
@@ -158,6 +178,10 @@ extension Trait where Self == IssueHandlingTrait {
   /// - Note: `transform` will never be passed an issue for which the value of
   ///   ``Issue/kind`` is ``Issue/Kind/system``, and may not return such an
   ///   issue.
+  ///
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.2)
+  /// }
   public static func compactMapIssues(_ transform: @escaping @Sendable (Issue) -> Issue?) -> Self {
     Self(handler: transform)
   }
@@ -192,6 +216,10 @@ extension Trait where Self == IssueHandlingTrait {
   ///
   /// - Note: `isIncluded` will never be passed an issue for which the value of
   ///   ``Issue/kind`` is ``Issue/Kind/system``.
+  ///
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.2)
+  /// }
   public static func filterIssues(_ isIncluded: @escaping @Sendable (Issue) -> Bool) -> Self {
     Self { issue in
       isIncluded(issue) ? issue : nil

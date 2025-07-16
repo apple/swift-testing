@@ -8,7 +8,7 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
-@testable @_spi(Experimental) @_spi(ForToolsIntegrationOnly) import Testing
+@testable @_spi(ForToolsIntegrationOnly) import Testing
 
 @Suite("IssueHandlingTrait Tests", .tags(.traitRelated))
 struct IssueHandlingTraitTests {
@@ -216,6 +216,27 @@ struct IssueHandlingTraitTests {
     }.run(configuration: configuration)
   }
 
+  @Test("An API misused issue can be returned by issue handler closure when the original issue had that kind")
+  func returningAPIMisusedIssue() async throws {
+    var configuration = Configuration()
+    configuration.eventHandler = { event, context in
+      if case let .issueRecorded(issue) = event.kind, case .unconditional = issue.kind {
+        issue.record()
+      }
+    }
+
+    let handler = IssueHandlingTrait.compactMapIssues { issue in
+      guard case .apiMisused = issue.kind else {
+        return Issue.record("Expected an issue of kind 'apiMisused': \(issue)")
+      }
+      return issue
+    }
+
+    await Test(handler) {
+      Issue(kind: .apiMisused).record()
+    }.run(configuration: configuration)
+  }
+
 #if !SWT_NO_EXIT_TESTS
   @Test("Disallow assigning kind to .system")
   func disallowAssigningSystemKind() async throws {
@@ -223,6 +244,19 @@ struct IssueHandlingTraitTests {
       await Test(.compactMapIssues { issue in
         var issue = issue
         issue.kind = .system
+        return issue
+      }) {
+        Issue.record("A non-system issue")
+      }.run()
+    }
+  }
+
+  @Test("Disallow assigning kind to .apiMisused")
+  func disallowAssigningAPIMisusedKind() async throws {
+    await #expect(processExitsWith: .failure) {
+      await Test(.compactMapIssues { issue in
+        var issue = issue
+        issue.kind = .apiMisused
         return issue
       }) {
         Issue.record("A non-system issue")

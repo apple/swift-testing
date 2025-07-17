@@ -38,7 +38,7 @@ extension ExitTest {
     /// The value of this property may contain any arbitrary sequence of bytes,
     /// including sequences that are not valid UTF-8 and cannot be decoded by
     /// [`String.init(cString:)`](https://developer.apple.com/documentation/swift/string/init(cstring:)-6kr8s).
-    /// Consider using [`String.init(validatingCString:)`](https://developer.apple.com/documentation/swift/string/init(validatingcstring:)-992vo)
+    /// Consider using [`String.init(validating:as:)`](https://developer.apple.com/documentation/swift/string/init(validating:as:)-84qr9)
     /// instead.
     ///
     /// When checking the value of this property, keep in mind that the standard
@@ -69,7 +69,7 @@ extension ExitTest {
     /// The value of this property may contain any arbitrary sequence of bytes,
     /// including sequences that are not valid UTF-8 and cannot be decoded by
     /// [`String.init(cString:)`](https://developer.apple.com/documentation/swift/string/init(cstring:)-6kr8s).
-    /// Consider using [`String.init(validatingCString:)`](https://developer.apple.com/documentation/swift/string/init(validatingcstring:)-992vo)
+    /// Consider using [`String.init(validating:as:)`](https://developer.apple.com/documentation/swift/string/init(validating:as:)-84qr9)
     /// instead.
     ///
     /// When checking the value of this property, keep in mind that the standard

@@ -255,15 +255,16 @@ public struct __CommandLineArguments_v0: Sendable {
   /// whichever occurs first.
   public var eventStreamOutputPath: String?
 
-  /// The version of the event stream schema to use when writing events to
-  /// ``eventStreamOutput``.
+  /// The value of the `--event-stream-version` or `--experimental-event-stream-version`
+  /// argument, representing the version of the event stream schema to use when
+  /// writing events to ``eventStreamOutput``.
   ///
   /// The corresponding stable schema is used to encode events to the event
   /// stream. ``ABI/Record`` is used if the value of this property is `0` or
   /// higher.
   ///
   /// If the value of this property is `nil`, the testing library assumes that
-  /// the newest available schema should be used.
+  /// the current supported (non-experimental) version should be used.
   public var eventStreamVersion: Int?
 
   /// The value(s) of the `--filter` argument.
@@ -376,16 +377,23 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
       }
     }
     if let eventOutputVersionIndex, !isLastArgument(at: eventOutputVersionIndex) {
-      result.eventStreamVersion = Int(args[args.index(after: eventOutputVersionIndex)])
+      let versionString = args[args.index(after: eventOutputVersionIndex)]
+
+      // If the caller specified a version that could not be parsed, treat it as
+      // an invalid argument.
+      guard let eventStreamVersion = Int(versionString) else {
+        let argument = allowExperimental ? "--experimental-event-stream-version" : "--event-stream-version"
+        throw _EntryPointError.invalidArgument(argument, value: versionString)
+      }
 
       // If the caller specified an experimental ABI version, they must
       // explicitly use --experimental-event-stream-version, otherwise it's
       // treated as unsupported.
-      if let eventStreamVersion = result.eventStreamVersion,
-         eventStreamVersion > ABI.CurrentVersion.versionNumber,
-         !allowExperimental {
+      if eventStreamVersion > ABI.CurrentVersion.versionNumber, !allowExperimental {
         throw _EntryPointError.experimentalABIVersion(eventStreamVersion)
       }
+
+      result.eventStreamVersion = eventStreamVersion
     }
   }
 #endif

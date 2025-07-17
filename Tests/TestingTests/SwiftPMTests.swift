@@ -308,6 +308,13 @@ struct SwiftPMTests {
       _ = try configurationForEntryPoint(withArguments: ["PATH", "--event-stream-version", "\(experimentalVersion)"])
     }
   }
+
+  @Test("Invalid event stream version throws an invalid argument error")
+  func invalidEventStreamVersionThrows() {
+    #expect(throws: (any Error).self) {
+      _ = try configurationForEntryPoint(withArguments: ["PATH", "--event-stream-version", "xyz-invalid"])
+    }
+  }
 #endif
 #endif
 

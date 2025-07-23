@@ -67,21 +67,7 @@ The parent process doesn't call the body of the exit test. Instead, the child
 process treats the body of the exit test as its `main()` function and calls it
 directly.
 
-- Note: Because the body acts as the `main()` function of a new process, it
-  can't capture any state originating in the parent process or from its lexical
-  context. For example, the following exit test will fail to compile because it
-  captures a variable declared outside the exit test itself:
-
-  ```swift
-  @Test func `Customer won't eat food unless it's nutritious`() async {
-    let isNutritious = false
-    await #expect(processExitsWith: .failure) {
-      var food = ...
-      food.isNutritious = isNutritious // ❌ ERROR: trying to capture state here
-      Customer.current.eat(food)
-    }
-  }
-  ```
+<!-- TODO: discuss @MainActor isolation or lack thereof -->
 
 If the body returns before the child process exits, the process exits as if
 `main()` returned normally. If the body throws an error, Swift handles it as if
@@ -105,6 +91,59 @@ When the child process exits, the parent process resumes and compares the exit
 status of the child process against the expected exit condition you passed. If
 they match, the exit test passes; otherwise, it fails and the testing library
 records an issue.
+
+### Capture state from the parent process
+
+To pass information from the parent process to the child process, you specify
+the Swift values you want to pass in a [capture list](https://docs.swift.org/swift-book/documentation/the-swift-programming-language/closures/#Capturing-Values)
+on the exit test's body:
+
+```swift
+@Test(arguments: Food.allJunkFood)
+func `Customer won't eat food unless it's nutritious`(_ food: Food) async {
+  await #expect(processExitsWith: .failure) { [food] in
+    Customer.current.eat(food)
+  }
+}
+```
+
+- Note: If you use this macro with a Swift compiler version lower than 6.3, it
+  doesn't support capturing state.
+
+If a captured value is an argument to the current function or is `self`, its
+type is inferred at compile time. Otherwise, explicitly specify the type of the
+value using the `as` operator:
+
+```swift
+@Test func `Customer won't eat food unless it's nutritious`() async {
+  var food = ...
+  food.isNutritious = false
+  await #expect(processExitsWith: .failure) { [self, food = food as Food] in
+    self.prepare(food)
+    Customer.current.eat(food)
+  }
+}
+```
+
+Every value you capture in an exit test must conform to [`Sendable`](https://developer.apple.com/documentation/swift/sendable)
+and [`Codable`](https://developer.apple.com/documentation/swift/codable). Each
+value is encoded by the parent process using [`encode(to:)`](https://developer.apple.com/documentation/swift/encodable/encode(to:))
+and is decoded by the child process [`init(from:)`](https://developer.apple.com/documentation/swift/decodable/init(from:))
+before being passed to the exit test body.
+
+If a captured value's type does not conform to both `Sendable` and `Codable`, or
+if the value is not explicitly specified in the exit test body's capture list,
+the compiler emits an error:
+
+```swift
+@Test func `Customer won't eat food unless it's nutritious`() async {
+  var food = ...
+  food.isNutritious = false
+  await #expect(processExitsWith: .failure) {
+    Customer.current.eat(food) // ❌ ERROR: implicitly capturing 'food'
+  }
+}
+```
 
 ### Gather output from the child process
 

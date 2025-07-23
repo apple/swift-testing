@@ -383,7 +383,6 @@ private import _TestingInternals
     }
   }
 
-#if ExperimentalExitTestValueCapture
   @Test("Capture list")
   func captureList() async {
     let i = 123
@@ -560,7 +559,6 @@ private import _TestingInternals
       _ = x
     }
   }
-#endif
 #endif
 }
 

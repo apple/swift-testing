@@ -855,50 +855,6 @@ extension DiagnosticMessage {
     )
   }
 
-  /// Create a diagnostic message stating that a capture clause cannot be used
-  /// in an exit test.
-  ///
-  /// - Parameters:
-  ///   - captureClause: The invalid capture clause.
-  ///   - closure: The closure containing `captureClause`.
-  ///   - exitTestMacro: The containing exit test macro invocation.
-  ///
-  /// - Returns: A diagnostic message.
-  static func captureClauseUnsupported(_ captureClause: ClosureCaptureClauseSyntax, in closure: ClosureExprSyntax, inExitTest exitTestMacro: some FreestandingMacroExpansionSyntax) -> Self {
-    let changes: [FixIt.Change]
-    if let signature = closure.signature,
-       Array(signature.with(\.capture, nil).tokens(viewMode: .sourceAccurate)).count == 1 {
-      // The only remaining token in the signature is `in`, so remove the whole
-      // signature tree instead of just the capture clause.
-      changes = [
-        .replaceTrailingTrivia(token: closure.leftBrace, newTrivia: ""),
-        .replace(
-          oldNode: Syntax(signature),
-          newNode: Syntax("" as ExprSyntax)
-        )
-      ]
-    } else {
-      changes = [
-        .replace(
-          oldNode: Syntax(captureClause),
-          newNode: Syntax("" as ExprSyntax)
-        )
-      ]
-    }
-
-    return Self(
-      syntax: Syntax(captureClause),
-      message: "Cannot specify a capture clause in closure passed to \(_macroName(exitTestMacro))",
-      severity: .error,
-      fixIts: [
-        FixIt(
-          message: MacroExpansionFixItMessage("Remove '\(captureClause.trimmed)'"),
-          changes: changes
-        ),
-      ]
-    )
-  }
-
   /// Create a diagnostic message stating that an expression macro is not
   /// supported in a generic context.
   ///

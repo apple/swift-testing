@@ -107,13 +107,6 @@ let package = Package(
     return result
   }(),
 
-  traits: [
-    .trait(
-      name: "ExperimentalExitTestValueCapture",
-      description: "Enable experimental support for capturing values in exit tests"
-    ),
-  ],
-
   dependencies: [
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "602.0.0-latest"),
   ],
@@ -382,14 +375,6 @@ extension Array where Element == PackageDescription.SwiftSetting {
       .define("SWT_NO_LEGACY_TEST_DISCOVERY", .whenEmbedded()),
       .define("SWT_NO_LIBDISPATCH", .whenEmbedded()),
     ]
-
-    // Unconditionally enable 'ExperimentalExitTestValueCapture' when building
-    // for development.
-    if buildingForDevelopment {
-      result += [
-        .define("ExperimentalExitTestValueCapture")
-      ]
-    }
 
     return result
   }

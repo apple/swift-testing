@@ -452,7 +452,6 @@ struct ConditionMacroTests {
     }
   }
 
-#if ExperimentalExitTestValueCapture
   @Test("#expect(processExitsWith:) produces a diagnostic for a bad capture",
         arguments: [
           "#expectExitTest(processExitsWith: x) { [weak a] in }":
@@ -470,34 +469,12 @@ struct ConditionMacroTests {
         ]
   )
   func exitTestCaptureDiagnostics(input: String, expectedMessage: String) throws {
-    try ExitTestExpectMacro.$isValueCapturingEnabled.withValue(true) {
-      let (_, diagnostics) = try parse(input)
+    let (_, diagnostics) = try parse(input)
 
-      #expect(diagnostics.count > 0)
-      for diagnostic in diagnostics {
-        #expect(diagnostic.diagMessage.severity == .error)
-        #expect(diagnostic.message == expectedMessage)
-      }
-    }
-  }
-#endif
-
-  @Test(
-    "Capture list on an exit test produces a diagnostic",
-    arguments: [
-      "#expectExitTest(processExitsWith: x) { [a] in }":
-        "Cannot specify a capture clause in closure passed to '#expectExitTest(processExitsWith:_:)'"
-    ]
-  )
-  func exitTestCaptureListProducesDiagnostic(input: String, expectedMessage: String) throws {
-    try ExitTestExpectMacro.$isValueCapturingEnabled.withValue(false) {
-      let (_, diagnostics) = try parse(input)
-
-      #expect(diagnostics.count > 0)
-      for diagnostic in diagnostics {
-        #expect(diagnostic.diagMessage.severity == .error)
-        #expect(diagnostic.message == expectedMessage)
-      }
+    #expect(diagnostics.count > 0)
+    for diagnostic in diagnostics {
+      #expect(diagnostic.diagMessage.severity == .error)
+      #expect(diagnostic.message == expectedMessage)
     }
   }
 

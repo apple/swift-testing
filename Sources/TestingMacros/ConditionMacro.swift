@@ -630,15 +630,6 @@ extension ExitTestConditionMacro {
   ) -> Bool {
     var diagnostics = [DiagnosticMessage]()
 
-    if let closureExpr = bodyArgumentExpr.as(ClosureExprSyntax.self),
-       let captureClause = closureExpr.signature?.capture,
-       !captureClause.items.isEmpty {
-      // Disallow capture lists if the experimental feature is not enabled.
-      if !ExitTestExpectMacro.isValueCapturingEnabled {
-        diagnostics.append(.captureClauseUnsupported(captureClause, in: closureExpr, inExitTest: macro))
-      }
-    }
-
     // Disallow exit tests in generic types and functions as they cannot be
     // correctly expanded due to the use of a nested type with static members.
     for lexicalContext in context.lexicalContext {
@@ -662,22 +653,6 @@ extension ExitTestConditionMacro {
     }
     return diagnostics.isEmpty
   }
-}
-
-extension ExitTestExpectMacro {
-  /// Whether or not experimental value capturing via explicit capture lists is
-  /// enabled.
-  ///
-  /// This member is declared on ``ExitTestExpectMacro`` but also applies to
-  /// ``ExitTestRequireMacro``.
-  @TaskLocal
-  static var isValueCapturingEnabled: Bool = {
-#if ExperimentalExitTestValueCapture
-    return true
-#else
-    return false
-#endif
-  }()
 }
 
 /// A type describing the expansion of the `#expect(processExitsWith:)` macro.

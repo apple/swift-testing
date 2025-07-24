@@ -360,13 +360,10 @@ extension TypeInfo {
 /// - Returns: Whether `subclass` is a subclass of, or is equal to,
 ///   `superclass`.
 func isClass(_ subclass: AnyClass, subclassOf superclass: AnyClass) -> Bool {
-  if subclass == superclass {
-    true
-  } else if let subclassImmediateSuperclass = _getSuperclass(subclass) {
-    isClass(subclassImmediateSuperclass, subclassOf: superclass)
-  } else {
-    false
+  func open<T, U>(_: T.Type, _: U.Type) -> Bool where T: AnyObject, U: AnyObject {
+    T.self is U.Type
   }
+  return open(subclass, superclass)
 }
 
 // MARK: - CustomStringConvertible, CustomDebugStringConvertible, CustomTestStringConvertible

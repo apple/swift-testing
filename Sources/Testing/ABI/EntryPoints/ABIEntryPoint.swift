@@ -67,6 +67,10 @@ extension ABI.v0 {
 ///
 /// - Returns: The value of ``ABI/v0/entryPoint-swift.type.property`` cast to an
 ///   untyped pointer.
+///
+/// - Note: This function's name is prefixed with `swt_` instead of
+///   `swift_testing_` for binary compatibility reasons. Future ABI entry point
+///   functions should use the `swift_testing_` prefix instead.
 @_cdecl("swt_abiv0_getEntryPoint")
 @usableFromInline func abiv0_getEntryPoint() -> UnsafeRawPointer {
   unsafeBitCast(ABI.v0.entryPoint, to: UnsafeRawPointer.self)

@@ -919,7 +919,7 @@ extension ExitTest {
           childEnvironment["SWT_BACKCHANNEL"] = backChannelEnvironmentVariable
         }
         if let capturedValuesEnvironmentVariable = _makeEnvironmentVariable(for: capturedValuesReadEnd) {
-          childEnvironment["SWT_EXPERIMENTAL_CAPTURED_VALUES"] = capturedValuesEnvironmentVariable
+          childEnvironment["SWT_CAPTURED_VALUES"] = capturedValuesEnvironmentVariable
         }
 
         // Spawn the child process.
@@ -1071,7 +1071,7 @@ extension ExitTest {
   private mutating func _decodeCapturedValuesForEntryPoint() throws {
     // Read the content of the captured values stream provided by the parent
     // process above.
-    guard let fileHandle = Self._makeFileHandle(forEnvironmentVariableNamed: "SWT_EXPERIMENTAL_CAPTURED_VALUES", mode: "rb") else {
+    guard let fileHandle = Self._makeFileHandle(forEnvironmentVariableNamed: "SWT_CAPTURED_VALUES", mode: "rb") else {
       return
     }
     let capturedValuesJSON = try fileHandle.readToEnd()

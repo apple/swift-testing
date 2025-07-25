@@ -167,9 +167,9 @@ private let _createWaitThread: Void = {
       _ = _pthread_setname_np?(pthread_self(), "SWT ExT monitor")
 #endif
 #elseif os(FreeBSD)
-      _ = pthread_set_name_np(pthread_self(), "SWT ex test monitor")
+      pthread_set_name_np(pthread_self(), "SWT ex test monitor")
 #elseif os(OpenBSD)
-      _ = pthread_set_name_np(pthread_self(), "SWT exit test monitor")
+      pthread_set_name_np(pthread_self(), "SWT exit test monitor")
 #else
 #warning("Platform-specific implementation missing: thread naming unavailable")
 #endif

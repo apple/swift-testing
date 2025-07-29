@@ -18,7 +18,7 @@ extension ABI {
   /// A protocol describing the types that represent different ABI versions.
   protocol Version: Sendable {
     /// The numeric representation of this ABI version.
-    static var versionNumber: Int { get }
+    static var versionNumber: VersionNumber { get }
 
 #if canImport(Foundation) && (!SWT_NO_FILE_IO || !SWT_NO_ABI_ENTRY_POINT)
     /// Create an event handler that encodes events as JSON and forwards them to
@@ -44,6 +44,33 @@ extension ABI {
 
   /// The current supported ABI version (ignoring any experimental versions.)
   typealias CurrentVersion = v0
+
+#if !hasFeature(Embedded)
+  /// Get the type representing a given ABI version.
+  ///
+  /// - Parameters:
+  ///   - versionNumber: The ABI version number for which a concrete type is
+  ///     needed.
+  ///
+  /// - Returns: A type conforming to ``ABI/Version`` that represents the given
+  ///   ABI version, or `nil` if no such type exists.
+  static func version(forVersionNumber versionNumber: VersionNumber = ABI.CurrentVersion.versionNumber) -> (any Version.Type)? {
+    switch versionNumber {
+    case ABI.v6_3.versionNumber...:
+      ABI.v6_3.self
+    case ABI.v0.versionNumber...:
+      ABI.v0.self
+#if !SWT_NO_SNAPSHOT_TYPES
+    case ABI.Xcode16.versionNumber:
+      // Legacy support for Xcode 16. Support for this undocumented version will
+      // be removed in a future update. Do not use it.
+      ABI.Xcode16.self
+#endif
+    default:
+      nil
+    }
+  }
+#endif
 }
 
 // MARK: - Concrete ABI versions
@@ -54,28 +81,28 @@ extension ABI {
   ///
   /// - Warning: This type will be removed in a future update.
   enum Xcode16: Sendable, Version {
-    static var versionNumber: Int {
-      -1
+    static var versionNumber: VersionNumber {
+      VersionNumber(-1, 0)
     }
   }
 #endif
 
   /// A namespace and type for ABI version 0 symbols.
   public enum v0: Sendable, Version {
-    static var versionNumber: Int {
-      0
+    static var versionNumber: VersionNumber {
+      VersionNumber(0, 0)
     }
   }
 
-  /// A namespace and type for ABI version 1 symbols.
+  /// A namespace and type for ABI version 6.3 symbols.
   ///
   /// @Metadata {
-  ///   @Available("Swift Testing ABI", introduced: 1)
+  ///   @Available(Swift, introduced: 6.3)
   /// }
   @_spi(Experimental)
-  public enum v1: Sendable, Version {
-    static var versionNumber: Int {
-      1
+  public enum v6_3: Sendable, Version {
+    static var versionNumber: VersionNumber {
+      VersionNumber(6, 3)
     }
   }
 }

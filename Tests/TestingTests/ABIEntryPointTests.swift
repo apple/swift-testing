@@ -21,7 +21,7 @@ struct ABIEntryPointTests {
   @Test func v0() async throws {
     var arguments = __CommandLineArguments_v0()
     arguments.filter = ["NonExistentTestThatMatchesNothingHopefully"]
-    arguments.eventStreamVersion = 0
+    arguments.eventStreamSchemaVersion = "0"
     arguments.verbosity = .min
 
     let result = try await _invokeEntryPointV0(passing: arguments) { recordJSON in
@@ -36,7 +36,7 @@ struct ABIEntryPointTests {
   func v0_manyFilters() async throws {
     var arguments = __CommandLineArguments_v0()
     arguments.filter = (1...100).map { "NonExistentTestThatMatchesNothingHopefully_\($0)" }
-    arguments.eventStreamVersion = 0
+    arguments.eventStreamSchemaVersion = "0"
     arguments.verbosity = .min
 
     let result = try await _invokeEntryPointV0(passing: arguments)
@@ -48,7 +48,7 @@ struct ABIEntryPointTests {
   func v0_listingTestsOnly() async throws {
     var arguments = __CommandLineArguments_v0()
     arguments.listTests = true
-    arguments.eventStreamVersion = 0
+    arguments.eventStreamSchemaVersion = "0"
     arguments.verbosity = .min
 
     try await confirmation("Test matched", expectedCount: 1...) { testMatched in
@@ -105,7 +105,7 @@ struct ABIEntryPointTests {
   }
 
   @Test func decodeWrongRecordVersion() throws {
-    let record = ABI.Record<ABI.v1>(encoding: Test {})
+    let record = ABI.Record<ABI.v6_3>(encoding: Test {})
     let error = try JSON.withEncoding(of: record) { recordJSON in
       try #require(throws: DecodingError.self) {
         _ = try JSON.decode(ABI.Record<ABI.v0>.self, from: recordJSON)
@@ -114,9 +114,63 @@ struct ABIEntryPointTests {
     guard case let .dataCorrupted(context) = error else {
       throw error
     }
-    #expect(context.debugDescription == "Unexpected record version 1 (expected 0).")
+    #expect(context.debugDescription == "Unexpected record version 6.3 (expected 0).")
+  }
+
+  @Test func decodeVersionNumber() throws {
+    let version0 = try JSON.withEncoding(of: 0) { versionJSON in
+      try JSON.decode(ABI.VersionNumber.self, from: versionJSON)
+    }
+    #expect(version0 == ABI.VersionNumber(0, 0))
+
+    let version1_2_3 = try JSON.withEncoding(of: "1.2.3") { versionJSON in
+      try JSON.decode(ABI.VersionNumber.self, from: versionJSON)
+    }
+    #expect(version1_2_3.majorComponent == 1)
+    #expect(version1_2_3.minorComponent == 2)
+    #expect(version1_2_3.patchComponent == 3)
+
+    #expect(throws: DecodingError.self) {
+      _ = try JSON.withEncoding(of: "not.valid") { versionJSON in
+        try JSON.decode(ABI.VersionNumber.self, from: versionJSON)
+      }
+    }
   }
 #endif
+
+  @Test(arguments: [
+    (ABI.VersionNumber(-1, 0), "-1"),
+    (ABI.VersionNumber(0, 0), "0"),
+    (ABI.VersionNumber(1, 0), "1.0"),
+    (ABI.VersionNumber(2, 0), "2.0"),
+    (ABI.VersionNumber("0.0.1"), "0.0.1"),
+    (ABI.VersionNumber("0.1.0"), "0.1"),
+  ]) func abiVersionStringConversion(version: ABI.VersionNumber?, expectedString: String) throws {
+    let version = try #require(version)
+    #expect(String(describing: version) == expectedString)
+  }
+
+  @Test func badABIVersionString() {
+    let version = ABI.VersionNumber("not.valid")
+    #expect(version == nil)
+  }
+
+  @Test func abiVersionComparisons() throws {
+    var versions = [ABI.VersionNumber]()
+    for major in 0 ..< 10 {
+      let version = try #require(ABI.VersionNumber("\(major)"))
+      versions.append(version)
+      for minor in 0 ..< 10 {
+        let version = try #require(ABI.VersionNumber("\(major).\(minor)"))
+        versions.append(version)
+        for patch in 0 ..< 10 {
+          let version = try #require(ABI.VersionNumber("\(major).\(minor).\(patch)"))
+          versions.append(version)
+        }
+      }
+    }
+    #expect(versions == versions.shuffled().sorted())
+  }
 }
 
 #if !SWT_NO_DYNAMIC_LINKING

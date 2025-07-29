@@ -18,7 +18,7 @@ struct EntryPointTests {
     var arguments = __CommandLineArguments_v0()
     arguments.filter = ["_someHiddenTest"]
     arguments.includeHiddenTests = true
-    arguments.eventStreamVersion = 0
+    arguments.eventStreamSchemaVersion = "0"
     arguments.verbosity = .min
 
     await confirmation("Test event started", expectedCount: 1) { testMatched in
@@ -35,7 +35,7 @@ struct EntryPointTests {
     var arguments = __CommandLineArguments_v0()
     arguments.filter = ["_recordWarningIssue"]
     arguments.includeHiddenTests = true
-    arguments.eventStreamVersion = 0
+    arguments.eventStreamSchemaVersion = "0"
     arguments.verbosity = .min
 
     let exitCode = await confirmation("Test matched", expectedCount: 1) { testMatched in
@@ -55,7 +55,7 @@ struct EntryPointTests {
     var arguments = __CommandLineArguments_v0()
     arguments.filter = ["_recordWarningIssue"]
     arguments.includeHiddenTests = true
-    arguments.eventStreamVersion = 0
+    arguments.eventStreamSchemaVersion = "0"
     arguments.isWarningIssueRecordedEventEnabled = true
     arguments.verbosity = .min
 

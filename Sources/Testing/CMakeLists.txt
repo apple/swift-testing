@@ -13,6 +13,7 @@ add_library(Testing
   ABI/ABI.Record.swift
   ABI/ABI.Record+Streaming.swift
   ABI/ABI.swift
+  ABI/ABI.VersionNumber.swift
   ABI/Encoded/ABI.EncodedAttachment.swift
   ABI/Encoded/ABI.EncodedBacktrace.swift
   ABI/Encoded/ABI.EncodedError.swift

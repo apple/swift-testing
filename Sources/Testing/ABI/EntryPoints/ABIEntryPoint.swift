@@ -50,7 +50,7 @@ extension ABI.v0 {
       let args = try configurationJSON.map { configurationJSON in
         try JSON.decode(__CommandLineArguments_v0.self, from: configurationJSON)
       }
-      let eventHandler = try eventHandlerForStreamingEvents(version: args?.eventStreamVersion, encodeAsJSONLines: false, forwardingTo: recordHandler)
+      let eventHandler = try eventHandlerForStreamingEvents(withVersionNumber: args?.eventStreamVersionNumber, encodeAsJSONLines: false, forwardingTo: recordHandler)
 
       switch await Testing.entryPoint(passing: args, eventHandler: eventHandler) {
       case EXIT_SUCCESS, EXIT_NO_TESTS_FOUND:

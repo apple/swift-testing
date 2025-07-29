@@ -272,7 +272,8 @@ struct SwiftPMTests {
   @Test("Unsupported ABI version")
   func unsupportedABIVersion() async throws {
     let versionNumber = ABI.VersionNumber(-100, 0)
-    #expect(ABI.version(forVersionNumber: versionNumber) == nil)
+    let versionTypeInfo = ABI.version(forVersionNumber: versionNumber).map(TypeInfo.init(describing:))
+    #expect(versionTypeInfo == nil)
   }
 
   @Test("--event-stream-output-path argument (writes to a stream and can be read back)",

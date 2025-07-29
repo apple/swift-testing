@@ -10,23 +10,23 @@
 
 @testable @_spi(ForToolsIntegrationOnly) import Testing
 private import _TestingInternals
-#if canImport(AppKit)
+#if canImport(AppKit) && canImport(_Testing_AppKit)
 import AppKit
 @_spi(Experimental) import _Testing_AppKit
 #endif
-#if canImport(Foundation)
+#if canImport(Foundation) && canImport(_Testing_Foundation)
 import Foundation
 import _Testing_Foundation
 #endif
-#if canImport(CoreGraphics)
+#if canImport(CoreGraphics) && canImport(_Testing_CoreGraphics)
 import CoreGraphics
 @_spi(Experimental) import _Testing_CoreGraphics
 #endif
-#if canImport(CoreImage)
+#if canImport(CoreImage) && canImport(_Testing_CoreImage)
 import CoreImage
 @_spi(Experimental) import _Testing_CoreImage
 #endif
-#if canImport(UIKit)
+#if canImport(UIKit) && canImport(_Testing_UIKit)
 import UIKit
 @_spi(Experimental) import _Testing_UIKit
 #endif
@@ -259,7 +259,7 @@ struct AttachmentTests {
     }
   }
 
-#if canImport(Foundation)
+#if canImport(Foundation) && canImport(_Testing_Foundation)
 #if !SWT_NO_FILE_IO
   @Test func attachContentsOfFileURL() async throws {
     let data = try #require("<!doctype html>".data(using: .utf8))
@@ -481,7 +481,7 @@ extension AttachmentTests {
       try test(value)
     }
 
-#if canImport(Foundation)
+#if canImport(Foundation) && canImport(_Testing_Foundation)
     @Test func data() throws {
       let value = try #require("abc123".data(using: .utf8))
       try test(value)
@@ -499,7 +499,7 @@ extension AttachmentTests {
       case couldNotCreateCGImage
     }
 
-#if canImport(CoreGraphics)
+#if canImport(CoreGraphics) && canImport(_Testing_CoreGraphics)
     static let cgImage = Result<CGImage, any Error> {
       let size = CGSize(width: 32.0, height: 32.0)
       let rgb = CGColorSpaceCreateDeviceRGB()
@@ -606,7 +606,7 @@ extension AttachmentTests {
     }
 #endif
 
-#if canImport(CoreImage)
+#if canImport(CoreImage) && canImport(_Testing_CoreImage)
     @available(_uttypesAPI, *)
     @Test func attachCIImage() throws {
       let image = CIImage(cgImage: try Self.cgImage.get())
@@ -618,7 +618,7 @@ extension AttachmentTests {
     }
 #endif
 
-#if canImport(AppKit)
+#if canImport(AppKit) && canImport(_Testing_AppKit)
     static var nsImage: NSImage {
       get throws {
         let cgImage = try cgImage.get()
@@ -683,7 +683,7 @@ extension AttachmentTests {
     }
 #endif
 
-#if canImport(UIKit)
+#if canImport(UIKit) && canImport(_Testing_UIKit)
     @available(_uttypesAPI, *)
     @Test func attachUIImage() throws {
       let image = UIImage(cgImage: try Self.cgImage.get())
@@ -742,7 +742,7 @@ struct MySendableAttachableWithDefaultByteCount: Attachable, Sendable {
   }
 }
 
-#if canImport(Foundation)
+#if canImport(Foundation) && canImport(_Testing_Foundation)
 struct MyCodableAttachable: Codable, Attachable, Sendable {
   var string: String
 }
@@ -784,7 +784,7 @@ final class MyCodableAndSecureCodingAttachable: NSObject, Codable, NSSecureCodin
 }
 #endif
 
-#if canImport(AppKit)
+#if canImport(AppKit) && canImport(_Testing_AppKit)
 private final class MyImage: NSImage {
   override init(size: NSSize) {
     super.init(size: size)

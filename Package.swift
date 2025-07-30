@@ -341,10 +341,7 @@ extension Array where Element == PackageDescription.SwiftSetting {
       // This setting is enabled in the package, but not in the toolchain build
       // (via CMake). Enabling it is dependent on acceptance of the @section
       // proposal via Swift Evolution.
-      //
-      // FIXME: Re-enable this once a CI blocker is resolved:
-      // https://github.com/swiftlang/swift-testing/issues/1138.
-//      .enableExperimentalFeature("SymbolLinkageMarkers"),
+      .enableExperimentalFeature("SymbolLinkageMarkers"),
 
       // This setting is no longer needed when building with a 6.2 or later
       // toolchain now that SE-0458 has been accepted and implemented, but it is

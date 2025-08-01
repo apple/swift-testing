@@ -27,8 +27,12 @@ struct CError: Error, RawRepresentable {
 /// [here](https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes).
 ///
 /// This type is not part of the public interface of the testing library.
-struct Win32Error: Error, RawRepresentable {
-  var rawValue: DWORD
+package struct Win32Error: Error, RawRepresentable {
+  package var rawValue: CUnsignedLong
+
+  package init(rawValue: CUnsignedLong) {
+    self.rawValue = rawValue
+  }
 }
 #endif
 
@@ -66,7 +70,7 @@ extension CError: CustomStringConvertible {
 
 #if os(Windows)
 extension Win32Error: CustomStringConvertible {
-  var description: String {
+  package var description: String {
     let (address, count) = withUnsafeTemporaryAllocation(of: LPWSTR?.self, capacity: 1) { buffer in
       // FormatMessageW() takes a wide-character buffer into which it writes the
       // error message... _unless_ you pass `FORMAT_MESSAGE_ALLOCATE_BUFFER` in

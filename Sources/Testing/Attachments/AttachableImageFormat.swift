@@ -42,7 +42,8 @@ public struct AttachableImageFormat: Sendable {
     ///     use. The platform-specific cross-import overlay or package is
     ///     responsible for exposing appropriate interfaces for this case.
     ///
-    /// On Apple platforms, `value` should be an instance of `UTType`.
+    /// On Apple platforms, `value` should be an instance of `UTType`. On
+    /// Windows, it should be an instance of `CLSID`.
     case systemValue(_ value: any Sendable)
   }
 

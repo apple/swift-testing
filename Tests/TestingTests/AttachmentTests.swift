@@ -33,6 +33,10 @@ import UIKit
 #if canImport(UniformTypeIdentifiers)
 import UniformTypeIdentifiers
 #endif
+#if canImport(WinSDK) && canImport(_Testing_WinSDK)
+import WinSDK
+@testable @_spi(Experimental) import _Testing_WinSDK
+#endif
 
 @Suite("Attachment Tests")
 struct AttachmentTests {
@@ -692,8 +696,92 @@ extension AttachmentTests {
       try attachment.attachableValue.withUnsafeBytes(for: attachment) { buffer in
         #expect(buffer.count > 32)
       }
+      Attachment.record(attachment)
     }
 #endif
+#endif
+
+#if canImport(WinSDK) && canImport(_Testing_WinSDK)
+    private func copyHICON() throws -> HICON {
+      try #require(LoadIconA(nil, swt_IDI_SHIELD()))
+    }
+
+    @MainActor @Test func attachHICON() throws {
+      let icon = try copyHICON()
+      defer {
+        DeleteObject(icon)
+      }
+
+      let attachment = Attachment(icon, named: "diamond.jpeg")
+      try attachment.withUnsafeBytes { buffer in
+        #expect(buffer.count > 32)
+      }
+    }
+
+    private func copyHBITMAP() throws -> HBITMAP {
+      let (width, height) = (GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON))
+
+      let icon = try copyHICON()
+      defer {
+        DeleteObject(icon)
+      }
+
+      let screenDC = try #require(GetDC(nil))
+      defer {
+        ReleaseDC(nil, screenDC)
+      }
+
+      let dc = try #require(CreateCompatibleDC(nil))
+      defer {
+        DeleteDC(dc)
+      }
+
+      let bitmap = try #require(CreateCompatibleBitmap(screenDC, width, height))
+      let oldSelectedObject = SelectObject(dc, bitmap)
+      defer {
+        _ = SelectObject(dc, oldSelectedObject)
+      }
+      DrawIcon(dc, 0, 0, icon)
+
+      return bitmap
+    }
+
+    @MainActor @Test func attachHBITMAP() throws {
+      let bitmap = try copyHBITMAP()
+      let attachment = Attachment(bitmap, named: "diamond.png")
+      try attachment.withUnsafeBytes { buffer in
+        #expect(buffer.count > 32)
+      }
+    }
+
+    @MainActor @Test func attachHBITMAPAsJPEG() throws {
+      let bitmap1 = try copyHBITMAP()
+      let hiFi = Attachment(bitmap1, named: "diamond", as: .jpeg(withEncodingQuality: 1.0))
+      let bitmap2 = try copyHBITMAP()
+      let loFi = Attachment(bitmap2, named: "diamond", as: .jpeg(withEncodingQuality: 0.1))
+      try hiFi.withUnsafeBytes { hiFi in
+        try loFi.withUnsafeBytes { loFi in
+          #expect(hiFi.count > loFi.count)
+        }
+      }
+      Attachment.record(loFi)
+    }
+
+    @MainActor @Test func pathExtensionAndCLSID() throws {
+      let pngCLSID = AttachableImageFormat.png.clsid
+      let pngFilename = AttachableImageFormat.appendPathExtension(for: pngCLSID, to: "example")
+      #expect(pngFilename == "example.png")
+
+      let jpegCLSID = AttachableImageFormat.jpeg.clsid
+      let jpegFilename = AttachableImageFormat.appendPathExtension(for: jpegCLSID, to: "example")
+      #expect(jpegFilename == "example.jpg")
+
+      let pngjpegFilename = AttachableImageFormat.appendPathExtension(for: jpegCLSID, to: "example.png")
+      #expect(pngjpegFilename == "example.png.jpg")
+
+      let jpgjpegFilename = AttachableImageFormat.appendPathExtension(for: jpegCLSID, to: "example.jpeg")
+      #expect(jpgjpegFilename == "example.jpeg")
+    }
 #endif
   }
 }

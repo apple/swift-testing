@@ -15,7 +15,7 @@ private import _TestingInternals
 /// This type can be used to access the current process' environment variables.
 ///
 /// This type is not part of the public interface of the testing library.
-enum Environment {
+package enum Environment {
 #if SWT_NO_ENVIRONMENT_VARIABLES
   /// Storage for the simulated environment.
   ///
@@ -92,7 +92,7 @@ enum Environment {
   /// Get all environment variables in the current process.
   ///
   /// - Returns: A copy of the current process' environment dictionary.
-  static func get() -> [String: String] {
+  package static func get() -> [String: String] {
 #if SWT_NO_ENVIRONMENT_VARIABLES
     simulatedEnvironment.rawValue
 #elseif SWT_TARGET_OS_APPLE
@@ -140,7 +140,7 @@ enum Environment {
   ///
   /// - Returns: The value of the specified environment variable, or `nil` if it
   ///   is not set for the current process.
-  static func variable(named name: String) -> String? {
+  package static func variable(named name: String) -> String? {
 #if SWT_NO_ENVIRONMENT_VARIABLES
     simulatedEnvironment.rawValue[name]
 #elseif SWT_TARGET_OS_APPLE && !SWT_NO_DYNAMIC_LINKING
@@ -221,7 +221,7 @@ enum Environment {
   /// - String values beginning with the letters `"t"`, `"T"`, `"y"`, or `"Y"`
   ///   are interpreted as `true`; and
   /// - All other non-`nil` string values are interpreted as `false`.
-  static func flag(named name: String) -> Bool? {
+  package static func flag(named name: String) -> Bool? {
     variable(named: name).map {
       if let signedValue = Int64($0) {
         return signedValue != 0
@@ -248,7 +248,7 @@ extension Environment {
   ///
   /// - Returns: Whether or not the environment variable was successfully set.
   @discardableResult
-  static func setVariable(_ value: String?, named name: String) -> Bool {
+  package static func setVariable(_ value: String?, named name: String) -> Bool {
 #if SWT_NO_ENVIRONMENT_VARIABLES
     simulatedEnvironment.withLock { environment in
       environment[name] = value

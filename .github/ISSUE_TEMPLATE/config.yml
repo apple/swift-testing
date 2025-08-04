@@ -9,7 +9,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: 🌐 Discuss an idea
-    url: https://forums.swift.org/c/related-projects/swift-testing
+    url: https://forums.swift.org/c/development/swift-testing/103
     about: >
       Share an idea with the Swift Testing community.
   - name: 📄 Formally propose a change
@@ -18,10 +18,10 @@ contact_links:
       Formally propose an addition, removal, or change to the APIs or features
       of Swift Testing.
   - name: 🙋 Ask a question
-    url: https://forums.swift.org/c/related-projects/swift-testing
+    url: https://forums.swift.org/c/swift-users/15
     about: >
-      Ask a question about or get help with Swift Testing. Beginner questions
-      welcome!
+      Ask a question or get help by starting a new Forum topic with the 'swift-testing' tag.
+      Beginner questions welcome!
   - name: 🪲 Report an issue with Swift Package Manager
     url: https://github.com/swiftlang/swift-package-manager/issues/new/choose
     about: >

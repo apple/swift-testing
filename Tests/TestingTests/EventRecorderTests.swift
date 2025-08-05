@@ -336,6 +336,7 @@ struct EventRecorderTests {
     let testCount = Reference<Int?>()
     let suiteCount = Reference<Int?>()
     let issueCount = Reference<Int?>()
+    let warningCount = Reference<Int?>()
     let knownIssueCount = Reference<Int?>()
 
     let runFailureRegex = Regex {
@@ -355,6 +356,8 @@ struct EventRecorderTests {
       " issue"
       Optionally("s")
       " (including "
+      Capture(as: warningCount) { OneOrMore(.digit) } transform: { Int($0) }
+      " warnings and "
       Capture(as: knownIssueCount) { OneOrMore(.digit) } transform: { Int($0) }
       " known issue"
       Optionally("s")
@@ -368,8 +371,9 @@ struct EventRecorderTests {
     )
     #expect(match[testCount] == 9)
     #expect(match[suiteCount] == 2)
-    #expect(match[issueCount] == 12)
-    #expect(match[knownIssueCount] == 5)
+    #expect(match[issueCount] == 16)
+    #expect(match[warningCount] == 3)
+    #expect(match[knownIssueCount] == 6)
   }
 
   @Test("Issue counts are summed correctly on run end for a test with only warning issues")

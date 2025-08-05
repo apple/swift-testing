@@ -184,13 +184,7 @@ public struct Configuration: Sendable {
     /// Whether or not events of the kind ``Event/Kind-swift.enum/issueRecorded(_:)``
     /// containing issues with warning (or lower) severity should be delivered
     /// to the event handler of the configuration these options are applied to.
-    ///
-    /// By default, events matching this criteria are not delivered to event
-    /// handlers since this is an experimental feature.
-    ///
-    /// - Warning: Warning issues are not yet an approved feature.
-    @_spi(Experimental)
-    public var isWarningIssueRecordedEventEnabled: Bool = false
+    public var isWarningIssueRecordedEventEnabled: Bool = true
 
     /// Whether or not events of the kind
     /// ``Event/Kind-swift.enum/expectationChecked(_:)`` should be delivered to

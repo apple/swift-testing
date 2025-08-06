@@ -27,6 +27,7 @@
 ///
 /// @Metadata {
 ///   @Available(Swift, introduced: 6.2)
+///   @Available(Xcode, introduced: 26.0)
 /// }
 public struct IssueHandlingTrait: TestTrait, SuiteTrait {
   /// A function which handles an issue and returns an optional replacement.
@@ -55,6 +56,7 @@ public struct IssueHandlingTrait: TestTrait, SuiteTrait {
   ///
   /// @Metadata {
   ///   @Available(Swift, introduced: 6.2)
+  ///   @Available(Xcode, introduced: 26.0)
   /// }
   public func handleIssue(_ issue: Issue) -> Issue? {
     _handler(issue)
@@ -67,6 +69,7 @@ public struct IssueHandlingTrait: TestTrait, SuiteTrait {
 
 /// @Metadata {
 ///   @Available(Swift, introduced: 6.2)
+///   @Available(Xcode, introduced: 26.0)
 /// }
 extension IssueHandlingTrait: TestScoping {
   public func scopeProvider(for test: Test, testCase: Test.Case?) -> Self? {
@@ -181,6 +184,7 @@ extension Trait where Self == IssueHandlingTrait {
   ///
   /// @Metadata {
   ///   @Available(Swift, introduced: 6.2)
+  ///   @Available(Xcode, introduced: 26.0)
   /// }
   public static func compactMapIssues(_ transform: @escaping @Sendable (Issue) -> Issue?) -> Self {
     Self(handler: transform)
@@ -219,6 +223,7 @@ extension Trait where Self == IssueHandlingTrait {
   ///
   /// @Metadata {
   ///   @Available(Swift, introduced: 6.2)
+  ///   @Available(Xcode, introduced: 26.0)
   /// }
   public static func filterIssues(_ isIncluded: @escaping @Sendable (Issue) -> Bool) -> Self {
     Self { issue in

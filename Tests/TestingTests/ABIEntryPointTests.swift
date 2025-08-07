@@ -119,12 +119,12 @@ struct ABIEntryPointTests {
 
   @Test func decodeVersionNumber() throws {
     let version0 = try JSON.withEncoding(of: 0) { versionJSON in
-      try JSON.decode(ABI.VersionNumber.self, from: versionJSON)
+      try JSON.decode(VersionNumber.self, from: versionJSON)
     }
-    #expect(version0 == ABI.VersionNumber(0, 0))
+    #expect(version0 == VersionNumber(0, 0))
 
     let version1_2_3 = try JSON.withEncoding(of: "1.2.3") { versionJSON in
-      try JSON.decode(ABI.VersionNumber.self, from: versionJSON)
+      try JSON.decode(VersionNumber.self, from: versionJSON)
     }
     #expect(version1_2_3.majorComponent == 1)
     #expect(version1_2_3.minorComponent == 2)
@@ -132,39 +132,39 @@ struct ABIEntryPointTests {
 
     #expect(throws: DecodingError.self) {
       _ = try JSON.withEncoding(of: "not.valid") { versionJSON in
-        try JSON.decode(ABI.VersionNumber.self, from: versionJSON)
+        try JSON.decode(VersionNumber.self, from: versionJSON)
       }
     }
   }
 #endif
 
   @Test(arguments: [
-    (ABI.VersionNumber(-1, 0), "-1"),
-    (ABI.VersionNumber(0, 0), "0"),
-    (ABI.VersionNumber(1, 0), "1.0"),
-    (ABI.VersionNumber(2, 0), "2.0"),
-    (ABI.VersionNumber("0.0.1"), "0.0.1"),
-    (ABI.VersionNumber("0.1.0"), "0.1"),
-  ]) func abiVersionStringConversion(version: ABI.VersionNumber?, expectedString: String) throws {
+    (VersionNumber(-1, 0), "-1"),
+    (VersionNumber(0, 0), "0"),
+    (VersionNumber(1, 0), "1.0"),
+    (VersionNumber(2, 0), "2.0"),
+    (VersionNumber("0.0.1"), "0.0.1"),
+    (VersionNumber("0.1.0"), "0.1"),
+  ]) func abiVersionStringConversion(version: VersionNumber?, expectedString: String) throws {
     let version = try #require(version)
     #expect(String(describing: version) == expectedString)
   }
 
   @Test func badABIVersionString() {
-    let version = ABI.VersionNumber("not.valid")
+    let version = VersionNumber("not.valid")
     #expect(version == nil)
   }
 
   @Test func abiVersionComparisons() throws {
-    var versions = [ABI.VersionNumber]()
+    var versions = [VersionNumber]()
     for major in 0 ..< 10 {
-      let version = try #require(ABI.VersionNumber("\(major)"))
+      let version = try #require(VersionNumber("\(major)"))
       versions.append(version)
       for minor in 0 ..< 10 {
-        let version = try #require(ABI.VersionNumber("\(major).\(minor)"))
+        let version = try #require(VersionNumber("\(major).\(minor)"))
         versions.append(version)
         for patch in 0 ..< 10 {
-          let version = try #require(ABI.VersionNumber("\(major).\(minor).\(patch)"))
+          let version = try #require(VersionNumber("\(major).\(minor).\(patch)"))
           versions.append(version)
         }
       }

@@ -16,6 +16,20 @@
 
 SWT_ASSUME_NONNULL_BEGIN
 
+/// Get the version of the compiler used to build the testing library.
+///
+/// - Returns: An integer containing the packed major, minor, and patch
+///   components of the compiler version. For more information, see
+///   [ClangImporter.cpp](https://github.com/swiftlang/swift/blob/36246a2c8e9501cd29a75f34c9631a8f4e2e1e9b/lib/ClangImporter/ClangImporter.cpp#L647)
+///   in the Swift repository.
+static inline uint64_t swt_getSwiftCompilerVersion(void) {
+#if defined(__SWIFT_COMPILER_VERSION)
+  return __SWIFT_COMPILER_VERSION;
+#else
+  return 0;
+#endif
+}
+
 /// Get the human-readable version of the testing library.
 ///
 /// - Returns: A human-readable string describing the version of the testing

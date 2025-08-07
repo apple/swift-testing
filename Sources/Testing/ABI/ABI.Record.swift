@@ -66,7 +66,7 @@ extension ABI.Record: Codable {
   init(from decoder: any Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
 
-    let versionNumber = try container.decode(ABI.VersionNumber.self, forKey: .version)
+    let versionNumber = try container.decode(VersionNumber.self, forKey: .version)
     if versionNumber != V.versionNumber {
       throw DecodingError.dataCorrupted(
         DecodingError.Context(

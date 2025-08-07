@@ -262,7 +262,7 @@ public struct __CommandLineArguments_v0: Sendable {
   /// This property is internal because its type is internal. External users of
   /// this structure can use the ``eventStreamSchemaVersion`` property to get or
   /// set the value of this property.
-  var eventStreamVersionNumber: ABI.VersionNumber?
+  var eventStreamVersionNumber: VersionNumber?
 
   /// The value of the `--event-stream-version` or `--experimental-event-stream-version`
   /// argument, representing the version of the event stream schema to use when
@@ -282,7 +282,7 @@ public struct __CommandLineArguments_v0: Sendable {
     }
     set {
       eventStreamVersionNumber = newValue.flatMap { newValue in
-        guard let newValue = ABI.VersionNumber(newValue) else {
+        guard let newValue = VersionNumber(newValue) else {
           preconditionFailure("Invalid event stream version number '\(newValue)'. Specify a version number of the form 'major.minor.patch'.")
         }
         return newValue
@@ -404,7 +404,7 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
 
       // If the caller specified a version that could not be parsed, treat it as
       // an invalid argument.
-      guard let eventStreamVersion = ABI.VersionNumber(versionString) else {
+      guard let eventStreamVersion = VersionNumber(versionString) else {
         let argument = allowExperimental ? "--experimental-event-stream-version" : "--event-stream-version"
         throw _EntryPointError.invalidArgument(argument, value: versionString)
       }
@@ -652,7 +652,7 @@ public func configurationForEntryPoint(from args: __CommandLineArguments_v0) thr
 ///
 /// - Throws: If `version` is not a supported ABI version.
 func eventHandlerForStreamingEvents(
-  withVersionNumber versionNumber: ABI.VersionNumber?,
+  withVersionNumber versionNumber: VersionNumber?,
   encodeAsJSONLines: Bool,
   forwardingTo targetEventHandler: @escaping @Sendable (UnsafeRawBufferPointer) -> Void
 ) throws -> Event.Handler {
@@ -822,7 +822,7 @@ private enum _EntryPointError: Error {
   ///
   /// - Parameters:
   ///   - versionNumber: The experimental ABI version number.
-  case experimentalABIVersion(_ versionNumber: ABI.VersionNumber)
+  case experimentalABIVersion(_ versionNumber: VersionNumber)
 }
 
 extension _EntryPointError: CustomStringConvertible {
@@ -847,7 +847,7 @@ extension __CommandLineArguments_v0 {
       eventStreamVersionNumber.map(\.majorComponent).map(Int.init)
     }
     set {
-      eventStreamVersionNumber = newValue.map { ABI.VersionNumber(majorComponent: Int8(clamping: $0), minorComponent: 0) }
+      eventStreamVersionNumber = newValue.map { VersionNumber(majorComponent: .init(clamping: $0), minorComponent: 0) }
     }
   }
 }

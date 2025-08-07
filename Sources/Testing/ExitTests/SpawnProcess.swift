@@ -138,7 +138,7 @@ func spawnExecutable(
             // and https://www.austingroupbugs.net/view.php?id=411).
             _ = posix_spawn_file_actions_adddup2(fileActions, fd, fd)
 #if canImport(Glibc) && !os(FreeBSD) && !os(OpenBSD)
-            if _slowPath(glibcVersion.major < 2 || (glibcVersion.major == 2 && glibcVersion.minor < 29)) {
+            if _slowPath(glibcVersion < VersionNumber(2, 29)) {
               // This system is using an older version of glibc that does not
               // implement FD_CLOEXEC clearing in posix_spawn_file_actions_adddup2(),
               // so we must clear it here in the parent process.

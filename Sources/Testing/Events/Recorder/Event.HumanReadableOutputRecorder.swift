@@ -342,7 +342,13 @@ extension Event.HumanReadableOutputRecorder {
     case .runStarted:
       var comments = [Comment]()
       if verbosity > 0 {
-        comments.append("Swift Version: \(swiftStandardLibraryVersion)")
+        if let swiftStandardLibraryVersion {
+          comments.append("Swift Standard Library Version: \(swiftStandardLibraryVersion)")
+        }
+        comments.append("Swift Compiler Version: \(swiftCompilerVersion)")
+#if canImport(Glibc) && !os(FreeBSD) && !os(OpenBSD)
+        comments.append("GNU C Library Version: \(glibcVersion)")
+#endif
       }
       comments.append("Testing Library Version: \(testingLibraryVersion)")
       if let targetTriple {

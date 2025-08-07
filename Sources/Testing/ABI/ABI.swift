@@ -45,6 +45,9 @@ extension ABI {
   /// The current supported ABI version (ignoring any experimental versions.)
   typealias CurrentVersion = v0
 
+  /// The highest supported ABI version (including any experimental versions.)
+  typealias HighestVersion = v6_3
+
 #if !hasFeature(Embedded)
   /// Get the type representing a given ABI version.
   ///
@@ -55,7 +58,24 @@ extension ABI {
   /// - Returns: A type conforming to ``ABI/Version`` that represents the given
   ///   ABI version, or `nil` if no such type exists.
   static func version(forVersionNumber versionNumber: VersionNumber = ABI.CurrentVersion.versionNumber) -> (any Version.Type)? {
-    switch versionNumber {
+    if versionNumber > ABI.HighestVersion.versionNumber {
+      // If the caller requested an ABI version higher than the current Swift
+      // compiler version and it's not an ABI version we've explicitly defined,
+      // then we assume we don't know what they're talking about and return nil.
+      //
+      // Note that it is possible for the Swift compiler version to be lower
+      // than the highest defined ABI version (e.g. if you use a 6.2 toolchain
+      // to build this package's release/6.3 branch with a 6.3 ABI defined.)
+      //
+      // Note also that building an old version of Swift Testing with a newer
+      // compiler may produce incorrect results here. We don't generally support
+      // that configuration though.
+      if versionNumber > swiftCompilerVersion {
+        return nil
+      }
+    }
+
+    return switch versionNumber {
     case ABI.v6_3.versionNumber...:
       ABI.v6_3.self
     case ABI.v0.versionNumber...:

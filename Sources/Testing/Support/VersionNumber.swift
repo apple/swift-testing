@@ -8,34 +8,42 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
-extension ABI {
-  /// A type describing an ABI version number.
+private import _TestingInternals
+
+/// A type describing an ABI version number.
+///
+/// This type implements a subset of the [semantic versioning](https://semver.org)
+/// specification (specifically parsing, displaying, and comparing
+/// `<version core>` values we expect that the testing library will need for the
+/// foreseeable future.)
+struct VersionNumber: Sendable {
+  /// The integer type used to store a component.
   ///
-  /// This type implements a subset of the [semantic versioning](https://semver.org)
-  /// specification (specifically parsing, displaying, and comparing
-  /// `<version core>` values we expect that Swift will need for the foreseeable
-  /// future.)
-  struct VersionNumber: Sendable {
-    /// The major version.
-    var majorComponent: Int8
+  /// The testing library does not generally need to deal with version numbers
+  /// whose components exceed the width of this type. If we need to deal with
+  /// larger version number components in the future, we can increase the width
+  /// of this type accordingly.
+  typealias Component = Int8
 
-    /// The minor version.
-    var minorComponent: Int8
+  /// The major version.
+  var majorComponent: Component
 
-    /// The patch, revision, or bug fix version.
-    var patchComponent: Int8 = 0
-  }
+  /// The minor version.
+  var minorComponent: Component
+
+  /// The patch, revision, or bug fix version.
+  var patchComponent: Component = 0
 }
 
-extension ABI.VersionNumber {
-  init(_ majorComponent: _const Int8, _ minorComponent: _const Int8, _ patchComponent: _const Int8 = 0) {
+extension VersionNumber {
+  init(_ majorComponent: _const Component, _ minorComponent: _const Component, _ patchComponent: _const Component = 0) {
     self.init(majorComponent: majorComponent, minorComponent: minorComponent, patchComponent: patchComponent)
   }
 }
 
 // MARK: - CustomStringConvertible
 
-extension ABI.VersionNumber: CustomStringConvertible {
+extension VersionNumber: CustomStringConvertible {
   /// Initialize an instance of this type by parsing the given string.
   ///
   /// - Parameters:
@@ -55,8 +63,8 @@ extension ABI.VersionNumber: CustomStringConvertible {
     // Split the string on "." (assuming it is of the form "1", "1.2", or
     // "1.2.3") and parse the individual components as integers.
     let components = string.split(separator: ".", omittingEmptySubsequences: false)
-    func componentValue(_ index: Int) -> Int8? {
-      components.count > index ? Int8(components[index]) : 0
+    func componentValue(_ index: Int) -> Component? {
+      components.count > index ? Component(components[index]) : 0
     }
 
     guard let majorComponent = componentValue(0),
@@ -81,7 +89,7 @@ extension ABI.VersionNumber: CustomStringConvertible {
 
 // MARK: - Equatable, Comparable
 
-extension ABI.VersionNumber: Equatable, Comparable {
+extension VersionNumber: Equatable, Comparable {
   static func <(lhs: Self, rhs: Self) -> Bool {
     if lhs.majorComponent != rhs.majorComponent {
       return lhs.majorComponent < rhs.majorComponent
@@ -96,10 +104,10 @@ extension ABI.VersionNumber: Equatable, Comparable {
 
 // MARK: - Codable
 
-extension ABI.VersionNumber: Codable {
+extension VersionNumber: Codable {
   init(from decoder: any Decoder) throws {
     let container = try decoder.singleValueContainer()
-    if let number = try? container.decode(Int8.self) {
+    if let number = try? container.decode(Component.self) {
       // Allow for version numbers encoded as integers for compatibility with
       // Swift 6.2 and earlier.
       self.init(majorComponent: number, minorComponent: 0)

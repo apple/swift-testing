@@ -78,7 +78,7 @@ extension ABI {
     /// - Warning: Tags are not yet part of the JSON schema.
     ///
     /// @Metadata {
-    ///   @Available("Swift Testing ABI", introduced: 1)
+    ///   @Available("Swift Testing ABI", introduced: 6.3)
     /// }
     var _tags: [String]?
 

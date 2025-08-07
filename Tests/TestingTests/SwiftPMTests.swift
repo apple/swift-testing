@@ -235,23 +235,23 @@ struct SwiftPMTests {
   func deprecatedEventStreamVersionProperty() async throws {
     var args = __CommandLineArguments_v0()
     args.eventStreamVersion = 0
-    #expect(args.eventStreamVersionNumber == ABI.VersionNumber(0, 0))
+    #expect(args.eventStreamVersionNumber == VersionNumber(0, 0))
     #expect(args.eventStreamSchemaVersion == "0")
 
     args.eventStreamVersion = -1
-    #expect(args.eventStreamVersionNumber == ABI.VersionNumber(-1, 0))
+    #expect(args.eventStreamVersionNumber == VersionNumber(-1, 0))
     #expect(args.eventStreamSchemaVersion == "-1")
 
     args.eventStreamVersion = 123
-    #expect(args.eventStreamVersionNumber == ABI.VersionNumber(123, 0))
+    #expect(args.eventStreamVersionNumber == VersionNumber(123, 0))
     #expect(args.eventStreamSchemaVersion == "123.0")
 
-    args.eventStreamVersionNumber = ABI.VersionNumber(10, 20, 30)
+    args.eventStreamVersionNumber = VersionNumber(10, 20, 30)
     #expect(args.eventStreamVersion == 10)
     #expect(args.eventStreamSchemaVersion == "10.20.30")
 
     args.eventStreamSchemaVersion = "10.20.30"
-    #expect(args.eventStreamVersionNumber == ABI.VersionNumber(10, 20, 30))
+    #expect(args.eventStreamVersionNumber == VersionNumber(10, 20, 30))
     #expect(args.eventStreamVersion == 10)
 
 #if !SWT_NO_EXIT_TESTS
@@ -264,14 +264,24 @@ struct SwiftPMTests {
 
   @Test("New-but-not-experimental ABI version")
   func newButNotExperimentalABIVersion() async throws {
-    let versionNumber = ABI.VersionNumber(0, 0, 1)
+    var versionNumber = ABI.CurrentVersion.versionNumber
+    versionNumber.patchComponent += 1
     let version = try #require(ABI.version(forVersionNumber: versionNumber))
     #expect(version.versionNumber == ABI.v0.versionNumber)
   }
 
   @Test("Unsupported ABI version")
   func unsupportedABIVersion() async throws {
-    let versionNumber = ABI.VersionNumber(-100, 0)
+    let versionNumber = VersionNumber(-100, 0)
+    let versionTypeInfo = ABI.version(forVersionNumber: versionNumber).map(TypeInfo.init(describing:))
+    #expect(versionTypeInfo == nil)
+  }
+
+  @Test("Future ABI version (should be nil)")
+  func futureABIVersion() async throws {
+    #expect(swiftCompilerVersion >= VersionNumber(6, 0))
+    #expect(swiftCompilerVersion < VersionNumber(8, 0), "Swift 8.0 is here! Please update this test.")
+    let versionNumber = VersionNumber(8, 0)
     let versionTypeInfo = ABI.version(forVersionNumber: versionNumber).map(TypeInfo.init(describing:))
     #expect(versionTypeInfo == nil)
   }
@@ -282,7 +292,7 @@ struct SwiftPMTests {
           ("--experimental-event-stream-output", "--experimental-event-stream-version", ABI.v0.versionNumber),
           ("--experimental-event-stream-output", "--experimental-event-stream-version", ABI.v6_3.versionNumber),
         ])
-  func eventStreamOutput(outputArgumentName: String, versionArgumentName: String, version: ABI.VersionNumber) async throws {
+  func eventStreamOutput(outputArgumentName: String, versionArgumentName: String, version: VersionNumber) async throws {
     let version = try #require(ABI.version(forVersionNumber: version))
     try await eventStreamOutput(outputArgumentName: outputArgumentName, versionArgumentName: versionArgumentName, version: version)
   }

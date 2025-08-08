@@ -277,7 +277,7 @@ XCTest has a function, [`XCTFail()`](https://developer.apple.com/documentation/x
 that causes a test to fail immediately and unconditionally. This function is
 useful when the syntax of the language prevents the use of an `XCTAssert()`
 function. To record an unconditional issue using the testing library, use the
-``Issue/record(_:sourceLocation:)`` function:
+``Issue/record(_:severity:sourceLocation:)`` function:
 
 @Row {
   @Column {

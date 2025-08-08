@@ -10,7 +10,6 @@
 
 #if os(Windows)
 @_spi(Experimental) public import Testing
-private import _TestingInternals.GDIPlus
 
 internal import WinSDK
 
@@ -19,91 +18,124 @@ internal import WinSDK
 ///
 /// You do not need to use this type directly. Instead, initialize an instance
 /// of ``Attachment`` using an instance of an image type that conforms to
-/// ``AttachableAsGDIPlusImage``. The following system-provided image types
-/// conform to the ``AttachableAsGDIPlusImage`` protocol and can be attached to
-/// a test:
+/// ``AttachableAsIWICBitmap``. The following system-provided image types
+/// conform to the ``AttachableAsIWICBitmap`` protocol and can be attached to a
+/// test:
 ///
 /// - [`HBITMAP`](https://learn.microsoft.com/en-us/windows/win32/gdi/bitmaps)
 /// - [`HICON`](https://learn.microsoft.com/en-us/windows/win32/menurc/icons)
+/// - [`IWICBitmap`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmap)
 @_spi(Experimental)
-public struct _AttachableImageWrapper<Image>: ~Copyable where Image: AttachableAsGDIPlusImage {
+public final class _AttachableImageWrapper<Image>: Sendable where Image: AttachableAsIWICBitmap {
   /// The underlying image.
-  var image: Image
+  nonisolated(unsafe) let image: Result<Image, any Error>
 
   /// The image format to use when encoding the represented image.
-  var imageFormat: AttachableImageFormat?
+  let imageFormat: AttachableImageFormat?
 
-  /// Whether or not to call `_cleanUpAttachment(at:)` on `pointer` when this
-  /// instance is deinitialized.
-  ///
-  /// - Note: If cleanup is not performed, `pointer` is effectively being
-  ///   borrowed from the calling context.
-  var cleanUpWhenDone: Bool
-
-  init(image: Image, imageFormat: AttachableImageFormat?, cleanUpWhenDone: Bool) {
-    self.image = image
+  init(image: borrowing Image, imageFormat: AttachableImageFormat?) {
+    self.image = Result { [image = copy image] in
+      try image._copyAttachableValue()
+    }
     self.imageFormat = imageFormat
-    self.cleanUpWhenDone = cleanUpWhenDone
   }
 
   deinit {
-    if cleanUpWhenDone {
-      image._cleanUpAttachment()
+    if let image = try? image.get() {
+      image._deinitializeAttachableValue()
     }
   }
 }
 
-@available(*, unavailable)
-extension _AttachableImageWrapper: Sendable {}
-
 // MARK: -
 
 extension _AttachableImageWrapper: AttachableWrapper {
-  public var wrappedValue: Image {
-    image
+  public var wrappedValue: Image? {
+    try? image.get()
   }
 
-  public func withUnsafeBytes<R>(for attachment: borrowing Attachment<Self>, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R {
+  public func withUnsafeBytes<R>(for attachment: borrowing Attachment<_AttachableImageWrapper>, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R {
     // Create an in-memory stream to write the image data to. Note that Windows
     // documentation recommends SHCreateMemStream() instead, but that function
     // does not provide a mechanism to access the underlying memory directly.
     var stream: UnsafeMutablePointer<IStream>?
     let rCreateStream = CreateStreamOnHGlobal(nil, true, &stream)
     guard S_OK == rCreateStream, let stream else {
-      throw GDIPlusError.streamCreationFailed(rCreateStream)
+      throw ImageAttachmentError.comObjectCreationFailed(IStream.self, rCreateStream)
     }
     defer {
-      stream.withMemoryRebound(to: IUnknown.self, capacity: 1) { stream in
-        _ = swt_IUnknown_Release(stream)
-      }
+      _ = stream.pointee.lpVtbl.pointee.Release(stream)
     }
 
-    try withGDIPlus {
-      // Get a GDI+ image from the attachment.
-      let image = try image._copyAttachableGDIPlusImage()
-      defer {
-        swt_GdiplusImageDelete(image)
+    // Get an imaging factory to create the WIC bitmap and encoder.
+    let factory = try IWICImagingFactory.create()
+    defer {
+      _ = factory.pointee.lpVtbl.pointee.Release(factory)
+    }
+
+    // Create the bitmap and downcast it to an IWICBitmapSource for later use.
+    let bitmap = try image.get().copyAttachableIWICBitmapSource(using: factory)
+    defer {
+      _ = bitmap.pointee.lpVtbl.pointee.Release(bitmap)
+    }
+
+    // Create the encoder.
+    let encoder = try withUnsafePointer(to: IID_IWICBitmapEncoder) { [preferredName = attachment.preferredName] IID_IWICBitmapEncoder in
+      var encoderCLSID = AttachableImageFormat.computeCLSID(for: imageFormat, withPreferredName: preferredName)
+      var encoder: UnsafeMutableRawPointer?
+      let rCreate = CoCreateInstance(
+        &encoderCLSID,
+        nil,
+        DWORD(bitPattern: CLSCTX_INPROC_SERVER.rawValue),
+        IID_IWICBitmapEncoder,
+        &encoder
+      )
+      guard rCreate == S_OK, let encoder = encoder?.assumingMemoryBound(to: IWICBitmapEncoder.self) else {
+        throw ImageAttachmentError.comObjectCreationFailed(IWICBitmapEncoder.self, rCreate)
       }
+      return encoder
+    }
+    defer {
+      _ = encoder.pointee.lpVtbl.pointee.Release(encoder)
+    }
+    _ = encoder.pointee.lpVtbl.pointee.Initialize(encoder, stream, WICBitmapEncoderNoCache)
 
-      // Get the CLSID of the image encoder corresponding to the specified image
-      // format.
-      var clsid = AttachableImageFormat.computeCLSID(for: imageFormat, withPreferredName: attachment.preferredName)
+    // Create the frame into which the bitmap will be composited.
+    var frame: UnsafeMutablePointer<IWICBitmapFrameEncode>?
+    var propertyBag: UnsafeMutablePointer<IPropertyBag2>?
+    let rCreateFrame = encoder.pointee.lpVtbl.pointee.CreateNewFrame(encoder, &frame, &propertyBag)
+    guard rCreateFrame == S_OK, let frame, let propertyBag else {
+      throw ImageAttachmentError.comObjectCreationFailed(IWICBitmapFrameEncode.self, rCreateFrame)
+    }
+    defer {
+      _ = frame.pointee.lpVtbl.pointee.Release(frame)
+      _ = propertyBag.pointee.lpVtbl.pointee.Release(propertyBag)
+    }
 
-      var encodingQuality = LONG((imageFormat?.encodingQuality ?? 1.0) * 100.0)
-      try withUnsafeMutableBytes(of: &encodingQuality) { encodingQuality in
-        var encoderParams = Gdiplus.EncoderParameters()
-        encoderParams.Count = 1
-        encoderParams.Parameter.Guid = swt_GdiplusEncoderQuality()
-        encoderParams.Parameter.Type = ULONG(Gdiplus.EncoderParameterValueTypeLong.rawValue)
-        encoderParams.Parameter.NumberOfValues = 1
-        encoderParams.Parameter.Value = encodingQuality.baseAddress
+    // Set properties. The only property we currently set is image quality.
+    if let encodingQuality = imageFormat?.encodingQuality {
+      try propertyBag.write(encodingQuality, named: "ImageQuality")
+    }
+    _ = frame.pointee.lpVtbl.pointee.Initialize(frame, propertyBag)
 
-        // Save the image into the stream.
-        let rSave = swt_GdiplusImageSave(image, stream, &clsid, &encoderParams)
-        guard rSave == Gdiplus.Ok else {
-          throw GDIPlusError.status(rSave)
-        }
-      }
+    // Write the image!
+    let rWrite = frame.pointee.lpVtbl.pointee.WriteSource(frame, bitmap, nil)
+    guard rWrite == S_OK else {
+      throw ImageAttachmentError.imageWritingFailed(rWrite)
+    }
+
+    // Commit changes through the various layers.
+    var rCommit = frame.pointee.lpVtbl.pointee.Commit(frame)
+    guard rCommit == S_OK else {
+      throw ImageAttachmentError.imageWritingFailed(rCommit)
+    }
+    rCommit = encoder.pointee.lpVtbl.pointee.Commit(encoder)
+    guard rCommit == S_OK else {
+      throw ImageAttachmentError.imageWritingFailed(rCommit)
+    }
+    rCommit = stream.pointee.lpVtbl.pointee.Commit(stream, DWORD(bitPattern: STGC_DEFAULT.rawValue))
+    guard rCommit == S_OK else {
+      throw ImageAttachmentError.imageWritingFailed(rCommit)
     }
 
     // Extract the serialized image and pass it back to the caller. We hold the
@@ -112,7 +144,7 @@ extension _AttachableImageWrapper: AttachableWrapper {
     var global: HGLOBAL?
     let rGetGlobal = GetHGlobalFromStream(stream, &global)
     guard S_OK == rGetGlobal else {
-      throw GDIPlusError.globalFromStreamFailed(rGetGlobal)
+      throw ImageAttachmentError.globalFromStreamFailed(rGetGlobal)
     }
     guard let baseAddress = GlobalLock(global) else {
       throw Win32Error(rawValue: GetLastError())
@@ -124,7 +156,7 @@ extension _AttachableImageWrapper: AttachableWrapper {
     return try body(UnsafeRawBufferPointer(start: baseAddress, count: Int(byteCount)))
   }
 
-  public borrowing func preferredName(for attachment: borrowing Attachment<Self>, basedOn suggestedName: String) -> String {
+  public borrowing func preferredName(for attachment: borrowing Attachment<_AttachableImageWrapper>, basedOn suggestedName: String) -> String {
     let clsid = AttachableImageFormat.computeCLSID(for: imageFormat, withPreferredName: suggestedName)
     return AttachableImageFormat.appendPathExtension(for: clsid, to: suggestedName)
   }

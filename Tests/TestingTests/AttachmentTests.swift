@@ -709,7 +709,7 @@ extension AttachmentTests {
     @MainActor @Test func attachHICON() throws {
       let icon = try copyHICON()
       defer {
-        DeleteObject(icon)
+        DestroyIcon(icon)
       }
 
       let attachment = Attachment(icon, named: "diamond.jpeg")
@@ -723,7 +723,7 @@ extension AttachmentTests {
 
       let icon = try copyHICON()
       defer {
-        DeleteObject(icon)
+        DestroyIcon(icon)
       }
 
       let screenDC = try #require(GetDC(nil))
@@ -748,17 +748,25 @@ extension AttachmentTests {
 
     @MainActor @Test func attachHBITMAP() throws {
       let bitmap = try copyHBITMAP()
+      defer {
+        DeleteObject(bitmap)
+      }
+
       let attachment = Attachment(bitmap, named: "diamond.png")
       try attachment.withUnsafeBytes { buffer in
         #expect(buffer.count > 32)
       }
+      Attachment.record(attachment)
     }
 
     @MainActor @Test func attachHBITMAPAsJPEG() throws {
-      let bitmap1 = try copyHBITMAP()
-      let hiFi = Attachment(bitmap1, named: "diamond", as: .jpeg(withEncodingQuality: 1.0))
-      let bitmap2 = try copyHBITMAP()
-      let loFi = Attachment(bitmap2, named: "diamond", as: .jpeg(withEncodingQuality: 0.1))
+      let bitmap = try copyHBITMAP()
+      defer {
+        DeleteObject(bitmap)
+      }
+      let hiFi = Attachment(bitmap, named: "hifi", as: .jpeg(withEncodingQuality: 1.0))
+      let loFi = Attachment(bitmap, named: "lofi", as: .jpeg(withEncodingQuality: 0.1))
+
       try hiFi.withUnsafeBytes { hiFi in
         try loFi.withUnsafeBytes { loFi in
           #expect(hiFi.count > loFi.count)
@@ -767,20 +775,47 @@ extension AttachmentTests {
       Attachment.record(loFi)
     }
 
-    @MainActor @Test func pathExtensionAndCLSID() throws {
+    @MainActor @Test func attachIWICBitmap() throws {
+      let factory = try IWICImagingFactory.create()
+      defer {
+        _ = factory.pointee.lpVtbl.pointee.Release(factory)
+      }
+
+      let bitmap = try copyHBITMAP()
+      defer {
+        DeleteObject(bitmap)
+      }
+
+      var wicBitmap: UnsafeMutablePointer<IWICBitmap>?
+      let rCreate = factory.pointee.lpVtbl.pointee.CreateBitmapFromHBITMAP(factory, bitmap, nil, WICBitmapUsePremultipliedAlpha, &wicBitmap)
+      guard rCreate == S_OK, let wicBitmap else {
+        throw ImageAttachmentError.comObjectCreationFailed(IWICBitmap.self, rCreate)
+      }
+      defer {
+        _ = wicBitmap.pointee.lpVtbl.pointee.Release(wicBitmap)
+      }
+
+      let attachment = Attachment(wicBitmap, named: "diamond.png")
+      try attachment.withUnsafeBytes { buffer in
+        #expect(buffer.count > 32)
+      }
+      Attachment.record(attachment)
+    }
+
+    @MainActor @Test func pathExtensionAndCLSID() {
       let pngCLSID = AttachableImageFormat.png.clsid
       let pngFilename = AttachableImageFormat.appendPathExtension(for: pngCLSID, to: "example")
       #expect(pngFilename == "example.png")
 
       let jpegCLSID = AttachableImageFormat.jpeg.clsid
       let jpegFilename = AttachableImageFormat.appendPathExtension(for: jpegCLSID, to: "example")
-      #expect(jpegFilename == "example.jpg")
+      #expect(jpegFilename == "example.jpeg")
 
       let pngjpegFilename = AttachableImageFormat.appendPathExtension(for: jpegCLSID, to: "example.png")
-      #expect(pngjpegFilename == "example.png.jpg")
+      #expect(pngjpegFilename == "example.png.jpeg")
 
-      let jpgjpegFilename = AttachableImageFormat.appendPathExtension(for: jpegCLSID, to: "example.jpeg")
-      #expect(jpgjpegFilename == "example.jpeg")
+      let jpgjpegFilename = AttachableImageFormat.appendPathExtension(for: jpegCLSID, to: "example.jpg")
+      #expect(jpgjpegFilename == "example.jpg")
     }
 #endif
   }

@@ -10,101 +10,141 @@
 
 #if os(Windows)
 @_spi(Experimental) import Testing
-private import _TestingInternals.GDIPlus
 
 public import WinSDK
 
 extension AttachableImageFormat {
-  /// The set of `ImageCodecInfo` instances known to GDI+.
-  ///
-  /// If the testing library was unable to determine the set of image formats,
-  /// the value of this property is `nil`.
-  ///
-  /// - Note: The type of this property is a buffer pointer rather than an array
-  ///   because the resulting buffer owns trailing untyped memory where path
-  ///   extensions and other fields are stored. Do not deallocate this buffer.
-  private static nonisolated(unsafe) let _allCodecs: UnsafeBufferPointer<Gdiplus.ImageCodecInfo> = {
-    let result = try? withGDIPlus {
-      // Find out the size of the buffer needed.
-      var codecCount = UINT(0)
-      var byteCount = UINT(0)
-      let rGetSize = Gdiplus.GetImageEncodersSize(&codecCount, &byteCount)
-      guard rGetSize == Gdiplus.Ok else {
-        throw GDIPlusError.status(rGetSize)
-      }
+  private static let _encoderPathExtensionsByCLSID = Result<[UInt128: [String]], any Error> {
+    var result = [UInt128: [String]]()
 
-      // Allocate a buffer of sufficient byte size, then bind the leading bytes
-      // to ImageCodecInfo. This leaves some number of trailing bytes unbound to
-      // any Swift type.
-      let result = UnsafeMutableRawBufferPointer.allocate(
-        byteCount: Int(byteCount),
-        alignment: MemoryLayout<Gdiplus.ImageCodecInfo>.alignment
-      )
-      let codecBuffer = result
-        .prefix(MemoryLayout<Gdiplus.ImageCodecInfo>.stride * Int(codecCount))
-        .bindMemory(to: Gdiplus.ImageCodecInfo.self)
-
-      // Read the encoders list.
-      let rGetEncoders = Gdiplus.GetImageEncoders(codecCount, byteCount, codecBuffer.baseAddress!)
-      guard rGetEncoders == Gdiplus.Ok else {
-        result.deallocate()
-        throw GDIPlusError.status(rGetEncoders)
-      }
-      return UnsafeBufferPointer(codecBuffer)
+    // Create an imaging factory.
+    let factory = try IWICImagingFactory.create()
+    defer {
+      _ = factory.pointee.lpVtbl.pointee.Release(factory)
     }
-    return result ?? UnsafeBufferPointer(start: nil, count: 0)
-  }()
+
+    // Create a COM enumerator over the encoders known to WIC.
+    var enumerator: UnsafeMutablePointer<IEnumUnknown>?
+    let rCreate = factory.pointee.lpVtbl.pointee.CreateComponentEnumerator(
+      factory,
+      DWORD(bitPattern: WICEncoder.rawValue),
+      DWORD(bitPattern: WICComponentEnumerateDefault.rawValue),
+      &enumerator
+    )
+    guard rCreate == S_OK, let enumerator else {
+      throw ImageAttachmentError.comObjectCreationFailed(IEnumUnknown.self, rCreate)
+    }
+    defer {
+      _ = enumerator.pointee.lpVtbl.pointee.Release(enumerator)
+    }
+
+    // Loop through the iterator and extract the path extensions and CLSID of
+    // each encoder we find.
+    while true {
+      var nextObject: UnsafeMutablePointer<IUnknown>?
+      guard S_OK == enumerator.pointee.lpVtbl.pointee.Next(enumerator, 1, &nextObject, nil), let nextObject else {
+        // End of loop.
+        break
+      }
+      defer {
+        _ = nextObject.pointee.lpVtbl.pointee.Release(nextObject)
+      }
+
+      // Cast the enumerated object to the correct/expected type.
+      let info = try withUnsafePointer(to: IID_IWICBitmapEncoderInfo) { IID_IWICBitmapEncoderInfo in
+        var info: UnsafeMutableRawPointer?
+        let rQuery = nextObject.pointee.lpVtbl.pointee.QueryInterface(nextObject, IID_IWICBitmapEncoderInfo, &info)
+        guard rQuery == S_OK, let info else {
+          throw ImageAttachmentError.queryInterfaceFailed(IWICBitmapEncoderInfo.self, rQuery)
+        }
+        return info.assumingMemoryBound(to: IWICBitmapEncoderInfo.self)
+      }
+      defer {
+        _ = info.pointee.lpVtbl.pointee.Release(info)
+      }
+
+      var clsid = CLSID()
+      guard S_OK == info.pointee.lpVtbl.pointee.GetCLSID(info, &clsid) else {
+        continue
+      }
+      let extensions = _pathExtensions(for: info)
+      result[UInt128(clsid)] = extensions
+    }
+
+    return result
+  }
 
   /// Get the set of path extensions corresponding to the image format
-  /// represented by a GDI+ codec info structure.
+  /// represented by a WIC bitmap encoder info object.
   ///
   /// - Parameters:
-  ///   - codec: The GDI+ codec info structure of interest.
+  ///   - info: The WIC bitmap encoder info object of interest.
   ///
   /// - Returns: An array of zero or more path extensions. The case of the
   ///   resulting strings is unspecified.
-  private static func _pathExtensions(for codec: Gdiplus.ImageCodecInfo) -> [String] {
-    guard let extensions = String.decodeCString(codec.FilenameExtension, as: UTF16.self)?.result else {
+  private static func _pathExtensions(for info: UnsafeMutablePointer<IWICBitmapEncoderInfo>) -> [String] {
+    // Figure out the size of the buffer we need. (Microsoft does not specify if
+    // the size is in wide characters or bytes.)
+    var charCount = UINT(0)
+    var rGet = info.pointee.lpVtbl.pointee.GetFileExtensions(info, 0, nil, &charCount)
+    guard rGet == S_OK else {
       return []
     }
+
+    // Allocate the necessary buffer and populate it.
+    let buffer = UnsafeMutableBufferPointer<CWideChar>.allocate(capacity: Int(charCount))
+    defer {
+      buffer.deallocate()
+    }
+    rGet = info.pointee.lpVtbl.pointee.GetFileExtensions(info, UINT(buffer.count), buffer.baseAddress!, &charCount)
+    guard rGet == S_OK else {
+      return []
+    }
+
+    // Convert the buffer to a Swift string for further manipulation.
+    guard let extensions = String.decodeCString(buffer.baseAddress!, as: UTF16.self)?.result else {
+      return []
+    }
+
     return extensions
-      .split(separator: ";")
+      .split(separator: ",")
       .map { ext in
-        if ext.starts(with: "*.") {
-          ext.dropFirst(2)
+        if ext.starts(with: ".") {
+          ext.dropFirst(1)
         } else {
           ext[...]
         }
-      }.map{ $0.lowercased() } // Vestiges of MS-DOS...
+      }.map(String.init)
   }
 
-  /// Get the `CLSID` value corresponding to the same image format as the given
-  /// path extension.
+  /// Get the `CLSID` value of the WIC image encoder corresponding to the same
+  /// image format as the given path extension.
   ///
   /// - Parameters:
   ///   - pathExtension: The path extension (as a wide C string) for which a
   ///     `CLSID` value is needed.
   ///
-  /// - Returns: An instance of `CLSID` referring to a concrete image type, or
+  /// - Returns: An instance of `CLSID` referring to a a WIC image encoder, or
   ///   `nil` if one could not be determined.
   private static func _computeCLSID(forPathExtension pathExtension: UnsafePointer<CWideChar>) -> CLSID? {
-    _allCodecs.first { codec in
-      _pathExtensions(for: codec)
-        .contains { codecExtension in
-          codecExtension.withCString(encodedAs: UTF16.self) { codecExtension in
-            0 == _wcsicmp(pathExtension, codecExtension)
+    let encoderPathExtensionsByCLSID = (try? _encoderPathExtensionsByCLSID.get()) ?? [:]
+    return encoderPathExtensionsByCLSID
+      .first { _, extensions in
+        extensions.contains { encoderExt in
+          encoderExt.withCString(encodedAs: UTF16.self) { encoderExt in
+            0 == _wcsicmp(pathExtension, encoderExt)
           }
         }
-    }.map(\.Clsid)
+      }.map { CLSID($0.key) }
   }
 
-  /// Get the `CLSID` value corresponding to the same image format as the given
-  /// path extension.
+  /// Get the `CLSID` value of the WIC image encoder corresponding to the same
+  /// image format as the given path extension.
   ///
   /// - Parameters:
   ///   - pathExtension: The path extension for which a `CLSID` value is needed.
   ///
-  /// - Returns: An instance of `CLSID` referring to a concrete image type, or
+  /// - Returns: An instance of `CLSID` referring to a a WIC image encoder, or
   ///   `nil` if one could not be determined.
   private static func _computeCLSID(forPathExtension pathExtension: String) -> CLSID? {
     pathExtension.withCString(encodedAs: UTF16.self) { pathExtension in
@@ -112,14 +152,14 @@ extension AttachableImageFormat {
     }
   }
 
-  /// Get the `CLSID` value corresponding to the same image format as the path
-  /// extension on the given attachment filename.
+  /// Get the `CLSID` value of the WIC image encoder corresponding to the same
+  /// image format as the path extension on the given attachment filename.
   ///
   /// - Parameters:
   ///   - preferredName: The preferred name of the image for which a `CLSID`
   ///     value is needed.
   ///
-  /// - Returns: An instance of `CLSID` referring to a concrete image type, or
+  /// - Returns: An instance of `CLSID` referring to a a WIC image encoder, or
   ///   `nil` if one could not be determined.
   private static func _computeCLSID(forPreferredName preferredName: String) -> CLSID? {
     preferredName.withCString(encodedAs: UTF16.self) { (preferredName) -> CLSID? in
@@ -132,7 +172,8 @@ extension AttachableImageFormat {
     }
   }
 
-  /// Get the `CLSID` value` to use when encoding the image.
+  /// Get the `CLSID` value of the WIC image encoder to use when encoding an
+  /// image.
   ///
   /// - Parameters:
   ///   - imageFormat: The image format to use, or `nil` if the developer did
@@ -140,8 +181,9 @@ extension AttachableImageFormat {
   ///   - preferredName: The preferred name of the image for which a type is
   ///     needed.
   ///
-  /// - Returns: An instance of `CLSID` referring to a concrete image type, or
-  ///   `nil` if one could not be determined.
+  /// - Returns: An instance of `CLSID` referring to a a WIC image encoder. If
+  ///   none could be derived from `imageFormat` or `preferredName`, the PNG
+  ///   encoder is used.
   ///
   /// This function is not part of the public interface of the testing library.
   static func computeCLSID(for imageFormat: Self?, withPreferredName preferredName: String) -> CLSID {
@@ -158,19 +200,19 @@ extension AttachableImageFormat {
     // We couldn't derive a concrete type from the path extension, so default
     // to PNG. Unlike Apple platforms, there's no abstract "image" type on
     // Windows so we don't need to make any more decisions.
-    return _pngCLSID
+    return CLSID_WICPngEncoder
   }
 
-  /// Append the path extension preferred by GDI+ for the given `CLSID` value
-  /// representing an image format to a suggested extension filename.
+  /// Append the path extension preferred by WIC for the image format
+  /// corresponding to the given `CLSID` value or the given filename.
   ///
   /// - Parameters:
   ///   - clsid: The `CLSID` value representing the image format of interest.
   ///   - preferredName: The preferred name of the image for which a type is
   ///     needed.
   ///
-  /// - Returns: A string containing the corresponding path extension, or `nil`
-  ///   if none could be determined.
+  /// - Returns: A copy of `preferredName`, possibly modified to include a path
+  ///   extension appropriate for `CLSID`.
   static func appendPathExtension(for clsid: CLSID, to preferredName: String) -> String {
     // If there's already a CLSID associated with the filename, and it matches
     // the one passed to us, no changes are needed.
@@ -178,38 +220,24 @@ extension AttachableImageFormat {
       return preferredName
     }
 
-    let ext = _allCodecs
-      .first { $0.Clsid == clsid }
-      .flatMap { _pathExtensions(for: $0).first }
-    guard let ext else {
-      // Couldn't find a path extension for the given CLSID, so make no changes.
-      return preferredName
+    // Find the preferred path extension for the encoder with the given CLSID.
+    let encoderPathExtensionsByCLSID = (try? _encoderPathExtensionsByCLSID.get()) ?? [:]
+    if let ext = encoderPathExtensionsByCLSID[UInt128(clsid)]?.first {
+      return "\(preferredName).\(ext)"
     }
 
-    return "\(preferredName).\(ext)"
+    // Couldn't find anything better. Return the preferred name unmodified.
+    return preferredName
   }
 
-  /// The `CLSID` value corresponding to the PNG image format.
-  ///
-  /// - Note: The named constant [`ImageFormatPNG`](https://learn.microsoft.com/en-us/windows/win32/gdiplus/-gdiplus-constant-image-file-format-constants)
-  ///   is not the correct value and will cause `Image::Save()` to fail if
-  ///   passed to it.
-  private static let _pngCLSID = _computeCLSID(forPathExtension: "png")!
-
-  /// The `CLSID` value corresponding to the JPEG image format.
-  ///
-  /// - Note: The named constant [`ImageFormatJPEG`](https://learn.microsoft.com/en-us/windows/win32/gdiplus/-gdiplus-constant-image-file-format-constants)
-  ///   is not the correct value and will cause `Image::Save()` to fail if
-  ///   passed to it.
-  private static let _jpegCLSID = _computeCLSID(forPathExtension: "jpg")!
-
-  /// The `CLSID` value corresponding to this image format.
+  /// The `CLSID` value corresponding to the WIC image encoder for this image
+  /// format.
   public var clsid: CLSID {
     switch kind {
     case .png:
-      Self._pngCLSID
+      CLSID_WICPngEncoder
     case .jpeg:
-      Self._jpegCLSID
+      CLSID_WICJpegEncoder
     case let .systemValue(clsid):
       clsid as! CLSID
     }
@@ -219,19 +247,19 @@ extension AttachableImageFormat {
   /// encoding quality.
   ///
   /// - Parameters:
-  ///   - clsid: The `CLSID` value corresponding to the image format to use when
-  ///     encoding images.
+  ///   - clsid: The `CLSID` value corresponding to a WIC image encoder to use
+  ///     when encoding images.
   ///   - encodingQuality: The encoding quality to use when encoding images. For
   ///     the lowest supported quality, pass `0.0`. For the highest supported
   ///     quality, pass `1.0`.
   ///
-  /// If the target image format does not support variable-quality encoding,
+  /// If the target image encoder does not support variable-quality encoding,
   /// the value of the `encodingQuality` argument is ignored.
   ///
-  /// If `clsid` does not represent an image format supported by GDI+, the
-  /// result is undefined. For a list of image formats supported by GDI+, see
-  /// the [GetImageEncoders()](https://learn.microsoft.com/en-us/windows/win32/api/gdiplusimagecodec/nf-gdiplusimagecodec-getimageencoders)
-  /// function.
+  /// If `clsid` does not represent an image encoder type supported by WIC, the
+  /// result is undefined. For a list of image encoders supported by WIC, see
+  /// the documentation for the [IWICBitmapEncoder](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapencoder)
+  /// class.
   public init(_ clsid: CLSID, encodingQuality: Float = 1.0) {
     self.init(kind: .systemValue(clsid), encodingQuality: encodingQuality)
   }
@@ -249,12 +277,13 @@ extension AttachableImageFormat {
   /// If the target image format does not support variable-quality encoding,
   /// the value of the `encodingQuality` argument is ignored.
   ///
-  /// If `pathExtension` does not correspond to an image format supported by
-  /// GDI+, this initializer returns `nil`. For a list of image formats
-  /// supported by GDI+, see the [GetImageEncoders()](https://learn.microsoft.com/en-us/windows/win32/api/gdiplusimagecodec/nf-gdiplusimagecodec-getimageencoders)
-  /// function.
+  /// If `pathExtension` does not correspond to an image format that WIC can use
+  /// to encode images, this initializer returns `nil`. For a list of image
+  /// encoders supported by WIC, see the documentation for the [IWICBitmapEncoder](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapencoder)
+  /// class.
   public init?(pathExtension: String, encodingQuality: Float = 1.0) {
     let pathExtension = pathExtension.drop { $0 == "." }
+
     let clsid = Self._computeCLSID(forPathExtension: String(pathExtension))
     if let clsid {
       self.init(clsid, encodingQuality: encodingQuality)

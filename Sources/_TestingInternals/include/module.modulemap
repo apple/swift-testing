@@ -11,11 +11,4 @@
 module _TestingInternals {
   umbrella "."
   export *
-
-  explicit module GDIPlus {
-    header "../GDI+/include/GDI+.h"
-    export *
-
-    link "gdiplus.lib"
-  }
 }

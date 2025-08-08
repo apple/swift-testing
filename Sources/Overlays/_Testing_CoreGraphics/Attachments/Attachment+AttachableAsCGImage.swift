@@ -17,12 +17,11 @@ extension Attachment {
   /// Initialize an instance of this type that encloses the given image.
   ///
   /// - Parameters:
-  ///   - attachableValue: The value that will be attached to the output of
-  ///     the test run.
+  ///   - image: The value that will be attached to the output of the test run.
   ///   - preferredName: The preferred name of the attachment when writing it
   ///     to a test report or to disk. If `nil`, the testing library attempts
   ///     to derive a reasonable filename for the attached value.
-  ///   - imageFormat: The image format with which to encode `attachableValue`.
+  ///   - imageFormat: The image format with which to encode `image`.
   ///   - sourceLocation: The source location of the call to this initializer.
   ///     This value is used when recording issues associated with the
   ///     attachment.
@@ -45,12 +44,12 @@ extension Attachment {
   /// correspond to an image format the operating system knows how to write, the
   /// testing library selects an appropriate image format for you.
   public init<T>(
-    _ attachableValue: T,
+    _ image: T,
     named preferredName: String? = nil,
     as imageFormat: AttachableImageFormat? = nil,
     sourceLocation: SourceLocation = #_sourceLocation
   ) where AttachableValue == _AttachableImageWrapper<T> {
-    let imageWrapper = _AttachableImageWrapper(image: attachableValue, imageFormat: imageFormat)
+    let imageWrapper = _AttachableImageWrapper(image: image, imageFormat: imageFormat)
     self.init(imageWrapper, named: preferredName, sourceLocation: sourceLocation)
   }
 
@@ -61,7 +60,7 @@ extension Attachment {
   ///   - preferredName: The preferred name of the attachment when writing it to
   ///     a test report or to disk. If `nil`, the testing library attempts to
   ///     derive a reasonable filename for the attached value.
-  ///   - imageFormat: The image format with which to encode `attachableValue`.
+  ///   - imageFormat: The image format with which to encode `image`.
   ///   - sourceLocation: The source location of the call to this function.
   ///
   /// This function creates a new instance of ``Attachment`` wrapping `image`
@@ -92,6 +91,17 @@ extension Attachment {
   ) where AttachableValue == _AttachableImageWrapper<T> {
     let attachment = Self(image, named: preferredName, as: imageFormat, sourceLocation: sourceLocation)
     Self.record(attachment, sourceLocation: sourceLocation)
+  }
+}
+
+@_spi(Experimental) // STOP: not part of ST-0014
+@available(_uttypesAPI, *)
+extension Attachment where AttachableValue: AttachableWrapper, AttachableValue.Wrapped: AttachableAsCGImage {
+  /// The image format to use when encoding the represented image.
+  @_disfavoredOverload
+  public var imageFormat: AttachableImageFormat? {
+    // FIXME: no way to express `where AttachableValue == _AttachableImageWrapper<???>` on a property
+    (attachableValue as? _AttachableImageWrapper<AttachableValue.Wrapped>)?.imageFormat
   }
 }
 #endif

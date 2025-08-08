@@ -108,24 +108,6 @@ static DWORD_PTR swt_PROC_THREAD_ATTRIBUTE_HANDLE_LIST(void) {
 static const IMAGE_SECTION_HEADER *_Null_unspecified swt_IMAGE_FIRST_SECTION(const IMAGE_NT_HEADERS *ntHeader) {
   return IMAGE_FIRST_SECTION(ntHeader);
 }
-
-#if defined(__cplusplus)
-/// Add a reference to (retain) a COM object.
-///
-/// This function is provided because `IUnknown::AddRef()` is a virtual member
-/// function and cannot be imported directly into Swift. 
-static inline ULONG swt_IUnknown_AddRef(IUnknown *object) {
-  return object->AddRef();
-}
-
-/// Release a COM object.
-///
-/// This function is provided because `IUnknown::Release()` is a virtual member
-/// function and cannot be imported directly into Swift. 
-static inline ULONG swt_IUnknown_Release(IUnknown *object) {
-  return object->Release();
-}
-#endif
 #endif
 
 #if defined(__linux__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__ANDROID__)

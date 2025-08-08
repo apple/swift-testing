@@ -254,7 +254,7 @@ let package = Package(
         "Testing",
       ],
       path: "Sources/Overlays/_Testing_WinSDK",
-      swiftSettings: .packageSettings + .enableLibraryEvolution() + [.interoperabilityMode(.Cxx)]
+      swiftSettings: .packageSettings + .enableLibraryEvolution()
     ),
 
     // Utility targets: These are utilities intended for use when developing

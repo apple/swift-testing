@@ -28,8 +28,7 @@ extension HBITMAP__: _AttachableByAddressAsIWICBitmap {
   }
 
   public static func _copyAttachableValue(at imageAddress: UnsafeMutablePointer<Self>) throws -> UnsafeMutablePointer<Self> {
-    let result: HBITMAP? = CopyImage(imageAddress, UINT(IMAGE_BITMAP), 0, 0, 0).assumingMemoryBound(to: Self.self)
-    guard let result else {
+    guard let result = CopyImage(imageAddress, UINT(IMAGE_BITMAP), 0, 0, 0)?.assumingMemoryBound(to: Self.self) else {
       throw Win32Error(rawValue: GetLastError())
     }
     return result

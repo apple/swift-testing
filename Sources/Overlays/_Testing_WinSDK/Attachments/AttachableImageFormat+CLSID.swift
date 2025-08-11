@@ -112,7 +112,7 @@ extension AttachableImageFormat {
         if ext.starts(with: ".") {
           ext.dropFirst(1)
         } else {
-          ext[...]
+          ext
         }
       }.map(String.init)
   }

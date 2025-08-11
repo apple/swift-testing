@@ -54,20 +54,20 @@ import UniformTypeIdentifiers
 ///   (iOS, watchOS, tvOS, visionOS, and Mac Catalyst)
 @_spi(Experimental)
 @available(_uttypesAPI, *)
-public final class _AttachableImageWrapper<Image>: Sendable where Image: AttachableAsCGImage {
+public struct _AttachableImageWrapper<Image>: Sendable where Image: AttachableAsCGImage {
   /// The underlying image.
   ///
   /// `CGImage` and `UIImage` are sendable, but `NSImage` is not. `NSImage`
   /// instances can be created from closures that are run at rendering time.
   /// The AppKit cross-import overlay is responsible for ensuring that any
   /// instances of this type it creates hold "safe" `NSImage` instances.
-  nonisolated(unsafe) let image: Image
+  nonisolated(unsafe) var image: Image
 
   /// The image format to use when encoding the represented image.
-  let imageFormat: AttachableImageFormat?
+  var imageFormat: AttachableImageFormat?
 
   init(image: Image, imageFormat: AttachableImageFormat?) {
-    self.image = image._copyAttachableValue()
+    self.image = image._makeCopyForAttachment()
     self.imageFormat = imageFormat
   }
 }
@@ -80,7 +80,7 @@ extension _AttachableImageWrapper: AttachableWrapper {
     image
   }
 
-  public func withUnsafeBytes<R>(for attachment: borrowing Attachment<_AttachableImageWrapper>, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R {
+  public func withUnsafeBytes<R>(for attachment: borrowing Attachment<Self>, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R {
     let data = NSMutableData()
 
     // Convert the image to a CGImage.
@@ -116,7 +116,7 @@ extension _AttachableImageWrapper: AttachableWrapper {
     }
   }
 
-  public borrowing func preferredName(for attachment: borrowing Attachment<_AttachableImageWrapper>, basedOn suggestedName: String) -> String {
+  public borrowing func preferredName(for attachment: borrowing Attachment<Self>, basedOn suggestedName: String) -> String {
     let contentType = AttachableImageFormat.computeContentType(for: imageFormat, withPreferredName: suggestedName)
     return (suggestedName as NSString).appendingPathExtension(for: contentType)
   }

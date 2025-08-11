@@ -53,7 +53,7 @@ extension NSImage: AttachableAsCGImage {
     return maxRepWidth ?? 1.0
   }
 
-  public func _copyAttachableValue() -> Self {
+  public func _makeCopyForAttachment() -> Self {
     // If this image is of an NSImage subclass, we cannot reliably make a deep
     // copy of it because we don't know what its `init(data:)` implementation
     // might do. Try to make a copy (using NSCopying), but if that doesn't work

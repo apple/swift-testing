@@ -138,9 +138,6 @@ public protocol AttachableAsIWICBitmap {
   /// a reference to `self`. If this type does not support making copies, return
   /// `self` verbatim.
   ///
-  /// The default implementation of this function when `Self` conforms to
-  /// `Sendable` simply returns `self`.
-  ///
   /// This function is not part of the public interface of the testing library.
   /// It may be removed in a future update.
   func _copyAttachableValue() -> Self
@@ -153,9 +150,6 @@ public protocol AttachableAsIWICBitmap {
   ///
   /// This function is not responsible for releasing the image returned from
   /// `_copyAttachableIWICBitmap(using:)`.
-  ///
-  /// The default implementation of this function when `Self` conforms to
-  /// `Sendable` does nothing.
   ///
   /// This function is not part of the public interface of the testing library.
   /// It may be removed in a future update.
@@ -195,13 +189,5 @@ extension AttachableAsIWICBitmap {
       return bitmapSource.assumingMemoryBound(to: IWICBitmapSource.self)
     }
   }
-}
-
-extension AttachableAsIWICBitmap where Self: Sendable {
-  public func _copyAttachableValue() -> Self {
-    self
-  }
-
-  public func _deinitializeAttachableValue() {}
 }
 #endif

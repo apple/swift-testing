@@ -65,17 +65,16 @@ public protocol AttachableAsCGImage {
   ///
   /// - Returns: A copy of `self`, or `self` if no copy is needed.
   ///
-  /// The testing library uses this function to take ownership of image
-  /// resources that test authors pass to it. If possible, make a copy of or add
-  /// a reference to `self`. If this type does not support making copies, return
-  /// `self` verbatim.
+  /// Several system image types do not conform to `Sendable`; use this
+  /// function to make copies of such images that will not be shared outside
+  /// of an attachment and so can be generally safely stored.
   ///
   /// The default implementation of this function when `Self` conforms to
   /// `Sendable` simply returns `self`.
   ///
   /// This function is not part of the public interface of the testing library.
   /// It may be removed in a future update.
-  func _copyAttachableValue() -> Self
+  func _makeCopyForAttachment() -> Self
 }
 
 @available(_uttypesAPI, *)
@@ -91,7 +90,7 @@ extension AttachableAsCGImage {
 
 @available(_uttypesAPI, *)
 extension AttachableAsCGImage where Self: Sendable {
-  public func _copyAttachableValue() -> Self {
+  public func _makeCopyForAttachment() -> Self {
     self
   }
 }

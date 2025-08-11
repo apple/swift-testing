@@ -23,7 +23,7 @@ extension IWICBitmap: _AttachableByAddressAsIWICBitmap {
     return imageAddress
   }
 
-  public static func _copyAttachableValue(at imageAddress: UnsafeMutablePointer<Self>) throws -> UnsafeMutablePointer<Self> {
+  public static func _copyAttachableValue(at imageAddress: UnsafeMutablePointer<Self>) -> UnsafeMutablePointer<Self> {
     _ = imageAddress.pointee.lpVtbl.pointee.AddRef(imageAddress)
     return imageAddress
   }

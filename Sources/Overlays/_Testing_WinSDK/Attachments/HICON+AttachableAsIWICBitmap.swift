@@ -27,11 +27,11 @@ extension HICON__: _AttachableByAddressAsIWICBitmap {
     return bitmap
   }
 
-  public static func _copyAttachableValue(at imageAddress: UnsafeMutablePointer<Self>) throws -> UnsafeMutablePointer<Self> {
-    guard let result = CopyIcon(imageAddress) else {
-      throw Win32Error(rawValue: GetLastError())
-    }
-    return result
+  public static func _copyAttachableValue(at imageAddress: UnsafeMutablePointer<Self>) -> UnsafeMutablePointer<Self> {
+    // The only reasonable failure mode for `CopyIcon()` is allocation failure,
+    // and Swift treats allocation failures as fatal. Hence, we do not check for
+    // `nil` on return.
+    CopyIcon(imageAddress)
   }
 
   public static func _deinitializeAttachableValue(at imageAddress: UnsafeMutablePointer<Self>) {

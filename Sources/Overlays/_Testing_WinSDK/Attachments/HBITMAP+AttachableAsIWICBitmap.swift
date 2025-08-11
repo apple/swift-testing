@@ -27,11 +27,11 @@ extension HBITMAP__: _AttachableByAddressAsIWICBitmap {
     return bitmap
   }
 
-  public static func _copyAttachableValue(at imageAddress: UnsafeMutablePointer<Self>) throws -> UnsafeMutablePointer<Self> {
-    guard let result = CopyImage(imageAddress, UINT(IMAGE_BITMAP), 0, 0, 0)?.assumingMemoryBound(to: Self.self) else {
-      throw Win32Error(rawValue: GetLastError())
-    }
-    return result
+  public static func _copyAttachableValue(at imageAddress: UnsafeMutablePointer<Self>) -> UnsafeMutablePointer<Self> {
+    // The only reasonable failure mode for `CopyImage()` is allocation failure,
+    // and Swift treats allocation failures as fatal. Hence, we do not check for
+    // `nil` on return.
+    CopyImage(imageAddress, UINT(IMAGE_BITMAP), 0, 0, 0).assumingMemoryBound(to: Self.self)
   }
 
   public static func _deinitializeAttachableValue(at imageAddress: UnsafeMutablePointer<Self>) {

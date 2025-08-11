@@ -62,8 +62,6 @@ public protocol _AttachableByAddressAsIWICBitmap {
   /// - Returns: A copy of `imageAddress`, or `imageAddress` if this type does
   ///   not support a copying operation.
   ///
-  /// - Throws: Any error that prevented copying the value at `imageAddress`.
-  ///
   /// The testing library uses this function to take ownership of image
   /// resources that test authors pass to it. If possible, make a copy of or add
   /// a reference to the value at `imageAddress`. If this type does not support
@@ -71,7 +69,7 @@ public protocol _AttachableByAddressAsIWICBitmap {
   ///
   /// This function is not part of the public interface of the testing library.
   /// It may be removed in a future update.
-  static func _copyAttachableValue(at imageAddress: UnsafeMutablePointer<Self>) throws -> UnsafeMutablePointer<Self>
+  static func _copyAttachableValue(at imageAddress: UnsafeMutablePointer<Self>) -> UnsafeMutablePointer<Self>
 
   /// Manually deinitialize any resources at the given address.
   ///
@@ -135,8 +133,6 @@ public protocol AttachableAsIWICBitmap {
   /// - Returns: A copy of `self`, or `self` if this type does not support a
   ///   copying operation.
   ///
-  /// - Throws: Any error that prevented copying this value.
-  ///
   /// The testing library uses this function to take ownership of image
   /// resources that test authors pass to it. If possible, make a copy of or add
   /// a reference to `self`. If this type does not support making copies, return
@@ -144,7 +140,7 @@ public protocol AttachableAsIWICBitmap {
   ///
   /// This function is not part of the public interface of the testing library.
   /// It may be removed in a future update.
-  func _copyAttachableValue() throws -> Self
+  func _copyAttachableValue() -> Self
 
   /// Manually deinitialize any resources associated with this image.
   ///

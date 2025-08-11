@@ -13,13 +13,12 @@
 
 internal import WinSDK
 
-/// A type describing errors that can be thrown by WIC or COM while attaching an
-/// image.
+/// A type representing an error that can occur when attaching an image.
 enum ImageAttachmentError: Error {
   /// A call to `QueryInterface()` failed.
   case queryInterfaceFailed(Any.Type, HRESULT)
 
-  /// The testing library failed to create a WIC object.
+  /// The testing library failed to create a COM object.
   case comObjectCreationFailed(Any.Type, HRESULT)
 
   /// An image could not be written.

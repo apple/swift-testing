@@ -28,30 +28,26 @@ internal import WinSDK
 @_spi(Experimental)
 public final class _AttachableImageWrapper<Image>: Sendable where Image: AttachableAsIWICBitmap {
   /// The underlying image.
-  nonisolated(unsafe) let image: Result<Image, any Error>
+  nonisolated(unsafe) let image: Image
 
   /// The image format to use when encoding the represented image.
   let imageFormat: AttachableImageFormat?
 
   init(image: borrowing Image, imageFormat: AttachableImageFormat?) {
-    self.image = Result { [image = copy image] in
-      try image._copyAttachableValue()
-    }
+    self.image = image._copyAttachableValue()
     self.imageFormat = imageFormat
   }
 
   deinit {
-    if let image = try? image.get() {
-      image._deinitializeAttachableValue()
-    }
+    image._deinitializeAttachableValue()
   }
 }
 
 // MARK: -
 
 extension _AttachableImageWrapper: AttachableWrapper {
-  public var wrappedValue: Image? {
-    try? image.get()
+  public var wrappedValue: Image {
+    image
   }
 
   public func withUnsafeBytes<R>(for attachment: borrowing Attachment<_AttachableImageWrapper>, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R {
@@ -74,7 +70,7 @@ extension _AttachableImageWrapper: AttachableWrapper {
     }
 
     // Create the bitmap and downcast it to an IWICBitmapSource for later use.
-    let bitmap = try image.get().copyAttachableIWICBitmapSource(using: factory)
+    let bitmap = try image.copyAttachableIWICBitmapSource(using: factory)
     defer {
       _ = bitmap.pointee.lpVtbl.pointee.Release(bitmap)
     }

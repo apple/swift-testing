@@ -17,21 +17,6 @@ private import WinSDK
 #endif
 
 #if !SWT_NO_FILE_IO
-extension URL {
-  /// The file system path of the URL, equivalent to `path`.
-  var fileSystemPath: String {
-#if os(Windows)
-    // BUG: `path` includes a leading slash which makes it invalid on Windows.
-    // SEE: https://github.com/swiftlang/swift-foundation/pull/964
-    let path = path
-    if path.starts(with: /\/[A-Za-z]:\//) {
-      return String(path.dropFirst())
-    }
-#endif
-    return path
-  }
-}
-
 extension Attachment where AttachableValue == _AttachableURLWrapper {
 #if SWT_TARGET_OS_APPLE
   /// An operation queue to use for asynchronously reading data from disk.
@@ -203,8 +188,8 @@ private func _compressContentsOfDirectory(at directoryURL: URL) async throws -> 
   throw CocoaError(.featureUnsupported, userInfo: [NSLocalizedDescriptionKey: "This platform does not support attaching directories to tests."])
 #endif
 
-  let sourcePath = directoryURL.fileSystemPath
-  let destinationPath = temporaryURL.fileSystemPath
+  let sourcePath = directoryURL.path
+  let destinationPath = temporaryURL.path
   let arguments = {
 #if os(Linux) || os(OpenBSD)
     // The zip command constructs relative paths from the current working

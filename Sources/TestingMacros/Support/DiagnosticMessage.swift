@@ -643,6 +643,41 @@ struct DiagnosticMessage: SwiftDiagnostics.DiagnosticMessage {
     )
   }
 
+  /// Create a diagnostic message stating that a string literal expression
+  /// passed as the display name to a `@Test` or `@Suite` attribute is empty
+  /// but should not be.
+  ///
+  /// - Parameters:
+  ///   - decl: The declaration that has an empty display name.
+  ///   - displayNameExpr: The display name string literal expression.
+  ///   - argumentContainingDisplayName: The argument node containing the node
+  ///     `displayNameExpr`.
+  ///   - attribute: The `@Test` or `@Suite` attribute.
+  ///
+  /// - Returns: A diagnostic message.
+  static func declaration(
+    _ decl: some NamedDeclSyntax,
+    hasEmptyDisplayName displayNameExpr: StringLiteralExprSyntax,
+    fromArgument argumentContainingDisplayName: LabeledExprListSyntax.Element,
+    using attribute: AttributeSyntax
+  ) -> Self {
+    Self(
+      syntax: Syntax(displayNameExpr),
+      message: "Attribute \(_macroName(attribute)) specifies an empty display name for this \(_kindString(for: decl))",
+      severity: .error,
+      fixIts: [
+        FixIt(
+          message: MacroExpansionFixItMessage("Remove display name argument"),
+          changes: [.replace(oldNode: Syntax(argumentContainingDisplayName), newNode: Syntax("" as ExprSyntax))]
+        ),
+        FixIt(
+          message: MacroExpansionFixItMessage("Add display name"),
+          changes: [.replace(oldNode: Syntax(argumentContainingDisplayName), newNode: Syntax(StringLiteralExprSyntax(placeholder: "display name")))]
+        ),
+      ]
+    )
+  }
+
   /// Create a diagnostic message stating that a declaration has two display
   /// names.
   ///

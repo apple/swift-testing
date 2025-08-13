@@ -9,6 +9,7 @@
 //
 
 import SwiftSyntax
+import SwiftSyntaxBuilder
 
 extension EditorPlaceholderExprSyntax {
   /// Initialize an instance of this type with the given placeholder string and
@@ -39,7 +40,7 @@ extension EditorPlaceholderExprSyntax {
 
     // Manually concatenate the string to avoid it being interpreted as a
     // placeholder when editing this file.
-    self.init(placeholder: .identifier("<#\(placeholderContent)#" + ">"))
+    self.init(placeholder: .identifier(_editorPlaceholder(containing: placeholderContent)))
   }
 
   /// Initialize an instance of this type with the given type, using that as the
@@ -62,6 +63,32 @@ extension TypeSyntax {
   ///
   /// - Returns: A new `TypeSyntax` instance representing a placeholder.
   static func placeholder(_ placeholder: String) -> Self {
-    return Self(IdentifierTypeSyntax(name: .identifier("<#\(placeholder)#" + ">")))
+    Self(IdentifierTypeSyntax(name: .identifier(_editorPlaceholder(containing: placeholder))))
   }
+}
+
+extension StringLiteralExprSyntax {
+  /// Construct a string literal expression syntax node containing an editor
+  /// placeholder string.
+  ///
+  /// - Parameters
+  ///   - placeholder: The placeholder string, not including surrounding angle
+  ///     brackets or pound characters.
+  init(placeholder: String) {
+    self.init(content: _editorPlaceholder(containing: placeholder))
+  }
+}
+
+/// Format a source editor placeholder string with the specified content.
+///
+/// - Parameters:
+///   - content: The placeholder string, not including surrounding angle
+///     brackets or pound characters
+///
+/// - Returns: A fully-formatted formatted editor placeholder string, including
+///   necessary surrounding punctuation.
+private func _editorPlaceholder(containing content: String) -> String {
+  // Manually concatenate the string to avoid it being interpreted as a
+  // placeholder when editing this file.
+  "<#\(content)#" + ">"
 }

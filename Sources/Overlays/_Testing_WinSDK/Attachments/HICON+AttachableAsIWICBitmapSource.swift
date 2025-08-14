@@ -14,17 +14,17 @@ import Testing
 public import WinSDK
 
 @_spi(Experimental)
-extension HICON__: _AttachableByAddressAsIWICBitmap {
-  public static func _copyAttachableIWICBitmap(
+extension HICON__: _AttachableByAddressAsIWICBitmapSource {
+  public static func _copyAttachableIWICBitmapSource(
     from imageAddress: UnsafeMutablePointer<Self>,
     using factory: UnsafeMutablePointer<IWICImagingFactory>
-  ) throws -> UnsafeMutablePointer<IWICBitmap> {
-    var bitmap: UnsafeMutablePointer<IWICBitmap>!
+  ) throws -> UnsafeMutablePointer<IWICBitmapSource> {
+    var bitmap: UnsafeMutablePointer<IWICBitmap>?
     let rCreate = factory.pointee.lpVtbl.pointee.CreateBitmapFromHICON(factory, imageAddress, &bitmap)
     guard rCreate == S_OK, let bitmap else {
       throw ImageAttachmentError.comObjectCreationFailed(IWICBitmap.self, rCreate)
     }
-    return bitmap
+    return try bitmap.cast(to: IWICBitmapSource.self)
   }
 
   public static func _copyAttachableValue(at imageAddress: UnsafeMutablePointer<Self>) -> UnsafeMutablePointer<Self> {

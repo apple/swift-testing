@@ -14,9 +14,9 @@ import Testing
 public import WinSDK
 
 @_spi(Experimental)
-extension UnsafeMutablePointer: AttachableAsIWICBitmap where Pointee: _AttachableByAddressAsIWICBitmap {
-  public func _copyAttachableIWICBitmap(using factory: UnsafeMutablePointer<IWICImagingFactory>) throws -> UnsafeMutablePointer<IWICBitmap> {
-    try Pointee._copyAttachableIWICBitmap(from: self, using: factory)
+extension UnsafeMutablePointer: AttachableAsIWICBitmapSource where Pointee: _AttachableByAddressAsIWICBitmapSource {
+  public func _copyAttachableIWICBitmapSource(using factory: UnsafeMutablePointer<IWICImagingFactory>) throws -> UnsafeMutablePointer<IWICBitmapSource> {
+    try Pointee._copyAttachableIWICBitmapSource(from: self, using: factory)
   }
 
   public func _copyAttachableValue() -> Self {

@@ -775,7 +775,7 @@ extension AttachmentTests {
       Attachment.record(loFi)
     }
 
-    @MainActor @Test func attachIWICBitmap() throws {
+    private func copyIWICBitmap() throws -> UnsafeMutablePointer<IWICBitmap> {
       let factory = try IWICImagingFactory.create()
       defer {
         _ = factory.pointee.lpVtbl.pointee.Release(factory)
@@ -791,11 +791,29 @@ extension AttachmentTests {
       guard rCreate == S_OK, let wicBitmap else {
         throw ImageAttachmentError.comObjectCreationFailed(IWICBitmap.self, rCreate)
       }
+      return wicBitmap
+    }
+
+    @MainActor @Test func attachIWICBitmap() throws {
+      let wicBitmap = try copyIWICBitmap()
       defer {
         _ = wicBitmap.pointee.lpVtbl.pointee.Release(wicBitmap)
       }
 
       let attachment = Attachment(wicBitmap, named: "diamond.png")
+      try attachment.withUnsafeBytes { buffer in
+        #expect(buffer.count > 32)
+      }
+      Attachment.record(attachment)
+    }
+
+    @MainActor @Test func attachIWICBitmapSource() throws {
+      let wicBitmapSource = try copyIWICBitmap().cast(to: IWICBitmapSource.self)
+      defer {
+        _ = wicBitmapSource.pointee.lpVtbl.pointee.Release(wicBitmapSource)
+      }
+
+      let attachment = Attachment(wicBitmapSource, named: "diamond.png")
       try attachment.withUnsafeBytes { buffer in
         #expect(buffer.count > 32)
       }

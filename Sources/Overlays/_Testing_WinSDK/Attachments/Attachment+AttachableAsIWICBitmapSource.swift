@@ -27,11 +27,12 @@ extension Attachment where AttachableValue: ~Copyable {
   ///     attachment.
   ///
   /// The following system-provided image types conform to the
-  /// ``AttachableAsIWICBitmap`` protocol and can be attached to a test:
+  /// ``AttachableAsIWICBitmapSource`` protocol and can be attached to a test:
   ///
   /// - [`HBITMAP`](https://learn.microsoft.com/en-us/windows/win32/gdi/bitmaps)
   /// - [`HICON`](https://learn.microsoft.com/en-us/windows/win32/menurc/icons)
-  /// - [`IWICBitmap`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmap)
+  /// - [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource)
+  ///   (including its subclasses declared by Windows Imaging Component)
   ///
   /// The testing library uses the image format specified by `imageFormat`. Pass
   /// `nil` to let the testing library decide which image format to use. If you
@@ -66,11 +67,12 @@ extension Attachment where AttachableValue: ~Copyable {
   /// and immediately attaches it to the current test.
   ///
   /// The following system-provided image types conform to the
-  /// ``AttachableAsIWICBitmap`` protocol and can be attached to a test:
+  /// ``AttachableAsIWICBitmapSource`` protocol and can be attached to a test:
   ///
   /// - [`HBITMAP`](https://learn.microsoft.com/en-us/windows/win32/gdi/bitmaps)
   /// - [`HICON`](https://learn.microsoft.com/en-us/windows/win32/menurc/icons)
-  /// - [`IWICBitmap`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmap)
+  /// - [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource)
+  ///   (including its subclasses declared by Windows Imaging Component)
   ///
   /// The testing library uses the image format specified by `imageFormat`. Pass
   /// `nil` to let the testing library decide which image format to use. If you
@@ -92,7 +94,7 @@ extension Attachment where AttachableValue: ~Copyable {
 }
 
 @_spi(Experimental)
-extension Attachment where AttachableValue: AttachableWrapper, AttachableValue.Wrapped: AttachableAsIWICBitmap {
+extension Attachment where AttachableValue: AttachableWrapper, AttachableValue.Wrapped: AttachableAsIWICBitmapSource {
   /// The image format to use when encoding the represented image.
   @_disfavoredOverload
   public var imageFormat: AttachableImageFormat? {

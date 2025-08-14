@@ -18,15 +18,16 @@ internal import WinSDK
 ///
 /// You do not need to use this type directly. Instead, initialize an instance
 /// of ``Attachment`` using an instance of an image type that conforms to
-/// ``AttachableAsIWICBitmap``. The following system-provided image types
-/// conform to the ``AttachableAsIWICBitmap`` protocol and can be attached to a
-/// test:
+/// ``AttachableAsIWICBitmapSource``. The following system-provided image types
+/// conform to the ``AttachableAsIWICBitmapSource`` protocol and can be attached
+/// to a test:
 ///
 /// - [`HBITMAP`](https://learn.microsoft.com/en-us/windows/win32/gdi/bitmaps)
 /// - [`HICON`](https://learn.microsoft.com/en-us/windows/win32/menurc/icons)
-/// - [`IWICBitmap`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmap)
+/// - [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource)
+///   (including its subclasses declared by Windows Imaging Component)
 @_spi(Experimental)
-public final class _AttachableImageWrapper<Image>: Sendable where Image: AttachableAsIWICBitmap {
+public final class _AttachableImageWrapper<Image>: Sendable where Image: AttachableAsIWICBitmapSource {
   /// The underlying image.
   nonisolated(unsafe) let image: Image
 
@@ -70,7 +71,7 @@ extension _AttachableImageWrapper: AttachableWrapper {
     }
 
     // Create the bitmap and downcast it to an IWICBitmapSource for later use.
-    let bitmap = try image.copyAttachableIWICBitmapSource(using: factory)
+    let bitmap = try image._copyAttachableIWICBitmapSource(using: factory)
     defer {
       _ = bitmap.pointee.lpVtbl.pointee.Release(bitmap)
     }

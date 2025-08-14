@@ -26,32 +26,33 @@ public import WinSDK
 ///
 /// - [`HBITMAP`](https://learn.microsoft.com/en-us/windows/win32/gdi/bitmaps)
 /// - [`HICON`](https://learn.microsoft.com/en-us/windows/win32/menurc/icons)
-/// - [`IWICBitmap`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmap)
+/// - [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource)
+///   (including its subclasses declared by Windows Imaging Component)
 ///
 /// You do not generally need to add your own conformances to this protocol. If
 /// you have an image in another format that needs to be attached to a test,
 /// first convert it to an instance of one of the types above.
 @_spi(Experimental)
-public protocol _AttachableByAddressAsIWICBitmap {
-  /// Create a WIC bitmap representing an instance of this type at the given
-  /// address.
+public protocol _AttachableByAddressAsIWICBitmapSource {
+  /// Create a WIC bitmap source representing an instance of this type at the
+  /// given address.
   ///
   /// - Parameters:
   ///   - imageAddress: The address of the instance of this type.
   ///   - factory: A WIC imaging factory that can be used to create additional
   ///     WIC objects.
   ///
-  /// - Returns: A pointer to a new WIC bitmap representing this image. The
-  ///   caller is responsible for releasing this image when done with it.
+  /// - Returns: A pointer to a new WIC bitmap source representing this image.
+  ///   The caller is responsible for releasing this image when done with it.
   ///
   /// - Throws: Any error that prevented the creation of the WIC bitmap.
   ///
   /// This function is not part of the public interface of the testing library.
   /// It may be removed in a future update.
-  static func _copyAttachableIWICBitmap(
+  static func _copyAttachableIWICBitmapSource(
     from imageAddress: UnsafeMutablePointer<Self>,
     using factory: UnsafeMutablePointer<IWICImagingFactory>
-  ) throws -> UnsafeMutablePointer<IWICBitmap>
+  ) throws -> UnsafeMutablePointer<IWICBitmapSource>
 
   /// Make a copy of the instance of this type at the given address.
   ///
@@ -84,7 +85,7 @@ public protocol _AttachableByAddressAsIWICBitmap {
   /// does not call this function.
   ///
   /// This function is not responsible for releasing the image returned from
-  /// `_copyAttachableIWICBitmap(from:using:)`.
+  /// `_copyAttachableIWICBitmapSource(from:using:)`.
   ///
   /// This function is not part of the public interface of the testing library.
   /// It may be removed in a future update.
@@ -104,13 +105,14 @@ public protocol _AttachableByAddressAsIWICBitmap {
 ///
 /// - [`HBITMAP`](https://learn.microsoft.com/en-us/windows/win32/gdi/bitmaps)
 /// - [`HICON`](https://learn.microsoft.com/en-us/windows/win32/menurc/icons)
-/// - [`IWICBitmap`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmap)
+/// - [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource)
+///   (including its subclasses declared by Windows Imaging Component)
 ///
 /// You do not generally need to add your own conformances to this protocol. If
 /// you have an image in another format that needs to be attached to a test,
 /// first convert it to an instance of one of the types above.
 @_spi(Experimental)
-public protocol AttachableAsIWICBitmap {
+public protocol AttachableAsIWICBitmapSource {
   /// Create a WIC bitmap representing an instance of this type.
   ///
   /// - Parameters:
@@ -124,9 +126,9 @@ public protocol AttachableAsIWICBitmap {
   ///
   /// This function is not part of the public interface of the testing library.
   /// It may be removed in a future update.
-  borrowing func _copyAttachableIWICBitmap(
+  borrowing func _copyAttachableIWICBitmapSource(
     using factory: UnsafeMutablePointer<IWICImagingFactory>
-  ) throws -> UnsafeMutablePointer<IWICBitmap>
+  ) throws -> UnsafeMutablePointer<IWICBitmapSource>
 
   /// Make a copy of this instance.
   ///
@@ -152,7 +154,7 @@ public protocol AttachableAsIWICBitmap {
   /// automatically invokes this function as needed.
   ///
   /// This function is not responsible for releasing the image returned from
-  /// `_copyAttachableIWICBitmap(using:)`.
+  /// `_copyAttachableIWICBitmapSource(using:)`.
   ///
   /// The default implementation of this function when `Self` conforms to
   /// `Sendable` does nothing.
@@ -162,42 +164,7 @@ public protocol AttachableAsIWICBitmap {
   func _deinitializeAttachableValue()
 }
 
-extension AttachableAsIWICBitmap {
-  /// Create a WIC bitmap representing an instance of this type and return it as
-  /// an instance of `IWICBitmapSource`.
-  ///
-  /// - Parameters:
-  ///   - factory: A WIC imaging factory that can be used to create additional
-  ///     WIC objects.
-  ///
-  /// - Returns: A pointer to a new WIC bitmap representing this image. The
-  ///   caller is responsible for releasing this image when done with it.
-  ///
-  /// - Throws: Any error that prevented the creation of the WIC bitmap.
-  ///
-  /// This function is a convenience over `_copyAttachableIWICBitmap(using:)`
-  /// that casts the result of that function to `IWICBitmapSource` (as needed
-  /// by WIC when it encodes the image.)
-  borrowing func copyAttachableIWICBitmapSource(
-    using factory: UnsafeMutablePointer<IWICImagingFactory>
-  ) throws -> UnsafeMutablePointer<IWICBitmapSource> {
-    let bitmap = try _copyAttachableIWICBitmap(using: factory)
-    defer {
-      _ = bitmap.pointee.lpVtbl.pointee.Release(bitmap)
-    }
-
-    return try withUnsafePointer(to: IID_IWICBitmapSource) { IID_IWICBitmapSource in
-      var bitmapSource: UnsafeMutableRawPointer?
-      let rQuery = bitmap.pointee.lpVtbl.pointee.QueryInterface(bitmap, IID_IWICBitmapSource, &bitmapSource)
-      guard rQuery == S_OK, let bitmapSource else {
-        throw ImageAttachmentError.queryInterfaceFailed(IWICBitmapSource.self, rQuery)
-      }
-      return bitmapSource.assumingMemoryBound(to: IWICBitmapSource.self)
-    }
-  }
-}
-
-extension AttachableAsIWICBitmap where Self: Sendable {
+extension AttachableAsIWICBitmapSource where Self: Sendable {
   public func _copyAttachableValue() -> Self {
     self
   }

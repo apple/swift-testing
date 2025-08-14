@@ -54,12 +54,29 @@ func entryPoint(passing args: __CommandLineArguments_v0?, eventHandler: Event.Ha
 #if !SWT_NO_FILE_IO
     // Configure the event recorder to write events to stderr.
     if configuration.verbosity > .min {
-      let eventRecorder = Event.ConsoleOutputRecorder(options: .for(.stderr)) { string in
-        try? FileHandle.stderr.write(string)
-      }
-      configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
-        eventRecorder.record(event, in: context)
-        oldEventHandler(event, context)
+      // Check for experimental console output flag
+      if Environment.flag(named: "SWT_ENABLE_EXPERIMENTAL_CONSOLE_OUTPUT") == true {
+        // Use experimental AdvancedConsoleOutputRecorder
+        var advancedOptions = Event.AdvancedConsoleOutputRecorder.Options()
+        advancedOptions.base = .for(.stderr)
+        
+        let eventRecorder = Event.AdvancedConsoleOutputRecorder(options: advancedOptions) { string in
+          try? FileHandle.stderr.write(string)
+        }
+        
+        configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
+          eventRecorder.record(event, in: context)
+          oldEventHandler(event, context)
+        }
+      } else {
+        // Use the standard console output recorder (default behavior)
+        let eventRecorder = Event.ConsoleOutputRecorder(options: .for(.stderr)) { string in
+          try? FileHandle.stderr.write(string)
+        }
+        configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
+          eventRecorder.record(event, in: context)
+          oldEventHandler(event, context)
+        }
       }
     }
 #endif

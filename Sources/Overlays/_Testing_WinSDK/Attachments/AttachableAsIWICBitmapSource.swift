@@ -113,6 +113,14 @@ public protocol _AttachableByAddressAsIWICBitmapSource {
 /// first convert it to an instance of one of the types above.
 @_spi(Experimental)
 public protocol AttachableAsIWICBitmapSource {
+  /// Create a WIC bitmap source representing an instance of this type.
+  ///
+  /// - Returns: A pointer to a new WIC bitmap source representing this image.
+  ///   The caller is responsible for releasing this image when done with it.
+  ///
+  /// - Throws: Any error that prevented the creation of the WIC bitmap source.
+  func copyAttachableIWICBitmapSource() throws -> UnsafeMutablePointer<IWICBitmapSource>
+
   /// Create a WIC bitmap representing an instance of this type.
   ///
   /// - Parameters:
@@ -124,9 +132,16 @@ public protocol AttachableAsIWICBitmapSource {
   ///
   /// - Throws: Any error that prevented the creation of the WIC bitmap.
   ///
+  /// The default implementation of this function ignores `factory` and calls
+  /// ``copyAttachableIWICBitmapSource()``. If your implementation of
+  /// ``copyAttachableIWICBitmapSource()`` needs to create a WIC imaging factory
+  /// in order to return a result, it is more efficient to implement this
+  /// function too so that the testing library can pass the WIC imaging factory
+  /// it creates.
+  ///
   /// This function is not part of the public interface of the testing library.
   /// It may be removed in a future update.
-  borrowing func _copyAttachableIWICBitmapSource(
+  func _copyAttachableIWICBitmapSource(
     using factory: UnsafeMutablePointer<IWICImagingFactory>
   ) throws -> UnsafeMutablePointer<IWICBitmapSource>
 
@@ -162,6 +177,14 @@ public protocol AttachableAsIWICBitmapSource {
   /// This function is not part of the public interface of the testing library.
   /// It may be removed in a future update.
   func _deinitializeAttachableValue()
+}
+
+extension AttachableAsIWICBitmapSource {
+  public func _copyAttachableIWICBitmapSource(
+    using factory: UnsafeMutablePointer<IWICImagingFactory>
+  ) throws -> UnsafeMutablePointer<IWICBitmapSource> {
+    try copyAttachableIWICBitmapSource()
+  }
 }
 
 extension AttachableAsIWICBitmapSource where Self: Sendable {

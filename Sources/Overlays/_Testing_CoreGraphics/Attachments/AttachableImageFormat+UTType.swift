@@ -97,4 +97,38 @@ extension AttachableImageFormat {
     self.init(kind: .systemValue(contentType), encodingQuality: encodingQuality)
   }
 }
+
+@available(_uttypesAPI, *)
+@_spi(Experimental) // STOP: not part of ST-0014
+extension AttachableImageFormat {
+  /// Construct an instance of this type with the given path extension and
+  /// encoding quality.
+  ///
+  /// - Parameters:
+  ///   - pathExtension: A path extension corresponding to the image format to
+  ///     use when encoding images.
+  ///   - encodingQuality: The encoding quality to use when encoding images. For
+  ///     the lowest supported quality, pass `0.0`. For the highest supported
+  ///     quality, pass `1.0`.
+  ///
+  /// If the target image format does not support variable-quality encoding,
+  /// the value of the `encodingQuality` argument is ignored.
+  ///
+  /// If `pathExtension` does not correspond to a recognized image format, this
+  /// initializer returns `nil`:
+  ///
+  /// - On Apple platforms, the content type corresponding to `pathExtension`
+  ///   must conform to [`UTType.image`](https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/image).
+  /// - On Windows, there must be a corresponding subclass of [`IWICBitmapEncoder`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapencoder)
+  ///   registered with Windows Imaging Component.
+  public init?(pathExtension: String, encodingQuality: Float = 1.0) {
+    let pathExtension = pathExtension.drop { $0 == "." }
+
+    guard let contentType = UTType(filenameExtension: String(pathExtension), conformingTo: .image) else {
+      return nil
+    }
+
+    self.init(contentType, encodingQuality: encodingQuality)
+  }
+}
 #endif

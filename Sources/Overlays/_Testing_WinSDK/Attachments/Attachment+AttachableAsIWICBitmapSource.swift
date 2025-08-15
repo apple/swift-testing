@@ -12,7 +12,7 @@
 @_spi(Experimental) public import Testing
 
 @_spi(Experimental)
-extension Attachment where AttachableValue: ~Copyable {
+extension Attachment {
   /// Initialize an instance of this type that encloses the given image.
   ///
   /// - Parameters:
@@ -42,7 +42,7 @@ extension Attachment where AttachableValue: ~Copyable {
   /// correspond to an image format the operating system knows how to write, the
   /// testing library selects an appropriate image format for you.
   public init<T>(
-    _ image: borrowing T,
+    _ image: T,
     named preferredName: String? = nil,
     as imageFormat: AttachableImageFormat? = nil,
     sourceLocation: SourceLocation = #_sourceLocation
@@ -82,7 +82,7 @@ extension Attachment where AttachableValue: ~Copyable {
   /// correspond to an image format the operating system knows how to write, the
   /// testing library selects an appropriate image format for you.
   public static func record<T>(
-    _ image: borrowing T,
+    _ image: T,
     named preferredName: String? = nil,
     as imageFormat: AttachableImageFormat? = nil,
     sourceLocation: SourceLocation = #_sourceLocation

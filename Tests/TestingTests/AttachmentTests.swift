@@ -836,6 +836,14 @@ extension AttachmentTests {
       #expect(jpgjpegFilename == "example.jpg")
     }
 #endif
+
+#if (canImport(CoreGraphics) && canImport(_Testing_CoreGraphics)) || (canImport(WinSDK) && canImport(_Testing_WinSDK))
+    @available(_uttypesAPI, *)
+    @Test func imageFormatFromPathExtension() {
+      let format = AttachableImageFormat(pathExtension: "png")
+      #expect(format != nil)
+    }
+#endif
   }
 }
 

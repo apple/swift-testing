@@ -13,7 +13,7 @@
 private import CoreGraphics
 
 private import ImageIO
-import UniformTypeIdentifiers
+private import UniformTypeIdentifiers
 
 /// ## Why can't images directly conform to Attachable?
 ///
@@ -38,53 +38,13 @@ import UniformTypeIdentifiers
 ///    (And no, the language does not let us write `where T: Self` anywhere
 ///    useful.)
 
-/// A wrapper type for image types such as `CGImage` and `NSImage` that can be
-/// attached indirectly.
-///
-/// You do not need to use this type directly. Instead, initialize an instance
-/// of ``Attachment`` using an instance of an image type that conforms to
-/// ``AttachableAsCGImage``. The following system-provided image types conform
-/// to the ``AttachableAsCGImage`` protocol and can be attached to a test:
-///
-/// - [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage)
-/// - [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage)
-/// - [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage)
-///   (macOS)
-/// - [`UIImage`](https://developer.apple.com/documentation/uikit/uiimage)
-///   (iOS, watchOS, tvOS, visionOS, and Mac Catalyst)
-@_spi(Experimental)
 @available(_uttypesAPI, *)
-public final class _AttachableImageWrapper<Image>: Sendable where Image: AttachableAsCGImage {
-  /// The underlying image.
-  ///
-  /// `CGImage` and `UIImage` are sendable, but `NSImage` is not. `NSImage`
-  /// instances can be created from closures that are run at rendering time.
-  /// The AppKit cross-import overlay is responsible for ensuring that any
-  /// instances of this type it creates hold "safe" `NSImage` instances.
-  nonisolated(unsafe) let image: Image
-
-  /// The image format to use when encoding the represented image.
-  let imageFormat: AttachableImageFormat?
-
-  init(image: Image, imageFormat: AttachableImageFormat?) {
-    self.image = image._copyAttachableValue()
-    self.imageFormat = imageFormat
-  }
-}
-
-// MARK: -
-
-@available(_uttypesAPI, *)
-extension _AttachableImageWrapper: AttachableWrapper {
-  public var wrappedValue: Image {
-    image
-  }
-
+extension _AttachableImageWrapper: Attachable, AttachableWrapper where Image: AttachableAsCGImage {
   public func withUnsafeBytes<R>(for attachment: borrowing Attachment<_AttachableImageWrapper>, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R {
     let data = NSMutableData()
 
     // Convert the image to a CGImage.
-    let attachableCGImage = try image.attachableCGImage
+    let attachableCGImage = try wrappedValue.attachableCGImage
 
     // Create the image destination.
     let contentType = AttachableImageFormat.computeContentType(for: imageFormat, withPreferredName: attachment.preferredName)
@@ -93,8 +53,8 @@ extension _AttachableImageWrapper: AttachableWrapper {
     }
 
     // Configure the properties of the image conversion operation.
-    let orientation = image._attachmentOrientation
-    let scaleFactor = image._attachmentScaleFactor
+    let orientation = wrappedValue._attachmentOrientation
+    let scaleFactor = wrappedValue._attachmentScaleFactor
     let properties: [CFString: Any] = [
       kCGImageDestinationLossyCompressionQuality: CGFloat(imageFormat?.encodingQuality ?? 1.0),
       kCGImagePropertyOrientation: orientation,

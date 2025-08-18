@@ -9,8 +9,7 @@
 //
 
 #if os(Windows)
-@_spi(Experimental) import Testing
-
+@_spi(Experimental) public import Testing
 public import WinSDK
 
 extension AttachableImageFormat {
@@ -258,7 +257,7 @@ extension AttachableImageFormat {
   ///
   /// If `clsid` does not represent an image encoder type supported by WIC, the
   /// result is undefined. For a list of image encoders supported by WIC, see
-  /// the documentation for the [IWICBitmapEncoder](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapencoder)
+  /// the documentation for the [`IWICBitmapEncoder`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapencoder)
   /// class.
   public init(_ clsid: CLSID, encodingQuality: Float = 1.0) {
     self.init(kind: .systemValue(clsid), encodingQuality: encodingQuality)

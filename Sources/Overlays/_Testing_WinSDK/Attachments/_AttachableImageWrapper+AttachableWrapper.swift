@@ -10,47 +10,9 @@
 
 #if os(Windows)
 @_spi(Experimental) public import Testing
+private import WinSDK
 
-internal import WinSDK
-
-/// A wrapper type for image types such as `HBITMAP` and `HICON` that can be
-/// attached indirectly.
-///
-/// You do not need to use this type directly. Instead, initialize an instance
-/// of ``Attachment`` using an instance of an image type that conforms to
-/// ``AttachableAsIWICBitmapSource``. The following system-provided image types
-/// conform to the ``AttachableAsIWICBitmapSource`` protocol and can be attached
-/// to a test:
-///
-/// - [`HBITMAP`](https://learn.microsoft.com/en-us/windows/win32/gdi/bitmaps)
-/// - [`HICON`](https://learn.microsoft.com/en-us/windows/win32/menurc/icons)
-/// - [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource)
-///   (including its subclasses declared by Windows Imaging Component)
-@_spi(Experimental)
-public final class _AttachableImageWrapper<Image>: Sendable where Image: AttachableAsIWICBitmapSource {
-  /// The underlying image.
-  nonisolated(unsafe) let image: Image
-
-  /// The image format to use when encoding the represented image.
-  let imageFormat: AttachableImageFormat?
-
-  init(image: borrowing Image, imageFormat: AttachableImageFormat?) {
-    self.image = image._copyAttachableValue()
-    self.imageFormat = imageFormat
-  }
-
-  deinit {
-    image._deinitializeAttachableValue()
-  }
-}
-
-// MARK: -
-
-extension _AttachableImageWrapper: AttachableWrapper {
-  public var wrappedValue: Image {
-    image
-  }
-
+extension _AttachableImageWrapper: Attachable, AttachableWrapper where Image: AttachableAsIWICBitmapSource {
   public func withUnsafeBytes<R>(for attachment: borrowing Attachment<_AttachableImageWrapper>, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R {
     // Create an in-memory stream to write the image data to. Note that Windows
     // documentation recommends SHCreateMemStream() instead, but that function
@@ -71,7 +33,7 @@ extension _AttachableImageWrapper: AttachableWrapper {
     }
 
     // Create the bitmap and downcast it to an IWICBitmapSource for later use.
-    let bitmap = try image._copyAttachableIWICBitmapSource(using: factory)
+    let bitmap = try wrappedValue._copyAttachableIWICBitmapSource(using: factory)
     defer {
       _ = bitmap.pointee.lpVtbl.pointee.Release(bitmap)
     }

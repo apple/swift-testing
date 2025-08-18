@@ -26,15 +26,14 @@ extension Attachment {
   ///     This value is used when recording issues associated with the
   ///     attachment.
   ///
-  /// The following system-provided image types conform to the
-  /// ``AttachableAsCGImage`` protocol and can be attached to a test:
+  /// You can attach instances of the following system-provided image types to a
+  /// test:
   ///
-  /// - [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage)
-  /// - [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage)
-  /// - [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage)
-  ///   (macOS)
-  /// - [`UIImage`](https://developer.apple.com/documentation/uikit/uiimage)
-  ///   (iOS, watchOS, tvOS, visionOS, and Mac Catalyst)
+  /// | Platform | Supported Types |
+  /// |-|-|
+  /// | macOS | [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage), [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage), [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage) |
+  /// | iOS, watchOS, tvOS, and visionOS | [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage), [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage), [`UIImage`](https://developer.apple.com/documentation/uikit/uiimage) |
+  /// | Windows | [`HBITMAP`](https://learn.microsoft.com/en-us/windows/win32/gdi/bitmaps), [`HICON`](https://learn.microsoft.com/en-us/windows/win32/menurc/icons), [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource) (including its subclasses declared by Windows Imaging Component) |
   ///
   /// The testing library uses the image format specified by `imageFormat`. Pass
   /// `nil` to let the testing library decide which image format to use. If you
@@ -48,8 +47,12 @@ extension Attachment {
     named preferredName: String? = nil,
     as imageFormat: AttachableImageFormat? = nil,
     sourceLocation: SourceLocation = #_sourceLocation
-  ) where AttachableValue == _AttachableImageWrapper<T> {
-    let imageWrapper = _AttachableImageWrapper(image: image, imageFormat: imageFormat)
+  ) where T: AttachableAsCGImage, AttachableValue == _AttachableImageWrapper<T> {
+    let imageWrapper = _AttachableImageWrapper(
+      image: image._copyAttachableValue(),
+      imageFormat: imageFormat,
+      deinitializingWith: { _ in }
+    )
     self.init(imageWrapper, named: preferredName, sourceLocation: sourceLocation)
   }
 
@@ -64,17 +67,14 @@ extension Attachment {
   ///   - sourceLocation: The source location of the call to this function.
   ///
   /// This function creates a new instance of ``Attachment`` wrapping `image`
-  /// and immediately attaches it to the current test.
+  /// and immediately attaches it to the current test. You can attach instances
+  /// of the following system-provided image types to a test:
   ///
-  /// The following system-provided image types conform to the
-  /// ``AttachableAsCGImage`` protocol and can be attached to a test:
-  ///
-  /// - [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage)
-  /// - [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage)
-  /// - [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage)
-  ///   (macOS)
-  /// - [`UIImage`](https://developer.apple.com/documentation/uikit/uiimage)
-  ///   (iOS, watchOS, tvOS, visionOS, and Mac Catalyst)
+  /// | Platform | Supported Types |
+  /// |-|-|
+  /// | macOS | [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage), [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage), [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage) |
+  /// | iOS, watchOS, tvOS, and visionOS | [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage), [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage), [`UIImage`](https://developer.apple.com/documentation/uikit/uiimage) |
+  /// | Windows | [`HBITMAP`](https://learn.microsoft.com/en-us/windows/win32/gdi/bitmaps), [`HICON`](https://learn.microsoft.com/en-us/windows/win32/menurc/icons), [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource) (including its subclasses declared by Windows Imaging Component) |
   ///
   /// The testing library uses the image format specified by `imageFormat`. Pass
   /// `nil` to let the testing library decide which image format to use. If you
@@ -88,19 +88,20 @@ extension Attachment {
     named preferredName: String? = nil,
     as imageFormat: AttachableImageFormat? = nil,
     sourceLocation: SourceLocation = #_sourceLocation
-  ) where AttachableValue == _AttachableImageWrapper<T> {
+  ) where T: AttachableAsCGImage, AttachableValue == _AttachableImageWrapper<T> {
     let attachment = Self(image, named: preferredName, as: imageFormat, sourceLocation: sourceLocation)
     Self.record(attachment, sourceLocation: sourceLocation)
   }
 }
 
+// MARK: -
+
 @_spi(Experimental) // STOP: not part of ST-0014
 @available(_uttypesAPI, *)
 extension Attachment where AttachableValue: AttachableWrapper, AttachableValue.Wrapped: AttachableAsCGImage {
   /// The image format to use when encoding the represented image.
-  @_disfavoredOverload
-  public var imageFormat: AttachableImageFormat? {
-    // FIXME: no way to express `where AttachableValue == _AttachableImageWrapper<???>` on a property
+  @_disfavoredOverload public var imageFormat: AttachableImageFormat? {
+    // FIXME: no way to express `where AttachableValue == _AttachableImageWrapper<???>` on a property (see rdar://47559973)
     (attachableValue as? _AttachableImageWrapper<AttachableValue.Wrapped>)?.imageFormat
   }
 }

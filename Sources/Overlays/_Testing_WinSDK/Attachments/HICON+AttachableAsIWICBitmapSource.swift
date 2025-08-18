@@ -9,8 +9,7 @@
 //
 
 #if os(Windows)
-import Testing
-
+private import Testing
 public import WinSDK
 
 @_spi(Experimental)

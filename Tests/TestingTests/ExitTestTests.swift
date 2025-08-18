@@ -383,6 +383,26 @@ private import _TestingInternals
     }
   }
 
+  @Test("Issue severity")
+  func issueSeverity() async {
+    await confirmation("Recorded issue had warning severity") { wasWarning in
+      var configuration = Configuration()
+      configuration.eventHandler = { event, _ in
+        if case let .issueRecorded(issue) = event.kind, issue.severity == .warning {
+          wasWarning()
+        }
+      }
+
+      // Mock an exit test where the process exits successfully.
+      configuration.exitTestHandler = ExitTest.handlerForEntryPoint()
+      await Test {
+        await #expect(processExitsWith: .success) {
+          Issue.record("Issue recorded", severity: .warning)
+        }
+      }.run(configuration: configuration)
+    }
+  }
+
   @Test("Capture list")
   func captureList() async {
     let i = 123

@@ -1046,11 +1046,17 @@ extension ExitTest {
         // TODO: improve fidelity of issue kind reporting (especially those without associated values)
         .unconditional
       }
+      let severity: Issue.Severity = switch issue._severity {
+      case .warning:
+        .warning
+      case .error:
+        .error
+      }
       let sourceContext = SourceContext(
         backtrace: nil, // `issue._backtrace` will have the wrong address space.
         sourceLocation: issue.sourceLocation
       )
-      var issueCopy = Issue(kind: issueKind, comments: comments, sourceContext: sourceContext)
+      var issueCopy = Issue(kind: issueKind, severity: severity, comments: comments, sourceContext: sourceContext)
       if issue.isKnown {
         // The known issue comment, if there was one, is already included in
         // the `comments` array above.

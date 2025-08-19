@@ -39,6 +39,7 @@ private import UniformTypeIdentifiers
 ///    useful.)
 
 @available(_uttypesAPI, *)
+@_spi(Experimental)
 extension _AttachableImageWrapper: Attachable, AttachableWrapper where Image: AttachableAsCGImage {
   public func withUnsafeBytes<R>(for attachment: borrowing Attachment<_AttachableImageWrapper>, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R {
     let data = NSMutableData()

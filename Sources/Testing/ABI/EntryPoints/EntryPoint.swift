@@ -59,11 +59,11 @@ func entryPoint(passing args: __CommandLineArguments_v0?, eventHandler: Event.Ha
         // Use experimental AdvancedConsoleOutputRecorder
         var advancedOptions = Event.AdvancedConsoleOutputRecorder<ABI.HighestVersion>.Options()
         advancedOptions.base = .for(.stderr)
-        
+
         let eventRecorder = Event.AdvancedConsoleOutputRecorder<ABI.HighestVersion>(options: advancedOptions) { string in
           try? FileHandle.stderr.write(string)
         }
-        
+
         configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
           eventRecorder.record(event, in: context)
           oldEventHandler(event, context)
@@ -328,13 +328,6 @@ public struct __CommandLineArguments_v0: Sendable {
 
   /// The value of the `--attachments-path` argument.
   public var attachmentsPath: String?
-
-  /// Whether or not the experimental warning issue severity feature should be
-  /// enabled.
-  ///
-  /// This property is intended for use in testing the testing library itself.
-  /// It is not parsed as a command-line argument.
-  var isWarningIssueRecordedEventEnabled: Bool?
 }
 
 extension __CommandLineArguments_v0: Codable {
@@ -635,19 +628,15 @@ public func configurationForEntryPoint(from args: __CommandLineArguments_v0) thr
 #endif
 
   // Warning issues (experimental).
-  if args.isWarningIssueRecordedEventEnabled == true {
-    configuration.eventHandlingOptions.isWarningIssueRecordedEventEnabled = true
-  } else {
-    switch args.eventStreamVersionNumber {
-    case .some(..<ABI.v6_3.versionNumber):
-      // If the event stream version was explicitly specified to a value < 6.3,
-      // disable the warning issue event to maintain legacy behavior.
-      configuration.eventHandlingOptions.isWarningIssueRecordedEventEnabled = false
-    default:
-      // Otherwise the requested event stream version is ≥ 6.3, so don't change
-      // the warning issue event setting.
-      break
-    }
+  switch args.eventStreamVersionNumber {
+  case .some(..<ABI.v6_3.versionNumber):
+    // If the event stream version was explicitly specified to a value < 6.3,
+    // disable the warning issue event to maintain legacy behavior.
+    configuration.eventHandlingOptions.isWarningIssueRecordedEventEnabled = false
+  default:
+    // Otherwise the requested event stream version is ≥ 6.3, so don't change
+    // the warning issue event setting.
+    break
   }
 
   return configuration

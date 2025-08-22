@@ -1046,10 +1046,11 @@ extension ExitTest {
         // TODO: improve fidelity of issue kind reporting (especially those without associated values)
         .unconditional
       }
-      let severity: Issue.Severity = switch issue._severity {
+      let severity: Issue.Severity = switch issue.severity {
       case .warning:
         .warning
-      case .error:
+      case .error, nil:
+        // Prior to 6.3, all Issues are errors
         .error
       }
       let sourceContext = SourceContext(

@@ -30,11 +30,12 @@ struct EntryPointTests {
     }
   }
 
-  @Test("Entry point with WarningIssues feature enabled exits with success if all issues have severity < .error")
-  func warningIssues() async throws {
+  @Test("Entry point using event stream version 0 exits with success if all issues have severity < .error")
+  func warningIssuesDisabled() async throws {
     var arguments = __CommandLineArguments_v0()
     arguments.filter = ["_recordWarningIssue"]
     arguments.includeHiddenTests = true
+    // WarningIssues is available >= 6.3
     arguments.eventStreamSchemaVersion = "0"
     arguments.verbosity = .min
 
@@ -50,13 +51,13 @@ struct EntryPointTests {
     #expect(exitCode == EXIT_SUCCESS)
   }
 
-  @Test("Entry point with WarningIssues feature enabled propagates warning issues and exits with success if all issues have severity < .error")
+
+  @Test("Entry point using event stream version 6.3 propagates warning issues and exits with success if all issues have severity < .error")
   func warningIssuesEnabled() async throws {
     var arguments = __CommandLineArguments_v0()
     arguments.filter = ["_recordWarningIssue"]
     arguments.includeHiddenTests = true
-    arguments.eventStreamSchemaVersion = "0"
-    arguments.isWarningIssueRecordedEventEnabled = true
+    arguments.eventStreamSchemaVersion = "6.3"
     arguments.verbosity = .min
 
     let exitCode = await confirmation("Warning issue recorded", expectedCount: 1) { issueRecorded in

@@ -20,6 +20,18 @@ private func configurationForEntryPoint(withArguments args: [String]) throws -> 
   return try configurationForEntryPoint(from: args)
 }
 
+/// Reads event stream output from the provided file matching event stream
+/// version `V`.
+private func decodedEventStreamRecords<V: ABI.Version>(fromPath filePath: String) throws -> [ABI.Record<V>] {
+  try FileHandle(forReadingAtPath: filePath).readToEnd()
+    .split(whereSeparator: \.isASCIINewline)
+    .map { line in
+      try line.withUnsafeBytes { line in
+        return try JSON.decode(ABI.Record<V>.self, from: line)
+      }
+    }
+}
+
 @Suite("Swift Package Manager Integration Tests")
 struct SwiftPMTests {
   @Test("Command line arguments are available")
@@ -286,6 +298,40 @@ struct SwiftPMTests {
     #expect(versionTypeInfo == nil)
   }
 
+  @Test("Severity and isFailure fields included in version 6.3")
+  func validateEventStreamContents() async throws {
+    let tempDirPath = try temporaryDirectory()
+    let temporaryFilePath = appendPathComponent("\(UInt64.random(in: 0 ..< .max))", to: tempDirPath)
+    defer {
+      _ = remove(temporaryFilePath)
+    }
+
+    do {
+      let test = Test {
+        Issue.record("Test warning", severity: .warning)
+      }
+
+      let configuration = try configurationForEntryPoint(withArguments:
+          ["PATH", "--event-stream-output-path", temporaryFilePath, "--experimental-event-stream-version", "6.3"]
+      )
+
+      await test.run(configuration: configuration)
+    }
+
+    let issueEventRecords = try decodedEventStreamRecords(fromPath: temporaryFilePath)
+      .compactMap { (record: ABI.Record<ABI.v6_3>) in
+        if case let .event(event) = record.kind, event.kind == .issueRecorded {
+          return event
+        }
+        return nil
+      }
+
+    let issue = try #require(issueEventRecords.first?.issue)
+    #expect(issueEventRecords.count == 1)
+    #expect(issue.isFailure == false)
+    #expect(issue.severity == .warning)
+  }
+
   @Test("--event-stream-output-path argument (writes to a stream and can be read back)",
         arguments: [
           ("--event-stream-output-path", "--event-stream-version", ABI.v0.versionNumber),
@@ -320,13 +366,7 @@ struct SwiftPMTests {
       configuration.handleEvent(Event(.runEnded, testID: nil, testCaseID: nil), in: eventContext)
     }
 
-    let decodedRecords = try FileHandle(forReadingAtPath: temporaryFilePath).readToEnd()
-      .split(whereSeparator: \.isASCIINewline)
-      .map { line in
-        try line.withUnsafeBytes { line in
-          try JSON.decode(ABI.Record<V>.self, from: line)
-        }
-      }
+    let decodedRecords: [ABI.Record<V>] = try decodedEventStreamRecords(fromPath: temporaryFilePath)
 
     let testRecords = decodedRecords.compactMap { record in
       if case let .test(test) = record.kind {

@@ -26,13 +26,21 @@ extension ABI {
 
     /// The severity of this issue.
     ///
-    /// - Warning: Severity is not yet part of the JSON schema.
-    var _severity: Severity
-    
+    /// Prior to 6.3, this is nil.
+    ///
+    /// @Metadata {
+    ///   @Available(Swift, introduced: 6.3)
+    /// }
+    var severity: Severity?
+
     /// If the issue is a failing issue.
     ///
-    /// - Warning: Non-failing issues are not yet part of the JSON schema.
-    var _isFailure: Bool
+    /// Prior to 6.3, this is nil.
+    ///
+    /// @Metadata {
+    ///   @Available(Swift, introduced: 6.3)
+    /// }
+    var isFailure: Bool?
 
     /// Whether or not this issue is known to occur.
     var isKnown: Bool
@@ -51,13 +59,20 @@ extension ABI {
     var _error: EncodedError<V>?
 
     init(encoding issue: borrowing Issue, in eventContext: borrowing Event.Context) {
-      _severity = switch issue.severity {
-      case .warning: .warning
-      case .error: .error
-      }
-      _isFailure = issue.isFailure
+      // >= v0
       isKnown = issue.isKnown
       sourceLocation = issue.sourceLocation
+
+      // >= v6.3
+      if V.versionNumber >= ABI.v6_3.versionNumber {
+        severity = switch issue.severity {
+        case .warning: .warning
+        case .error: .error
+        }
+        isFailure = issue.isFailure
+      }
+
+      // Experimental
       if let backtrace = issue.sourceContext.backtrace {
         _backtrace = EncodedBacktrace(encoding: backtrace, in: eventContext)
       }

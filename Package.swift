@@ -139,7 +139,10 @@ let package = Package(
         "_Testing_WinSDK",
         "MemorySafeTestingTests",
       ],
-      swiftSettings: .packageSettings
+      swiftSettings: .packageSettings,
+      linkerSettings: [
+        .linkedLibrary("util", .when(platforms: [.openbsd]))
+      ]
     ),
 
     // Use a plain `.target` instead of a `.testTarget` to avoid the unnecessary

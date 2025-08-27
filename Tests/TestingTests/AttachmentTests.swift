@@ -1,7 +1,7 @@
 //
 // This source file is part of the Swift.org open source project
 //
-// Copyright (c) 2023 Apple Inc. and the Swift project authors
+// Copyright (c) 2023–2025 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://swift.org/LICENSE.txt for license information
@@ -12,7 +12,7 @@
 private import _TestingInternals
 #if canImport(AppKit) && canImport(_Testing_AppKit)
 import AppKit
-@_spi(Experimental) import _Testing_AppKit
+import _Testing_AppKit
 #endif
 #if canImport(Foundation) && canImport(_Testing_Foundation)
 import Foundation
@@ -24,11 +24,11 @@ import CoreGraphics
 #endif
 #if canImport(CoreImage) && canImport(_Testing_CoreImage)
 import CoreImage
-@_spi(Experimental) import _Testing_CoreImage
+import _Testing_CoreImage
 #endif
 #if canImport(UIKit) && canImport(_Testing_UIKit)
 import UIKit
-@_spi(Experimental) import _Testing_UIKit
+import _Testing_UIKit
 #endif
 #if canImport(UniformTypeIdentifiers)
 import UniformTypeIdentifiers

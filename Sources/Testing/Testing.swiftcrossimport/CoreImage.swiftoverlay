@@ -1,0 +1,3 @@
+version: 1
+modules:
+- name: _Testing_CoreImage

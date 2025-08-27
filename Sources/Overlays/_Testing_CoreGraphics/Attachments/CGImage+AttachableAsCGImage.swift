@@ -1,7 +1,7 @@
 //
 // This source file is part of the Swift.org open source project
 //
-// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2024–2025 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://swift.org/LICENSE.txt for license information
@@ -11,8 +11,13 @@
 #if SWT_TARGET_OS_APPLE && canImport(CoreGraphics)
 public import CoreGraphics
 
-@_spi(Experimental)
+/// @Metadata {
+///   @Available(Swift, introduced: 6.3)
+/// }
 extension CGImage: AttachableAsCGImage {
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   public var attachableCGImage: CGImage {
     self
   }

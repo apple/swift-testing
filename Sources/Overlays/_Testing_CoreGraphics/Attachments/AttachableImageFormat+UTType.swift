@@ -9,7 +9,7 @@
 //
 
 #if SWT_TARGET_OS_APPLE && canImport(CoreGraphics)
-@_spi(Experimental) public import Testing
+public import Testing
 
 public import UniformTypeIdentifiers
 
@@ -64,6 +64,10 @@ extension AttachableImageFormat {
   /// The content type corresponding to this image format.
   ///
   /// The value of this property always conforms to [`UTType.image`](https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/image).
+  ///
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   public var contentType: UTType {
     switch kind {
     case .png:
@@ -89,6 +93,10 @@ extension AttachableImageFormat {
   ///
   /// If `contentType` does not conform to [`UTType.image`](https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/image),
   /// the result is undefined.
+  ///
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   public init(_ contentType: UTType, encodingQuality: Float = 1.0) {
     precondition(
       contentType.conforms(to: .image),

@@ -1,7 +1,7 @@
 //
 // This source file is part of the Swift.org open source project
 //
-// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2024–2025 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://swift.org/LICENSE.txt for license information
@@ -9,7 +9,7 @@
 //
 
 #if SWT_TARGET_OS_APPLE && canImport(CoreGraphics)
-@_spi(Experimental) public import Testing
+public import Testing
 private import CoreGraphics
 
 private import ImageIO
@@ -39,7 +39,6 @@ private import UniformTypeIdentifiers
 ///    useful.)
 
 @available(_uttypesAPI, *)
-@_spi(Experimental)
 extension _AttachableImageWrapper: Attachable, AttachableWrapper where Image: AttachableAsCGImage {
   public func withUnsafeBytes<R>(for attachment: borrowing Attachment<_AttachableImageWrapper>, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R {
     let data = NSMutableData()

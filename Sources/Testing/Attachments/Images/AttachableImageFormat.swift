@@ -12,7 +12,7 @@
 /// when attaching an image to a test.
 ///
 /// When you attach an image to a test, you can pass an instance of this type to
-/// ``Attachment/record(_:named:as:sourceLocation:)`` so that the testing
+/// `Attachment.record(_:named:as:sourceLocation:)` so that the testing
 /// library knows the image format you'd like to use. If you don't pass an
 /// instance of this type, the testing library infers which format to use based
 /// on the attachment's preferred name.
@@ -23,9 +23,14 @@
 /// - On Apple platforms, you can use [`CGImageDestinationCopyTypeIdentifiers()`](https://developer.apple.com/documentation/imageio/cgimagedestinationcopytypeidentifiers())
 ///   from the [Image I/O framework](https://developer.apple.com/documentation/imageio)
 ///   to determine which formats are supported.
+/// @Comment {
 /// - On Windows, you can use [`IWICImagingFactory.CreateComponentEnumerator()`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nf-wincodec-iwicimagingfactory-createcomponentenumerator)
 ///   to enumerate the available image encoders.
-@_spi(Experimental)
+/// }
+///
+/// @Metadata {
+///   @Available(Swift, introduced: 6.3)
+/// }
 @available(_uttypesAPI, *)
 public struct AttachableImageFormat: Sendable {
   /// An enumeration describing the various kinds of image format that can be
@@ -58,6 +63,10 @@ public struct AttachableImageFormat: Sendable {
   /// supported encoding quality and `1.0` being the highest supported encoding
   /// quality. The value of this property is ignored for image formats that do
   /// not support variable encoding quality.
+  ///
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   public internal(set) var encodingQuality: Float = 1.0
 
   package init(kind: Kind, encodingQuality: Float) {
@@ -71,11 +80,19 @@ public struct AttachableImageFormat: Sendable {
 @available(_uttypesAPI, *)
 extension AttachableImageFormat {
   /// The PNG image format.
+  ///
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   public static var png: Self {
     Self(kind: .png, encodingQuality: 1.0)
   }
 
   /// The JPEG image format with maximum encoding quality.
+  ///
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   public static var jpeg: Self {
     Self(kind: .jpeg, encodingQuality: 1.0)
   }
@@ -90,6 +107,10 @@ extension AttachableImageFormat {
   ///
   /// - Returns: An instance of this type representing the JPEG image format
   ///   with the specified encoding quality.
+  ///
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   public static func jpeg(withEncodingQuality encodingQuality: Float) -> Self {
     Self(kind: .jpeg, encodingQuality: encodingQuality)
   }

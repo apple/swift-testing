@@ -14,7 +14,7 @@ Attach values to tests to help diagnose issues and gather feedback.
 
 ## Overview
 
-Attach values such as strings and files to tests.  Implement the ``Attachable``
+Attach values such as strings and files to tests. Implement the ``Attachable``
 protocol to create your own attachable types.
 
 ## Topics
@@ -25,8 +25,18 @@ protocol to create your own attachable types.
 - ``Attachable``
 - ``AttachableWrapper``
 
+
 <!-- TODO: set up DocC content for overlays if possible
 ### Attaching files to tests
 
-- ``/Foundation/URL/init(contentsOf:named:sourceLocation:)``
+- ``Attachment/init(contentsOf:named:sourceLocation:)``
+-->
+
+### Attaching images to tests
+
+- ``AttachableImageFormat``
+<!-- TODO: set up DocC content for overlays if possible
+- ``AttachableAsCGImage``
+- ``Attachment/init(_:named:as:sourceLocation:)``
+- ``Attachment/record(_:named:as:sourceLocation:)``
 -->

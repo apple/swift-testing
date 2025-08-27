@@ -139,7 +139,11 @@ private func _cancel<T>(_ cancellableValue: T?, for testAndTestCase: (Test?, Tes
       task?.cancel()
     }
 
-    if ExitTest.current != nil {
+    var inExitTest = false
+#if !SWT_NO_EXIT_TESTS
+    inExitTest = (ExitTest.current != nil)
+#endif
+    if inExitTest {
       // This code is running in an exit test. We don't have a "current test" or
       // "current test case" in the child process, so we'll let the parent
       // process sort that out.

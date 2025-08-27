@@ -187,7 +187,9 @@ extension Test {
   init<C>(
     _ traits: any TestTrait...,
     arguments collection: C,
-    parameters: [Parameter] = [],
+    parameters: [Parameter] = [
+      Parameter(index: 0, firstName: "x", type: C.Element.self),
+    ],
     sourceLocation: SourceLocation = #_sourceLocation,
     column: Int = #column,
     name: String = #function,
@@ -216,7 +218,10 @@ extension Test {
   init<C1, C2>(
     _ traits: any TestTrait...,
     arguments collection1: C1, _ collection2: C2,
-    parameters: [Parameter] = [],
+    parameters: [Parameter] = [
+      Parameter(index: 0, firstName: "x", type: C1.Element.self),
+      Parameter(index: 1, firstName: "y", type: C2.Element.self),
+    ],
     sourceLocation: SourceLocation = #_sourceLocation,
     name: String = #function,
     testFunction: @escaping @Sendable (C1.Element, C2.Element) async throws -> Void
@@ -239,7 +244,10 @@ extension Test {
   init<C1, C2>(
     _ traits: any TestTrait...,
     arguments zippedCollections: Zip2Sequence<C1, C2>,
-    parameters: [Parameter] = [],
+    parameters: [Parameter] = [
+      Parameter(index: 0, firstName: "x", type: C1.Element.self),
+      Parameter(index: 1, firstName: "y", type: C2.Element.self),
+    ],
     sourceLocation: SourceLocation = #_sourceLocation,
     name: String = #function,
     testFunction: @escaping @Sendable ((C1.Element, C2.Element)) async throws -> Void

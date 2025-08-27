@@ -159,7 +159,8 @@ extension Issue {
   /// allowing it to propagate to the caller.
   ///
   /// - Parameters:
-  ///   - sourceLocation: The source location to attribute any caught error to.
+  ///   - sourceLocation: The source location to attribute any caught error to,
+  ///     if available.
   ///   - configuration: The test configuration to use when recording an issue.
   ///     The default value is ``Configuration/current``.
   ///   - body: A closure that might throw an error.
@@ -168,7 +169,7 @@ extension Issue {
   ///   caught, otherwise `nil`.
   @discardableResult
   static func withErrorRecording(
-    at sourceLocation: SourceLocation,
+    at sourceLocation: SourceLocation?,
     configuration: Configuration? = nil,
     _ body: () throws -> Void
   ) -> (any Error)? {
@@ -185,6 +186,10 @@ extension Issue {
       // This error is thrown by expectation checking functions to indicate a
       // condition evaluated to `false`. Those functions record their own issue,
       // so we don't need to record another one redundantly.
+    } catch is SkipInfo,
+            is CancellationError where Task.isCancelled {
+      // This error represents control flow rather than an issue, so we suppress
+      // it here.
     } catch {
       let issue = Issue(for: error, sourceLocation: sourceLocation)
       issue.record(configuration: configuration)
@@ -198,7 +203,8 @@ extension Issue {
   /// issue instead of allowing it to propagate to the caller.
   ///
   /// - Parameters:
-  ///   - sourceLocation: The source location to attribute any caught error to.
+  ///   - sourceLocation: The source location to attribute any caught error to,
+  ///     if available.
   ///   - configuration: The test configuration to use when recording an issue.
   ///     The default value is ``Configuration/current``.
   ///   - isolation: The actor to which `body` is isolated, if any.
@@ -208,7 +214,7 @@ extension Issue {
   ///   caught, otherwise `nil`.
   @discardableResult
   static func withErrorRecording(
-    at sourceLocation: SourceLocation,
+    at sourceLocation: SourceLocation?,
     configuration: Configuration? = nil,
     isolation: isolated (any Actor)? = #isolation,
     _ body: () async throws -> Void
@@ -226,6 +232,10 @@ extension Issue {
       // This error is thrown by expectation checking functions to indicate a
       // condition evaluated to `false`. Those functions record their own issue,
       // so we don't need to record another one redundantly.
+    } catch is SkipInfo,
+            is CancellationError where Task.isCancelled {
+      // This error represents control flow rather than an issue, so we suppress
+      // it here.
     } catch {
       let issue = Issue(for: error, sourceLocation: sourceLocation)
       issue.record(configuration: configuration)

@@ -93,6 +93,7 @@ add_library(Testing
   Test.ID.Selection.swift
   Test.ID.swift
   Test.swift
+  Test+Cancellation.swift
   Test+Discovery.swift
   Test+Discovery+Legacy.swift
   Test+Macro.swift

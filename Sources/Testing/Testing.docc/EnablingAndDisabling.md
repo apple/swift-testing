@@ -120,3 +120,20 @@ func allIngredientsAvailable(for food: Food) -> Bool { ... }
 )
 func makeSundae() async throws { ... }
 ```
+
+<!--
+### End a test after it has already started
+
+TODO: document Test.cancel() and Test.Case.cancel() here
+
+If a test has already started running and you determine it cannot complete and
+should end early without failing, use ``Test/cancel(_:sourceLocation:)`` to
+cancel the test:
+
+```swift
+...
+```
+
+If the test is parameterized and you only want to cancel the current test case
+rather than the entire test, use ``Test/Case/cancel(_:sourceLocation:)``.
+-->

@@ -73,6 +73,9 @@ extension Event {
 
         /// The number of known issues recorded for the test.
         var knownIssueCount = 0
+
+        /// Information about the cancellation of this test or test case.
+        var cancellationInfo: SkipInfo?
       }
 
       /// Data tracked on a per-test basis.
@@ -251,6 +254,7 @@ extension Event.HumanReadableOutputRecorder {
       0
     }
     let test = eventContext.test
+    let testCase = eventContext.testCase
     let keyPath = eventContext.keyPath
     let testName = if let test {
       if let displayName = test.displayName {
@@ -309,6 +313,9 @@ extension Event.HumanReadableOutputRecorder {
       
       case .testCaseStarted:
         context.testData[keyPath] = .init(startInstant: instant)
+
+      case let .testCancelled(skipInfo), let .testCaseCancelled(skipInfo):
+        context.testData[keyPath]?.cancellationInfo = skipInfo
 
       default:
         // These events do not manipulate the context structure.
@@ -404,21 +411,29 @@ extension Event.HumanReadableOutputRecorder {
       } else {
         ""
       }
-      return if issues.errorIssueCount > 0 {
-        CollectionOfOne(
-          Message(
-            symbol: .fail,
-            stringValue: "\(_capitalizedTitle(for: test)) \(testName)\(testCasesCount) failed after \(duration)\(issues.description)."
-          )
-        ) + _formattedComments(for: test)
+      var cancellationComment = "."
+      let (symbol, verbed): (Event.Symbol, String)
+      if issues.errorIssueCount > 0 {
+        (symbol, verbed) = (.fail, "failed")
+      } else if !test.isParameterized, let cancellationInfo = testData.cancellationInfo {
+        if let comment = cancellationInfo.comment {
+          cancellationComment = ": \"\(comment.rawValue)\""
+        }
+        (symbol, verbed) = (.skip, "was cancelled")
       } else {
-        [
-          Message(
-            symbol: .pass(knownIssueCount: issues.knownIssueCount),
-            stringValue: "\(_capitalizedTitle(for: test)) \(testName)\(testCasesCount) passed after \(duration)\(issues.description)."
-          )
-        ]
+        (symbol, verbed) = (.pass(knownIssueCount: issues.knownIssueCount), "passed")
       }
+
+      var result = [
+        Message(
+          symbol: symbol,
+          stringValue: "\(_capitalizedTitle(for: test)) \(testName)\(testCasesCount) \(verbed) after \(duration)\(issues.description)\(cancellationComment)"
+        )
+      ]
+      if issues.errorIssueCount > 0 {
+        result += _formattedComments(for: test)
+      }
+      return result
 
     case let .testSkipped(skipInfo):
       let test = test!
@@ -443,7 +458,7 @@ extension Event.HumanReadableOutputRecorder {
       } else {
         0
       }
-      let labeledArguments = if let testCase = eventContext.testCase {
+      let labeledArguments = if let testCase {
         testCase.labeledArguments()
       } else {
         ""
@@ -523,7 +538,7 @@ extension Event.HumanReadableOutputRecorder {
       return result
 
     case .testCaseStarted:
-      guard let testCase = eventContext.testCase, testCase.isParameterized, let arguments = testCase.arguments else {
+      guard let testCase, testCase.isParameterized, let arguments = testCase.arguments else {
         break
       }
 
@@ -535,7 +550,7 @@ extension Event.HumanReadableOutputRecorder {
       ]
 
     case .testCaseEnded:
-      guard verbosity > 0, let testCase = eventContext.testCase, testCase.isParameterized, let arguments = testCase.arguments else {
+      guard verbosity > 0, let test, let testCase, testCase.isParameterized, let arguments = testCase.arguments else {
         break
       }
 
@@ -544,18 +559,28 @@ extension Event.HumanReadableOutputRecorder {
       let issues = _issueCounts(in: testDataGraph)
       let duration = testData.startInstant.descriptionOfDuration(to: instant)
 
-      let message = if issues.errorIssueCount > 0 {
-        Message(
-          symbol: .fail,
-          stringValue: "Test case passing \(arguments.count.counting("argument")) \(testCase.labeledArguments(includingQualifiedTypeNames: verbosity > 0)) to \(testName) failed after \(duration)\(issues.description)."
-        )
+      var cancellationComment = "."
+      let (symbol, verbed): (Event.Symbol, String)
+      if issues.errorIssueCount > 0 {
+        (symbol, verbed) = (.fail, "failed")
+      } else if !test.isParameterized, let cancellationInfo = testData.cancellationInfo {
+        if let comment = cancellationInfo.comment {
+          cancellationComment = ": \"\(comment.rawValue)\""
+        }
+        (symbol, verbed) = (.skip, "was cancelled")
       } else {
-        Message(
-          symbol: .pass(knownIssueCount: issues.knownIssueCount),
-          stringValue: "Test case passing \(arguments.count.counting("argument")) \(testCase.labeledArguments(includingQualifiedTypeNames: verbosity > 0)) to \(testName) passed after \(duration)\(issues.description)."
-        )
+        (symbol, verbed) = (.pass(knownIssueCount: issues.knownIssueCount), "passed")
       }
-      return [message]
+      return [
+        Message(
+          symbol: symbol,
+          stringValue: "Test case passing \(arguments.count.counting("argument")) \(testCase.labeledArguments(includingQualifiedTypeNames: verbosity > 0)) to \(testName) \(verbed) after \(duration)\(issues.description)\(cancellationComment)"
+        )
+      ]
+
+    case .testCancelled, .testCaseCancelled:
+      // Handled in .testEnded and .testCaseEnded
+      break
 
     case let .iterationEnded(index):
       guard let iterationStartInstant = context.iterationStartInstant else {

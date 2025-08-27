@@ -193,6 +193,57 @@ extension Runner.Plan {
     synthesizeSuites(in: &graph, sourceLocation: &sourceLocation)
   }
 
+  /// The basic "run" action.
+  private static let _runAction = Action.run(options: .init())
+
+  /// Determine what action to perform for a given test by preparing its traits.
+  ///
+  /// - Parameters:
+  ///   - test: The test whose action will be determined.
+  ///
+  /// - Returns: A tuple containing the action to take for `test` as well as any
+  ///   error that was thrown during trait evaluation. If more than one error
+  ///   was thrown, the first-caught error is returned.
+  private static func _determineAction(for test: Test) async -> (Action, (any Error)?) {
+    // We use a task group here with a single child task so that, if the trait
+    // code calls Test.cancel() we don't end up cancelling the entire test run.
+    // We could also model this as an unstructured task except that they aren't
+    // available in the "task-to-thread" concurrency model.
+    //
+    // FIXME: Parallelize this work. Calling `prepare(...)` on all traits and
+    // evaluating all test arguments should be safely parallelizable.
+    await withTaskGroup(returning: (Action, (any Error)?).self) { taskGroup in
+      taskGroup.addTask {
+        var action = _runAction
+        var firstCaughtError: (any Error)?
+
+        await Test.withCurrent(test) {
+          for trait in test.traits {
+            do {
+              try await trait.prepare(for: test)
+            } catch let error as SkipInfo {
+              action = .skip(error)
+              break
+            } catch is CancellationError where Task.isCancelled {
+              // Synthesize skip info for this cancellation error.
+              let sourceContext = SourceContext(backtrace: .current(), sourceLocation: nil)
+              let skipInfo = SkipInfo(comment: nil, sourceContext: sourceContext)
+              action = .skip(skipInfo)
+              break
+            } catch {
+              // Only preserve the first caught error
+              firstCaughtError = firstCaughtError ?? error
+            }
+          }
+        }
+
+        return (action, firstCaughtError)
+      }
+
+      return await taskGroup.first { _ in true }!
+    }
+  }
+
   /// Construct a graph of runner plan steps for the specified tests.
   ///
   /// - Parameters:
@@ -211,7 +262,7 @@ extension Runner.Plan {
     // Convert the list of test into a graph of steps. The actions for these
     // steps will all be .run() *unless* an error was thrown while examining
     // them, in which case it will be .recordIssue().
-    let runAction = Action.run(options: .init())
+    let runAction = _runAction
     var testGraph = Graph<String, Test?>()
     var actionGraph = Graph<String, Action>(value: runAction)
     for test in tests {
@@ -251,9 +302,6 @@ extension Runner.Plan {
     _recursivelyApplyTraits(to: &testGraph)
 
     // For each test value, determine the appropriate action for it.
-    //
-    // FIXME: Parallelize this work. Calling `prepare(...)` on all traits and
-    // evaluating all test arguments should be safely parallelizable.
     testGraph = await testGraph.mapValues { keyPath, test in
       // Skip any nil test, which implies this node is just a placeholder and
       // not actual test content.
@@ -269,17 +317,7 @@ extension Runner.Plan {
       // But if any throw another kind of error, keep track of the first error
       // but continue walking, because if any subsequent traits throw a
       // `SkipInfo`, the error should not be recorded.
-      for trait in test.traits {
-        do {
-          try await trait.prepare(for: test)
-        } catch let error as SkipInfo {
-          action = .skip(error)
-          break
-        } catch {
-          // Only preserve the first caught error
-          firstCaughtError = firstCaughtError ?? error
-        }
-      }
+      (action, firstCaughtError) = await _determineAction(for: test)
 
       // If no trait specified that the test should be skipped, but one did
       // throw an error, then the action is to record an issue for that error.

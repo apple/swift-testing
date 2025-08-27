@@ -291,9 +291,10 @@ extension ExitTest {
       current.pointee = self.unsafeCopy()
     }
 
-    do {
+    let error = await Issue.withErrorRecording(at: nil) {
       try await body(&self)
-    } catch {
+    }
+    if let error {
       _errorInMain(error)
     }
 
@@ -768,7 +769,7 @@ extension ExitTest {
     }
     configuration.eventHandler = { event, eventContext in
       switch event.kind {
-      case .issueRecorded, .valueAttached:
+      case .issueRecorded, .valueAttached, .testCancelled, .testCaseCancelled:
         eventHandler(event, eventContext)
       default:
         // Don't forward other kinds of event.
@@ -1042,11 +1043,15 @@ extension ExitTest {
       return
     }
 
+    lazy var comments: [Comment] = event._comments?.map(Comment.init(rawValue:)) ?? []
+    lazy var sourceContext = SourceContext(
+      backtrace: nil, // A backtrace from the child process will have the wrong address space.
+      sourceLocation: event._sourceLocation
+    )
     if let issue = event.issue {
       // Translate the issue back into a "real" issue and record it
       // in the parent process. This translation is, of course, lossy
       // due to the process boundary, but we make a best effort.
-      let comments: [Comment] = event.messages.map(\.text).map(Comment.init(rawValue:))
       let issueKind: Issue.Kind = if let error = issue._error {
         .errorCaught(error)
       } else {
@@ -1060,10 +1065,6 @@ extension ExitTest {
         // Prior to 6.3, all Issues are errors
         .error
       }
-      let sourceContext = SourceContext(
-        backtrace: nil, // `issue._backtrace` will have the wrong address space.
-        sourceLocation: issue.sourceLocation
-      )
       var issueCopy = Issue(kind: issueKind, severity: severity, comments: comments, sourceContext: sourceContext)
       if issue.isKnown {
         // The known issue comment, if there was one, is already included in
@@ -1072,7 +1073,11 @@ extension ExitTest {
       }
       issueCopy.record()
     } else if let attachment = event.attachment {
-      Attachment.record(attachment, sourceLocation: attachment._sourceLocation!)
+      Attachment.record(attachment, sourceLocation: event._sourceLocation!)
+    } else if case .testCancelled = event.kind {
+      _ = try? Test.cancel(comments: comments, sourceContext: sourceContext)
+    } else if case .testCaseCancelled = event.kind {
+      _ = try? Test.Case.cancel(comments: comments, sourceContext: sourceContext)
     }
   }
 

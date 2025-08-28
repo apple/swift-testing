@@ -218,6 +218,7 @@ let package = Package(
         "_Testing_CoreGraphics",
       ],
       path: "Sources/Overlays/_Testing_AppKit",
+      exclude: ["CMakeLists.txt"],
       swiftSettings: .packageSettings + .enableLibraryEvolution()
     ),
     .target(
@@ -226,6 +227,7 @@ let package = Package(
         "Testing",
       ],
       path: "Sources/Overlays/_Testing_CoreGraphics",
+      exclude: ["CMakeLists.txt"],
       swiftSettings: .packageSettings + .enableLibraryEvolution()
     ),
     .target(
@@ -235,6 +237,7 @@ let package = Package(
         "_Testing_CoreGraphics",
       ],
       path: "Sources/Overlays/_Testing_CoreImage",
+      exclude: ["CMakeLists.txt"],
       swiftSettings: .packageSettings + .enableLibraryEvolution()
     ),
     .target(
@@ -257,6 +260,7 @@ let package = Package(
         "_Testing_CoreImage",
       ],
       path: "Sources/Overlays/_Testing_UIKit",
+      exclude: ["CMakeLists.txt"],
       swiftSettings: .packageSettings + .enableLibraryEvolution()
     ),
     .target(

@@ -41,7 +41,7 @@ extension _AttachableImageWrapper: Attachable, AttachableWrapper where Image: At
 
     // Create the encoder.
     let encoder = try withUnsafePointer(to: IID_IWICBitmapEncoder) { [preferredName = attachment.preferredName] IID_IWICBitmapEncoder in
-      var encoderCLSID = AttachableImageFormat.computeCLSID(for: imageFormat, withPreferredName: preferredName)
+      var encoderCLSID = AttachableImageFormat.computeEncoderCLSID(for: imageFormat, withPreferredName: preferredName)
       var encoder: UnsafeMutableRawPointer?
       let rCreate = CoCreateInstance(
         &encoderCLSID,
@@ -117,7 +117,7 @@ extension _AttachableImageWrapper: Attachable, AttachableWrapper where Image: At
   }
 
   public borrowing func preferredName(for attachment: borrowing Attachment<_AttachableImageWrapper>, basedOn suggestedName: String) -> String {
-    let clsid = AttachableImageFormat.computeCLSID(for: imageFormat, withPreferredName: suggestedName)
+    let clsid = AttachableImageFormat.computeEncoderCLSID(for: imageFormat, withPreferredName: suggestedName)
     return AttachableImageFormat.appendPathExtension(for: clsid, to: suggestedName)
   }
 }

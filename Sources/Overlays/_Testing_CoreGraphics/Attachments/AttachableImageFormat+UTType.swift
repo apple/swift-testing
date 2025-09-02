@@ -63,6 +63,9 @@ extension AttachableImageFormat {
 
   /// The content type corresponding to this image format.
   ///
+  /// For example, if this image format equals ``png``, the value of this
+  /// property equals [`UTType.png`](https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/png).
+  ///
   /// The value of this property always conforms to [`UTType.image`](https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/image).
   ///
   /// @Metadata {

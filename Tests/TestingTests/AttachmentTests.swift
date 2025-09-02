@@ -821,11 +821,11 @@ extension AttachmentTests {
     }
 
     @MainActor @Test func pathExtensionAndCLSID() {
-      let pngCLSID = AttachableImageFormat.png.clsid
+      let pngCLSID = AttachableImageFormat.png.encoderCLSID
       let pngFilename = AttachableImageFormat.appendPathExtension(for: pngCLSID, to: "example")
       #expect(pngFilename == "example.png")
 
-      let jpegCLSID = AttachableImageFormat.jpeg.clsid
+      let jpegCLSID = AttachableImageFormat.jpeg.encoderCLSID
       let jpegFilename = AttachableImageFormat.appendPathExtension(for: jpegCLSID, to: "example")
       #expect(jpegFilename == "example.jpeg")
 

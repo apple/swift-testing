@@ -125,7 +125,7 @@ extension AttachableImageFormat {
   ///
   /// - Returns: An instance of `CLSID` referring to a a WIC image encoder, or
   ///   `nil` if one could not be determined.
-  private static func _computeCLSID(forPathExtension pathExtension: UnsafePointer<CWideChar>) -> CLSID? {
+  private static func _computeEncoderCLSID(forPathExtension pathExtension: UnsafePointer<CWideChar>) -> CLSID? {
     let encoderPathExtensionsByCLSID = (try? _encoderPathExtensionsByCLSID.get()) ?? [:]
     return encoderPathExtensionsByCLSID
       .first { _, extensions in
@@ -145,9 +145,9 @@ extension AttachableImageFormat {
   ///
   /// - Returns: An instance of `CLSID` referring to a a WIC image encoder, or
   ///   `nil` if one could not be determined.
-  private static func _computeCLSID(forPathExtension pathExtension: String) -> CLSID? {
+  private static func _computeEncoderCLSID(forPathExtension pathExtension: String) -> CLSID? {
     pathExtension.withCString(encodedAs: UTF16.self) { pathExtension in
-      _computeCLSID(forPathExtension: pathExtension)
+      _computeEncoderCLSID(forPathExtension: pathExtension)
     }
   }
 
@@ -160,14 +160,14 @@ extension AttachableImageFormat {
   ///
   /// - Returns: An instance of `CLSID` referring to a a WIC image encoder, or
   ///   `nil` if one could not be determined.
-  private static func _computeCLSID(forPreferredName preferredName: String) -> CLSID? {
+  private static func _computeEncoderCLSID(forPreferredName preferredName: String) -> CLSID? {
     preferredName.withCString(encodedAs: UTF16.self) { (preferredName) -> CLSID? in
       // Get the path extension on the preferred name, if any.
       var dot: PCWSTR?
       guard S_OK == PathCchFindExtension(preferredName, wcslen(preferredName) + 1, &dot), let dot, dot[0] != 0 else {
         return nil
       }
-      return _computeCLSID(forPathExtension: dot + 1)
+      return _computeEncoderCLSID(forPathExtension: dot + 1)
     }
   }
 
@@ -185,14 +185,14 @@ extension AttachableImageFormat {
   ///   encoder is used.
   ///
   /// This function is not part of the public interface of the testing library.
-  static func computeCLSID(for imageFormat: Self?, withPreferredName preferredName: String) -> CLSID {
-    if let clsid = imageFormat?.clsid {
+  static func computeEncoderCLSID(for imageFormat: Self?, withPreferredName preferredName: String) -> CLSID {
+    if let clsid = imageFormat?.encoderCLSID {
       return clsid
     }
 
     // The developer didn't specify a CLSID, or we couldn't figure one out from
     // context, so try to derive one from the preferred name's path extension.
-    if let inferredCLSID = _computeCLSID(forPreferredName: preferredName) {
+    if let inferredCLSID = _computeEncoderCLSID(forPreferredName: preferredName) {
       return inferredCLSID
     }
 
@@ -215,7 +215,7 @@ extension AttachableImageFormat {
   static func appendPathExtension(for clsid: CLSID, to preferredName: String) -> String {
     // If there's already a CLSID associated with the filename, and it matches
     // the one passed to us, no changes are needed.
-    if let existingCLSID = _computeCLSID(forPreferredName: preferredName), clsid == existingCLSID {
+    if let existingCLSID = _computeEncoderCLSID(forPreferredName: preferredName), clsid == existingCLSID {
       return preferredName
     }
 
@@ -229,9 +229,12 @@ extension AttachableImageFormat {
     return preferredName
   }
 
-  /// The `CLSID` value corresponding to the WIC image encoder for this image
-  /// format.
-  public var clsid: CLSID {
+  /// The `CLSID` value of the Windows Imaging Component (WIC) encoder class
+  /// that corresponds to this image format.
+  ///
+  /// For example, if this image format equals ``png``, the value of this
+  /// property equals [`CLSID_WICPngEncoder`](https://learn.microsoft.com/en-us/windows/win32/wic/-wic-guids-clsids#wic-guids-and-clsids).
+  public var encoderCLSID: CLSID {
     switch kind {
     case .png:
       CLSID_WICPngEncoder
@@ -242,12 +245,12 @@ extension AttachableImageFormat {
     }
   }
 
-  /// Construct an instance of this type with the given `CLSID` value and
-  /// encoding quality.
+  /// Construct an instance of this type with the `CLSID` value of a Windows
+  /// Imaging Component (WIC) encoder class and the desired encoding quality.
   ///
   /// - Parameters:
-  ///   - clsid: The `CLSID` value corresponding to a WIC image encoder to use
-  ///     when encoding images.
+  ///   - encoderCLSID: The `CLSID` value of the Windows Imaging Component
+  ///     encoder class to use when encoding images.
   ///   - encodingQuality: The encoding quality to use when encoding images. For
   ///     the lowest supported quality, pass `0.0`. For the highest supported
   ///     quality, pass `1.0`.
@@ -255,12 +258,18 @@ extension AttachableImageFormat {
   /// If the target image encoder does not support variable-quality encoding,
   /// the value of the `encodingQuality` argument is ignored.
   ///
-  /// If `clsid` does not represent an image encoder type supported by WIC, the
-  /// result is undefined. For a list of image encoders supported by WIC, see
-  /// the documentation for the [`IWICBitmapEncoder`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapencoder)
+  /// If `clsid` does not represent an image encoder class supported by WIC, the
+  /// result is undefined. For a list of image encoder classes supported by WIC,
+  /// see the documentation for the [`IWICBitmapEncoder`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapencoder)
   /// class.
-  public init(_ clsid: CLSID, encodingQuality: Float = 1.0) {
-    self.init(kind: .systemValue(clsid), encodingQuality: encodingQuality)
+  public init(encoderCLSID: CLSID, encodingQuality: Float = 1.0) {
+    if encoderCLSID == CLSID_WICPngEncoder {
+      self = .png
+    } else if encoderCLSID == CLSID_WICJpegEncoder {
+      self = .jpeg
+    } else {
+      self.init(kind: .systemValue(encoderCLSID), encodingQuality: encodingQuality)
+    }
   }
 
   /// Construct an instance of this type with the given path extension and
@@ -286,11 +295,13 @@ extension AttachableImageFormat {
   public init?(pathExtension: String, encodingQuality: Float = 1.0) {
     let pathExtension = pathExtension.drop { $0 == "." }
 
-    guard let clsid = Self._computeCLSID(forPathExtension: String(pathExtension)) else {
+    let encoderCLSID = pathExtension.withCString(encodedAs: UTF16.self) { pathExtension in
+      Self._computeEncoderCLSID(forPathExtension: pathExtension)
+    }
+    guard let encoderCLSID else {
       return nil
     }
-
-    self.init(clsid, encodingQuality: encodingQuality)
+    self.init(encoderCLSID: encoderCLSID, encodingQuality: encodingQuality)
   }
 }
 #endif

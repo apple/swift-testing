@@ -201,10 +201,10 @@ extension Runner.Plan {
   /// - Parameters:
   ///   - test: The test whose action will be determined.
   ///
-  /// - Returns:The action to take for `test`.
-  private static func _determineAction(for test: inout Test) async -> Action {
-    let result: Action
-
+  /// - Returns: A tuple containing the action to take for `test` as well as any
+  ///   error that was thrown during trait evaluation. If more than one error
+  ///   was thrown, the first-caught error is returned.
+  private static func _determineAction(for test: Test) async -> (Action, (any Error)?) {
     // We use a task group here with a single child task so that, if the trait
     // code calls Test.cancel() we don't end up cancelling the entire test run.
     // We could also model this as an unstructured task except that they aren't
@@ -212,64 +212,36 @@ extension Runner.Plan {
     //
     // FIXME: Parallelize this work. Calling `prepare(...)` on all traits and
     // evaluating all test arguments should be safely parallelizable.
-    (test, result) = await withTaskGroup(returning: (Test, Action).self) { [test] taskGroup in
+    await withTaskGroup(returning: (Action, (any Error)?).self) { taskGroup in
       taskGroup.addTask {
-        var test = test
         var action = _runAction
+        var firstCaughtError: (any Error)?
 
         await Test.withCurrent(test) {
-          do {
-            var firstCaughtError: (any Error)?
-
-            for trait in test.traits {
-              do {
-                try await trait.prepare(for: test)
-              } catch {
-                if let skipInfo = SkipInfo(error) {
-                  action = .skip(skipInfo)
-                  break
-                } else {
-                  // Only preserve the first caught error
-                  firstCaughtError = firstCaughtError ?? error
-                }
-              }
-            }
-
-            // If no trait specified that the test should be skipped, but one
-            // did throw an error, then the action is to record an issue for
-            // that error.
-            if case .run = action, let error = firstCaughtError {
-              action = .recordIssue(Issue(for: error))
-            }
-          }
-
-          // If the test is still planned to run (i.e. nothing thus far has
-          // caused it to be skipped), evaluate its test cases now.
-          //
-          // The argument expressions of each test are captured in closures so
-          // they can be evaluated lazily only once it is determined that the
-          // test will run, to avoid unnecessary work. But now is the
-          // appropriate time to evaluate them.
-          if case .run = action {
+          for trait in test.traits {
             do {
-              try await test.evaluateTestCases()
+              try await trait.prepare(for: test)
+            } catch let error as SkipInfo {
+              action = .skip(error)
+              break
+            } catch is CancellationError where Task.isCancelled {
+              // Synthesize skip info for this cancellation error.
+              let sourceContext = SourceContext(backtrace: .current(), sourceLocation: nil)
+              let skipInfo = SkipInfo(comment: nil, sourceContext: sourceContext)
+              action = .skip(skipInfo)
+              break
             } catch {
-              if let skipInfo = SkipInfo(error) {
-                action = .skip(skipInfo)
-              } else {
-                action = .recordIssue(Issue(for: error))
-              }
+              // Only preserve the first caught error
+              firstCaughtError = firstCaughtError ?? error
             }
           }
         }
 
-        return (test, action)
+        return (action, firstCaughtError)
       }
 
       return await taskGroup.first { _ in true }!
     }
-
-    return result
   }
 
   /// Construct a graph of runner plan steps for the specified tests.
@@ -337,12 +309,36 @@ extension Runner.Plan {
         return nil
       }
 
+      var action = runAction
+      var firstCaughtError: (any Error)?
+
       // Walk all the traits and tell each to prepare to run the test.
       // If any throw a `SkipInfo` error at this stage, stop walking further.
       // But if any throw another kind of error, keep track of the first error
       // but continue walking, because if any subsequent traits throw a
       // `SkipInfo`, the error should not be recorded.
-      var action = await _determineAction(for: &test)
+      (action, firstCaughtError) = await _determineAction(for: test)
+
+      // If no trait specified that the test should be skipped, but one did
+      // throw an error, then the action is to record an issue for that error.
+      if case .run = action, let error = firstCaughtError {
+        action = .recordIssue(Issue(for: error))
+      }
+
+      // If the test is still planned to run (i.e. nothing thus far has caused
+      // it to be skipped), evaluate its test cases now.
+      //
+      // The argument expressions of each test are captured in closures so they
+      // can be evaluated lazily only once it is determined that the test will
+      // run, to avoid unnecessary work. But now is the appropriate time to
+      // evaluate them.
+      if case .run = action {
+        do {
+          try await test.evaluateTestCases()
+        } catch {
+          action = .recordIssue(Issue(for: error))
+        }
+      }
 
       // If the test is parameterized but has no cases, mark it as skipped.
       if case .run = action, let testCases = test.testCases, testCases.first(where: { _ in true }) == nil {

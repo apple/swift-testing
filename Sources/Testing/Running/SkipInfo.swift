@@ -54,30 +54,6 @@ extension SkipInfo: Equatable, Hashable {}
 
 extension SkipInfo: Codable {}
 
-// MARK: -
-
-extension SkipInfo {
-  /// Initialize an instance of this type from an arbitrary error.
-  ///
-  /// - Parameters:
-  ///   - error: The error to convert to an instance of this type.
-  ///
-  /// If `error` does not represent a skip or cancellation event, this
-  /// initializer returns `nil`.
-  init?(_ error: any Error) {
-    if let skipInfo = error as? Self {
-      self = skipInfo
-    } else if error is CancellationError, Task.isCancelled {
-      // Synthesize skip info for this cancellation error.
-      let backtrace = Backtrace(forFirstThrowOf: error) ?? .current()
-      let sourceContext = SourceContext(backtrace: backtrace, sourceLocation: nil)
-      self.init(comment: nil, sourceContext: sourceContext)
-    } else {
-      return nil
-    }
-  }
-}
-
 // MARK: - Deprecated
 
 extension SkipInfo {

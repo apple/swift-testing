@@ -199,23 +199,6 @@ extension Test {
     self.init(name: name, displayName: name, traits: traits, sourceLocation: sourceLocation, containingTypeInfo: nil, testCases: caseGenerator, parameters: parameters)
   }
 
-  init<C>(
-    _ traits: any TestTrait...,
-    arguments collection: @escaping @Sendable () async throws -> C,
-    parameters: [Parameter] = [
-      Parameter(index: 0, firstName: "x", type: C.Element.self),
-    ],
-    sourceLocation: SourceLocation = #_sourceLocation,
-    column: Int = #column,
-    name: String = #function,
-    testFunction: @escaping @Sendable (C.Element) async throws -> Void
-  ) where C: Collection & Sendable, C.Element: Sendable {
-    let caseGenerator = { @Sendable in
-      Case.Generator(arguments: try await collection(), parameters: parameters, testFunction: testFunction)
-    }
-    self.init(name: name, displayName: name, traits: traits, sourceLocation: sourceLocation, containingTypeInfo: nil, testCases: caseGenerator, parameters: parameters)
-  }
-
   /// Initialize an instance of this type with a function or closure to call,
   /// parameterized over two collections of values.
   ///

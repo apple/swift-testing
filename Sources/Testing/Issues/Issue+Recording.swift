@@ -186,7 +186,8 @@ extension Issue {
       // This error is thrown by expectation checking functions to indicate a
       // condition evaluated to `false`. Those functions record their own issue,
       // so we don't need to record another one redundantly.
-    } catch let error where SkipInfo(error) != nil {
+    } catch is SkipInfo,
+            is CancellationError where Task.isCancelled {
       // This error represents control flow rather than an issue, so we suppress
       // it here.
     } catch {
@@ -231,7 +232,8 @@ extension Issue {
       // This error is thrown by expectation checking functions to indicate a
       // condition evaluated to `false`. Those functions record their own issue,
       // so we don't need to record another one redundantly.
-    } catch let error where SkipInfo(error) != nil {
+    } catch is SkipInfo,
+            is CancellationError where Task.isCancelled {
       // This error represents control flow rather than an issue, so we suppress
       // it here.
     } catch {

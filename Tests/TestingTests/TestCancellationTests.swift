@@ -132,22 +132,6 @@
     }
   }
 
-  @Test func `Cancelling a test while evaluating test cases skips the test`() async {
-    await testCancellation(testSkipped: 1) { configuration in
-      await Test(arguments: { try await cancelledTestCases(cancelsTask: false) }) { _ in
-        Issue.record("Recorded an issue!")
-      }.run(configuration: configuration)
-    }
-  }
-
-  @Test func `Cancelling the current task while evaluating test cases skips the test`() async {
-    await testCancellation(testSkipped: 1) { configuration in
-      await Test(arguments: { try await cancelledTestCases(cancelsTask: true) }) { _ in
-        Issue.record("Recorded an issue!")
-      }.run(configuration: configuration)
-    }
-  }
-
 #if !SWT_NO_EXIT_TESTS
   @Test func `Cancelling the current test from within an exit test`() async {
     await testCancellation(testCancelled: 1, testCaseCancelled: 1) { configuration in
@@ -234,15 +218,6 @@ struct CancelledTrait: TestTrait {
     try Test.cancel("Cancelled from trait")
   }
 }
-
-func cancelledTestCases(cancelsTask: Bool) async throws -> EmptyCollection<Int> {
-  if cancelsTask {
-    withUnsafeCurrentTask { $0?.cancel() }
-    try Task.checkCancellation()
-  }
-  try Test.cancel("Cancelled from trait")
-}
-
 
 #if !SWT_NO_SNAPSHOT_TYPES
 struct `Shows as skipped in Xcode 16` {

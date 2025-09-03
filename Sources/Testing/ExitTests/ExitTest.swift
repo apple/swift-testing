@@ -1048,6 +1048,7 @@ extension ExitTest {
       backtrace: nil, // A backtrace from the child process will have the wrong address space.
       sourceLocation: event._sourceLocation
     )
+    lazy var skipInfo = SkipInfo(comment: comments.first, sourceContext: sourceContext)
     if let issue = event.issue {
       // Translate the issue back into a "real" issue and record it
       // in the parent process. This translation is, of course, lossy
@@ -1075,9 +1076,9 @@ extension ExitTest {
     } else if let attachment = event.attachment {
       Attachment.record(attachment, sourceLocation: event._sourceLocation!)
     } else if case .testCancelled = event.kind {
-      _ = try? Test.cancel(comments: comments, sourceContext: sourceContext)
+      _ = try? Test.cancel(with: skipInfo)
     } else if case .testCaseCancelled = event.kind {
-      _ = try? Test.Case.cancel(comments: comments, sourceContext: sourceContext)
+      _ = try? Test.Case.cancel(with: skipInfo)
     }
   }
 

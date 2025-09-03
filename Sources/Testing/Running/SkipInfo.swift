@@ -69,7 +69,7 @@ extension SkipInfo {
       self = skipInfo
     } else if error is CancellationError, Task.isCancelled {
       // Synthesize skip info for this cancellation error.
-      let backtrace = Backtrace(forFirstThrowOf: error) ?? .current()
+      let backtrace = Backtrace(forFirstThrowOf: error)
       let sourceContext = SourceContext(backtrace: backtrace, sourceLocation: nil)
       self.init(comment: nil, sourceContext: sourceContext)
     } else {

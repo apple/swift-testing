@@ -11,13 +11,20 @@
 @testable @_spi(Experimental) @_spi(ForToolsIntegrationOnly) import Testing
 
 @Suite(.serialized) struct `Test cancellation tests` {
-  func testCancellation(testCancelled: Int = 0, testSkipped: Int = 0, testCaseCancelled: Int = 0, issueRecorded: Int = 0, _ body: @Sendable (Configuration) async -> Void) async {
+  func testCancellation(
+    testCancelled: Int = 0,
+    testSkipped: Int = 0,
+    testCaseCancelled: Int = 0,
+    issueRecorded: Int = 0,
+    _ body: @Sendable (Configuration) async -> Void,
+    eventHandler: @escaping @Sendable (borrowing Event, borrowing Event.Context) -> Void = { _, _ in }
+  ) async {
     await confirmation("Test cancelled", expectedCount: testCancelled) { testCancelled in
       await confirmation("Test skipped", expectedCount: testSkipped) { testSkipped in
         await confirmation("Test case cancelled", expectedCount: testCaseCancelled) { testCaseCancelled in
           await confirmation("Issue recorded", expectedCount: issueRecorded) { [issueRecordedCount = issueRecorded] issueRecorded in
             var configuration = Configuration()
-            configuration.eventHandler = { event, _ in
+            configuration.eventHandler = { event, eventContext in
               switch event.kind {
               case .testCancelled:
                 testCancelled()
@@ -33,6 +40,7 @@
               default:
                 break
               }
+              eventHandler(event, eventContext)
             }
 #if !SWT_NO_EXIT_TESTS
             configuration.exitTestHandler = ExitTest.handlerForEntryPoint()
@@ -81,6 +89,20 @@
         }
         Issue.record("\(i) records an issue!")
       }.run(configuration: configuration)
+    }
+  }
+
+  @Test func `Cancelling a test propagates its SkipInfo to its test cases`() async {
+    let sourceLocation = #_sourceLocation
+    await testCancellation(testCancelled: 1, testCaseCancelled: 1) { configuration in
+      await Test {
+        try Test.cancel("Cancelled test", sourceLocation: sourceLocation)
+      }.run(configuration: configuration)
+    } eventHandler: { event, _ in
+      if case let .testCaseCancelled(skipInfo) = event.kind {
+        #expect(skipInfo.comment?.rawValue == "Cancelled test")
+        #expect(skipInfo.sourceContext.sourceLocation == sourceLocation)
+      }
     }
   }
 

@@ -376,7 +376,7 @@ struct SwiftPMTests {
     }
     #expect(testRecords.count == 1)
     for testRecord in testRecords {
-      if version.versionNumber >= ABI.v6_3.versionNumber {
+      if version.includesExperimentalFields {
         #expect(testRecord._tags != nil)
       } else {
         #expect(testRecord._tags == nil)

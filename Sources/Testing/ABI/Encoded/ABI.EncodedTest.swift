@@ -76,10 +76,6 @@ extension ABI {
     /// The tags associated with the test.
     ///
     /// - Warning: Tags are not yet part of the JSON schema.
-    ///
-    /// @Metadata {
-    ///   @Available("Swift Testing ABI", introduced: 6.3)
-    /// }
     var _tags: [String]?
 
     init(encoding test: borrowing Test) {
@@ -87,18 +83,19 @@ extension ABI {
         kind = .suite
       } else {
         kind = .function
-        let testIsParameterized = test.isParameterized
-        isParameterized = testIsParameterized
-        if testIsParameterized {
-          _testCases = test.uncheckedTestCases?.map(EncodedTestCase.init(encoding:))
-        }
+        isParameterized = test.isParameterized
       }
       name = test.name
       displayName = test.displayName
       sourceLocation = test.sourceLocation
       id = ID(encoding: test.id)
 
-      if V.versionNumber >= ABI.v6_3.versionNumber {
+      // Experimental fields
+      if V.includesExperimentalFields {
+        if isParameterized == true {
+          _testCases = test.uncheckedTestCases?.map(EncodedTestCase.init(encoding:))
+        }
+
         let tags = test.tags
         if !tags.isEmpty {
           _tags = tags.map(String.init(describing:))

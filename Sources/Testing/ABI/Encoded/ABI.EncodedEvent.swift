@@ -145,8 +145,12 @@ extension ABI {
       instant = EncodedInstant(encoding: event.instant)
       self.messages = messages.map(EncodedMessage.init)
       testID = event.testID.map(EncodedTest.ID.init)
-      if eventContext.test?.isParameterized == true {
-        _testCase = eventContext.testCase.map(EncodedTestCase.init)
+
+      // Experimental fields
+      if V.includesExperimentalFields {
+        if eventContext.test?.isParameterized == true {
+          _testCase = eventContext.testCase.map(EncodedTestCase.init)
+        }
       }
     }
   }

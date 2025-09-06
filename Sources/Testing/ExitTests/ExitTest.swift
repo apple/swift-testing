@@ -542,10 +542,9 @@ extension ABI {
   /// The ABI version to use for encoding and decoding events sent over the back
   /// channel.
   ///
-  /// The back channel always uses the latest ABI version (even if experimental)
-  /// since both the producer and consumer use this exact version of the testing
-  /// library.
-  fileprivate typealias BackChannelVersion = v6_3
+  /// The back channel always uses the experimental ABI version since both the
+  /// producer and consumer use this exact version of the testing library.
+  fileprivate typealias BackChannelVersion = ExperimentalVersion
 }
 
 @_spi(ForToolsIntegrationOnly)

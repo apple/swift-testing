@@ -72,12 +72,14 @@ extension ABI {
         isFailure = issue.isFailure
       }
 
-      // Experimental
-      if let backtrace = issue.sourceContext.backtrace {
-        _backtrace = EncodedBacktrace(encoding: backtrace, in: eventContext)
-      }
-      if let error = issue.error {
-        _error = EncodedError(encoding: error, in: eventContext)
+      // Experimental fields
+      if V.includesExperimentalFields {
+        if let backtrace = issue.sourceContext.backtrace {
+          _backtrace = EncodedBacktrace(encoding: backtrace, in: eventContext)
+        }
+        if let error = issue.error {
+          _error = EncodedError(encoding: error, in: eventContext)
+        }
       }
     }
   }

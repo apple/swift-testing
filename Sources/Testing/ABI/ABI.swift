@@ -45,7 +45,8 @@ extension ABI {
   /// The current supported ABI version (ignoring any experimental versions.)
   typealias CurrentVersion = v0
 
-  /// The highest supported ABI version (including any experimental versions.)
+  /// The highest defined and supported ABI version (including any experimental
+  /// versions.)
   typealias HighestVersion = v6_3
 
 #if !hasFeature(Embedded)
@@ -93,6 +94,39 @@ extension ABI {
 #endif
 }
 
+/// The value of the environment variable flag which enables experimental event
+/// stream fields, if any.
+private let _shouldIncludeExperimentalFlags = Environment.flag(named: "SWT_EXPERIMENTAL_EVENT_STREAM_FIELDS_ENABLED")
+
+extension ABI.Version {
+  /// Whether or not experimental fields should be included when using this
+  /// ABI version.
+  ///
+  /// The value of this property is `true` if any of the following conditions
+  /// are satisfied:
+  ///
+  /// - The version number is less than 6.3. This is to preserve compatibility
+  ///   with existing clients before the inclusion of experimental fields became
+  ///   opt-in starting in 6.3.
+  /// - The version number is greater than or equal to 6.3 and the environment
+  ///   variable flag `SWT_EXPERIMENTAL_EVENT_STREAM_FIELDS_ENABLED` is set to a
+  ///   true value.
+  /// - The version number is greater than or equal to that of ``ABI/ExperimentalVersion``.
+  ///
+  /// Otherwise, the value of this property is `false`.
+  static var includesExperimentalFields: Bool {
+    switch versionNumber {
+    case ABI.ExperimentalVersion.versionNumber...:
+      true
+    case ABI.v6_3.versionNumber...:
+      _shouldIncludeExperimentalFlags == true
+    default:
+      // Maintain behavior for pre-6.3 versions.
+      true
+    }
+  }
+}
+
 // MARK: - Concrete ABI versions
 
 extension ABI {
@@ -123,6 +157,14 @@ extension ABI {
   public enum v6_3: Sendable, Version {
     static var versionNumber: VersionNumber {
       VersionNumber(6, 3)
+    }
+  }
+
+  /// A namespace and type representing the ABI version whose symbols are
+  /// considered experimental.
+  enum ExperimentalVersion: Sendable, Version {
+    static var versionNumber: VersionNumber {
+      VersionNumber(99, 0)
     }
   }
 }

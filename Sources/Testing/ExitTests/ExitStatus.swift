@@ -96,7 +96,19 @@ public enum ExitStatus: Sendable {
 extension ExitStatus: Equatable {}
 
 // MARK: - CustomStringConvertible
-@_spi(Experimental)
+
+#if os(Linux) && !SWT_NO_DYNAMIC_LINKING
+/// Get the short name of a signal constant.
+///
+/// This symbol is provided because the underlying function was added to glibc
+/// relatively recently and may not be available on all targets. Checking
+/// `__GLIBC_PREREQ()` is insufficient because `_GNU_SOURCE` may not be defined
+/// at the point string.h is first included.
+private let _sigabbrev_np = symbol(named: "sigabbrev_np").map {
+  castCFunction(at: $0, to: (@convention(c) (CInt) -> UnsafePointer<CChar>?).self)
+}
+#endif
+
 #if SWT_NO_PROCESS_SPAWNING
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #endif
@@ -104,9 +116,35 @@ extension ExitStatus: CustomStringConvertible {
   public var description: String {
     switch self {
     case let .exitCode(exitCode):
-      ".exitCode(\(exitCode))"
+      return ".exitCode(\(exitCode))"
     case let .signal(signal):
-      ".signal(\(signal))"
+      var signalName: String?
+
+#if SWT_TARGET_OS_APPLE || os(FreeBSD) || os(OpenBSD) || os(Android)
+      // These platforms define sys_signame with a size, which is imported
+      // into Swift as a tuple.
+      withUnsafeBytes(of: sys_signame) { sys_signame in
+        sys_signame.withMemoryRebound(to: UnsafePointer<CChar>.self) { sys_signame in
+          if signal > 0 && signal < sys_signame.count {
+            signalName = String(validatingCString: sys_signame[Int(signal)])?.uppercased()
+          }
+        }
+      }
+#elseif os(Linux)
+#if !SWT_NO_DYNAMIC_LINKING
+      signalName = _sigabbrev_np?(signal).flatMap(String.init(validatingCString:))
+#endif
+#elseif os(Windows) || os(WASI)
+      // These platforms do not have API to get the programmatic name of a
+      // signal constant.
+#else
+#warning("Platform-specific implementation missing: signal names unavailable")
+#endif
+
+      if let signalName {
+        return ".signal(SIG\(signalName) → \(signal))"
+      }
+      return ".signal(\(signal))"
     }
   }
 }

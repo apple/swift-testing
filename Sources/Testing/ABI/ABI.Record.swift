@@ -36,6 +36,10 @@ extension ABI {
       guard let event = EncodedEvent<V>(encoding: event, in: eventContext, messages: messages) else {
         return nil
       }
+      if !V.includesExperimentalFields && event.kind.rawValue.first == "_" {
+        // Don't encode experimental event kinds.
+        return nil
+      }
       kind = .event(event)
     }
   }

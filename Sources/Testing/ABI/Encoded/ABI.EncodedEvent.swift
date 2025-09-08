@@ -112,31 +112,22 @@ extension ABI {
       case let .issueRecorded(recordedIssue):
         kind = .issueRecorded
         issue = EncodedIssue(encoding: recordedIssue, in: eventContext)
-        _comments = recordedIssue.comments.map(\.rawValue)
-        _sourceLocation = recordedIssue.sourceLocation
       case let .valueAttached(attachment):
         kind = .valueAttached
         self.attachment = EncodedAttachment(encoding: attachment, in: eventContext)
-        _sourceLocation = attachment.sourceLocation
       case .testCaseEnded:
         if eventContext.test?.isParameterized == false {
           return nil
         }
         kind = .testCaseEnded
-      case let .testCaseCancelled(skipInfo):
+      case .testCaseCancelled:
         kind = .testCaseCancelled
-        _comments = Array(skipInfo.comment).map(\.rawValue)
-        _sourceLocation = skipInfo.sourceLocation
       case .testEnded:
         kind = .testEnded
-      case let .testSkipped(skipInfo):
+      case .testSkipped:
         kind = .testSkipped
-        _comments = Array(skipInfo.comment).map(\.rawValue)
-        _sourceLocation = skipInfo.sourceLocation
-      case let .testCancelled(skipInfo):
+      case .testCancelled:
         kind = .testCancelled
-        _comments = Array(skipInfo.comment).map(\.rawValue)
-        _sourceLocation = skipInfo.sourceLocation
       case .runEnded:
         kind = .runEnded
       default:
@@ -148,6 +139,21 @@ extension ABI {
 
       // Experimental fields
       if V.includesExperimentalFields {
+        switch event.kind {
+        case let .issueRecorded(recordedIssue):
+          _comments = recordedIssue.comments.map(\.rawValue)
+          _sourceLocation = recordedIssue.sourceLocation
+        case let .valueAttached(attachment):
+          _sourceLocation = attachment.sourceLocation
+        case let .testCaseCancelled(skipInfo),
+          let .testSkipped(skipInfo),
+          let .testCancelled(skipInfo):
+          _comments = Array(skipInfo.comment).map(\.rawValue)
+          _sourceLocation = skipInfo.sourceLocation
+        default:
+          break
+        }
+
         if eventContext.test?.isParameterized == true {
           _testCase = eventContext.testCase.map(EncodedTestCase.init)
         }

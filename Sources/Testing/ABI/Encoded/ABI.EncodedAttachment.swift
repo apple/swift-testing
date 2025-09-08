@@ -41,7 +41,7 @@ extension ABI {
     init(encoding attachment: borrowing Attachment<AnyAttachable>, in eventContext: borrowing Event.Context) {
       path = attachment.fileSystemPath
 
-      if V.versionNumber >= ABI.v6_3.versionNumber {
+      if V.includesExperimentalFields {
         _preferredName = attachment.preferredName
 
         if path == nil {

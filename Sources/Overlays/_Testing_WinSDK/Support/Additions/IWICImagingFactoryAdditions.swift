@@ -25,7 +25,7 @@ extension IWICImagingFactory {
         let rCreate = CoCreateInstance(
           CLSID_WICImagingFactory,
           nil,
-          DWORD(bitPattern: CLSCTX_INPROC_SERVER.rawValue),
+          DWORD(CLSCTX_INPROC_SERVER.rawValue),
           IID_IWICImagingFactory,
           &factory
         )

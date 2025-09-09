@@ -23,19 +23,19 @@ package enum ImageAttachmentError: Error {
   case couldNotConvertImage
 #elseif os(Windows)
   /// A call to `QueryInterface()` failed.
-  case queryInterfaceFailed(Any.Type, Int32)
+  case queryInterfaceFailed(Any.Type, CLong)
 
   /// The testing library failed to create a COM object.
-  case comObjectCreationFailed(Any.Type, Int32)
+  case comObjectCreationFailed(Any.Type, CLong)
 
   /// An image could not be written.
-  case imageWritingFailed(Int32)
+  case imageWritingFailed(CLong)
 
   /// The testing library failed to get an in-memory stream's underlying buffer.
-  case globalFromStreamFailed(Int32)
+  case globalFromStreamFailed(CLong)
 
   /// A property could not be written to a property bag.
-  case propertyBagWritingFailed(String, Int32)
+  case propertyBagWritingFailed(String, CLong)
 #endif
 }
 

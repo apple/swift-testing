@@ -96,6 +96,7 @@ extension UnsafeMutablePointer where Pointee: IWICBitmapSourceProtocol {
 
 // MARK: - _AttachableByAddressAsIWICBitmapSource implementation
 
+@_spi(Experimental)
 extension IWICBitmapSourceProtocol {
   public static func _copyAttachableIWICBitmapSource(
     from imageAddress: UnsafeMutablePointer<Self>,
@@ -119,6 +120,7 @@ extension IWICBitmapSourceProtocol {
 }
 
 extension IWICBitmapSource {
+  @_spi(Experimental)
   public static func _copyAttachableIWICBitmapSource(
     from imageAddress: UnsafeMutablePointer<Self>,
     using factory: UnsafeMutablePointer<IWICImagingFactory>

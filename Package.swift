@@ -269,6 +269,7 @@ let package = Package(
         "Testing",
       ],
       path: "Sources/Overlays/_Testing_WinSDK",
+      exclude: ["CMakeLists.txt"],
       swiftSettings: .packageSettings + .enableLibraryEvolution()
     ),
 

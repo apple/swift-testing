@@ -12,6 +12,7 @@
 @_spi(Experimental) public import Testing
 public import WinSDK
 
+@_spi(Experimental)
 extension AttachableImageFormat {
   private static let _encoderPathExtensionsByCLSID = Result<[UInt128: [String]], any Error> {
     var result = [UInt128: [String]]()
@@ -26,8 +27,8 @@ extension AttachableImageFormat {
     var enumerator: UnsafeMutablePointer<IEnumUnknown>?
     let rCreate = factory.pointee.lpVtbl.pointee.CreateComponentEnumerator(
       factory,
-      DWORD(bitPattern: WICEncoder.rawValue),
-      DWORD(bitPattern: WICComponentEnumerateDefault.rawValue),
+      DWORD(WICEncoder.rawValue),
+      DWORD(WICComponentEnumerateDefault.rawValue),
       &enumerator
     )
     guard rCreate == S_OK, let enumerator else {

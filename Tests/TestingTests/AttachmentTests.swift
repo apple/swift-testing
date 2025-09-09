@@ -53,12 +53,14 @@ struct AttachmentTests {
     #expect(attachment.description.contains("MySendableAttachable("))
   }
 
+#if compiler(>=6.3) || !os(Windows) // WORKAROUND: swift-#84184
   @Test func moveOnlyDescription() {
     let attachableValue = MyAttachable(string: "<!doctype html>")
     let attachment = Attachment(attachableValue, named: "AttachmentTests.saveValue.html")
     #expect(attachment.description.contains(#""\#(attachment.preferredName)""#))
     #expect(attachment.description.contains("'MyAttachable'"))
   }
+#endif
 
 #if !SWT_NO_FILE_IO
   func compare(_ attachableValue: borrowing MySendableAttachable, toContentsOfFileAtPath filePath: String) throws {

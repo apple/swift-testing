@@ -149,17 +149,21 @@ extension Runner {
   ///
   /// - Parameters:
   ///   - sequence: The sequence to enumerate.
+  ///   - taskNamer: A function to invoke for each element in `sequence`. The
+  ///     result of this function is used to name each child task.
   ///   - body: The function to invoke.
   ///
   /// - Throws: Whatever is thrown by `body`.
   private static func _forEach<E>(
     in sequence: some Sequence<E>,
-    _ body: @Sendable @escaping (E) async throws -> Void
+    namingTasksWith taskNamer: (borrowing E) -> (taskName: String, action: String?)?,
+    _ body: @Sendable @escaping (borrowing E) async throws -> Void
   ) async rethrows where E: Sendable {
     try await withThrowingTaskGroup { taskGroup in
       for element in sequence {
         // Each element gets its own subtask to run in.
-        taskGroup.addTask {
+        let taskName = taskNamer(element)
+        taskGroup.addTask(name: decorateTaskName(taskName?.taskName, withAction: taskName?.action)) {
           try await body(element)
         }
 
@@ -314,8 +318,19 @@ extension Runner {
       }
     }
 
+    // Figure out how to name child tasks.
+    func taskNamer(_ childGraph: Graph<String, Plan.Step?>) -> (String, String?)? {
+      childGraph.value.map { step in
+        let testName = step.test.humanReadableName()
+        if step.test.isSuite {
+          return ("suite \(testName)", "running")
+        }
+        return ("test \(testName)", nil) // test cases have " - running" suffix
+      }
+    }
+
     // Run the child nodes.
-    try await _forEach(in: childGraphs) { _, childGraph in
+    try await _forEach(in: childGraphs.lazy.map(\.value), namingTasksWith: taskNamer) { childGraph in
       try await _runStep(atRootOf: childGraph)
     }
   }
@@ -335,7 +350,15 @@ extension Runner {
       testCaseFilter(testCase, step.test)
     }
 
-    await _forEach(in: testCases) { testCase in
+    // Figure out how to name child tasks.
+    let testName = "test \(step.test.humanReadableName())"
+    let taskNamer: (Int, Test.Case) -> (String, String?)? = if step.test.isParameterized {
+      { i, _ in (testName, "running test case #\(i + 1)") }
+    } else {
+      { _, _ in (testName, "running") }
+    }
+
+    await _forEach(in: testCases.enumerated(), namingTasksWith: taskNamer) { _, testCase in
       await _runTestCase(testCase, within: step)
     }
   }
@@ -418,14 +441,19 @@ extension Runner {
       }
 
       let repetitionPolicy = runner.configuration.repetitionPolicy
-      for iterationIndex in 0 ..< repetitionPolicy.maximumIterationCount {
+      let iterationCount = repetitionPolicy.maximumIterationCount
+      for iterationIndex in 0 ..< iterationCount {
         Event.post(.iterationStarted(iterationIndex), for: (nil, nil), configuration: runner.configuration)
         defer {
           Event.post(.iterationEnded(iterationIndex), for: (nil, nil), configuration: runner.configuration)
         }
 
         await withTaskGroup { [runner] taskGroup in
-          _ = taskGroup.addTaskUnlessCancelled {
+          var taskAction: String?
+          if iterationCount > 1 {
+            taskAction = "running iteration #\(iterationIndex + 1)"
+          }
+          _ = taskGroup.addTaskUnlessCancelled(name: decorateTaskName("test run", withAction: taskAction)) {
             try? await _runStep(atRootOf: runner.plan.stepGraph)
           }
           await taskGroup.waitForAll()

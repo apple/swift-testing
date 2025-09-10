@@ -213,7 +213,14 @@ extension Runner.Plan {
     // FIXME: Parallelize this work. Calling `prepare(...)` on all traits and
     // evaluating all test arguments should be safely parallelizable.
     (test, result) = await withTaskGroup(returning: (Test, Action).self) { [test] taskGroup in
-      taskGroup.addTask {
+      let testName = test.humanReadableName()
+      let (taskName, taskAction) = if test.isSuite {
+        ("suite \(testName)", "evaluating traits")
+      } else {
+        // TODO: split the task group's single task into two serially-run subtasks
+        ("test \(testName)", "evaluating traits and test cases")
+      }
+      taskGroup.addTask(name: decorateTaskName(taskName, withAction: taskAction)) {
         var test = test
         var action = _runAction
 

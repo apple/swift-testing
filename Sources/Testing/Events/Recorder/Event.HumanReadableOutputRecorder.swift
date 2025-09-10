@@ -187,6 +187,26 @@ private func _capitalizedTitle(for test: Test?) -> String {
   test?.isSuite == true ? "Suite" : "Test"
 }
 
+extension Test {
+  /// The name to use for this test in a human-readable context such as console
+  /// output.
+  ///
+  /// - Parameters:
+  ///   - verbosity: The verbosity with which to describe this test.
+  ///
+  /// - Returns: The name of this test, suitable for display to the user.
+  func humanReadableName(withVerbosity verbosity: Int = 0) -> String {
+    switch displayName {
+    case let .some(displayName) where verbosity > 0:
+      #""\#(displayName)" (aka '\#(name)')"#
+    case let .some(displayName):
+      #""\#(displayName)""#
+    default:
+      name
+    }
+  }
+}
+
 extension Test.Case {
   /// The arguments of this test case, formatted for presentation, prefixed by
   /// their corresponding parameter label when available.
@@ -256,19 +276,7 @@ extension Event.HumanReadableOutputRecorder {
     let test = eventContext.test
     let testCase = eventContext.testCase
     let keyPath = eventContext.keyPath
-    let testName = if let test {
-      if let displayName = test.displayName {
-        if verbosity > 0 {
-          "\"\(displayName)\" (aka '\(test.name)')"
-        } else {
-          "\"\(displayName)\""
-        }
-      } else {
-        test.name
-      }
-    } else {
-      "«unknown»"
-    }
+    let testName = test?.humanReadableName(withVerbosity: verbosity) ?? "«unknown»"
     let instant = event.instant
     let iterationCount = eventContext.configuration?.repetitionPolicy.maximumIterationCount
 

@@ -88,8 +88,10 @@ extension Test {
       if useNewMode {
         let generators = Generator.allTestContentRecords().lazy.compactMap { $0.load() }
         await withTaskGroup { taskGroup in
-          for generator in generators {
-            taskGroup.addTask { await generator.rawValue() }
+          for (i, generator) in generators.enumerated() {
+            taskGroup.addTask(name: decorateTaskName("test discovery", withAction: "loading test #\(i)")) {
+              await generator.rawValue()
+            }
           }
           result = await taskGroup.reduce(into: result) { $0.insert($1) }
         }
@@ -100,8 +102,10 @@ extension Test {
       if useLegacyMode && result.isEmpty {
         let generators = Generator.allTypeMetadataBasedTestContentRecords().lazy.compactMap { $0.load() }
         await withTaskGroup { taskGroup in
-          for generator in generators {
-            taskGroup.addTask { await generator.rawValue() }
+          for (i, generator) in generators.enumerated() {
+            taskGroup.addTask(name: decorateTaskName("type-based test discovery", withAction: "loading test #\(i)")) {
+              await generator.rawValue()
+            }
           }
           result = await taskGroup.reduce(into: result) { $0.insert($1) }
         }

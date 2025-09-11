@@ -1,0 +1,4 @@
+Package.swift
+**/*.xctestplan
+**/*.xcscheme
+**/*.swiftoverlay

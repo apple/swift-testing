@@ -38,6 +38,15 @@ static inline uint64_t swt_getSwiftCompilerVersion(void) {
 ///   other conditions. Do not attempt to parse it.
 SWT_EXTERN const char *_Nullable swt_getTestingLibraryVersion(void);
 
+/// Get details of the source control (git) commit from which the testing
+/// library was built.
+///
+/// - Parameters:
+///   - outHash: On return, set to a pointer to a string containing the commit
+///     hash from which the testing library was built.
+///   - outModified: On return, whether or not there were uncommitted changes.
+SWT_EXTERN void swt_getTestingLibraryCommit(const char *_Nullable *_Nonnull outHash, bool *outModified);
+
 /// Get the LLVM target triple used to build the testing library.
 ///
 /// - Returns: A string containing the LLVM target triple used to build the

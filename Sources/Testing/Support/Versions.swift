@@ -129,9 +129,26 @@ let simulatorVersion: String = {
 /// an event writer.
 ///
 /// This value is not part of the public interface of the testing library.
-var testingLibraryVersion: String {
-  swt_getTestingLibraryVersion().flatMap(String.init(validatingCString:)) ?? "unknown"
-}
+let testingLibraryVersion: String = {
+  var result = swt_getTestingLibraryVersion().flatMap(String.init(validatingCString:)) ?? "unknown"
+
+  // Get details of the git commit used when compiling the testing library.
+  var commitHash: UnsafePointer<CChar>?
+  var commitModified = CBool(false)
+  swt_getTestingLibraryCommit(&commitHash, &commitModified)
+
+  if let commitHash = commitHash.flatMap(String.init(validatingCString:)) {
+    // Truncate to 15 characters of the hash to match `swift --version`.
+    let commitHash = commitHash.prefix(15)
+    if commitModified {
+      result = "\(result) (\(commitHash) - modified)"
+    } else {
+      result = "\(result) (\(commitHash))"
+    }
+  }
+
+  return result
+}()
 
 /// Get the LLVM target triple used to build the testing library, if available.
 ///

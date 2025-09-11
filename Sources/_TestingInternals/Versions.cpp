@@ -19,6 +19,19 @@ const char *swt_getTestingLibraryVersion(void) {
 #endif
 }
 
+void swt_getTestingLibraryCommit(const char *_Nullable *_Nonnull outHash, bool *outModified) {
+#if defined(SWT_TESTING_LIBRARY_COMMIT_HASH)
+  *outHash = SWT_TESTING_LIBRARY_COMMIT_HASH;
+#else
+  *outHash = nullptr;
+#endif
+#if defined(SWT_TESTING_LIBRARY_COMMIT_MODIFIED)
+  *outModified = (SWT_TESTING_LIBRARY_COMMIT_MODIFIED != 0);
+#else
+  *outModified = false;
+#endif
+}
+
 const char *swt_getTargetTriple(void) {
 #if defined(SWT_TARGET_TRIPLE)
   return SWT_TARGET_TRIPLE;

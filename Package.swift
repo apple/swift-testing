@@ -470,12 +470,6 @@ extension Array where Element == PackageDescription.CXXSetting {
 
     // Capture the testing library's commit info as C++ constants.
     if let git {
-      if let tag = git.currentTag {
-        result.append(.define("SWT_TESTING_LIBRARY_VERSION", to: #""\#(tag)""#))
-      } else {
-        result.append(.define("SWT_TESTING_LIBRARY_VERSION", to: "0"))
-      }
-
       result.append(.define("SWT_TESTING_LIBRARY_COMMIT_HASH", to: #""\#(git.currentCommit)""#))
       if git.hasUncommittedChanges {
         result.append(.define("SWT_TESTING_LIBRARY_COMMIT_MODIFIED", to: "1"))
@@ -483,7 +477,6 @@ extension Array where Element == PackageDescription.CXXSetting {
     } else if let gitHubSHA = Context.environment["GITHUB_SHA"] {
       // When building in GitHub Actions, the git command may fail to get us the
       // commit hash, so check if GitHub shared it with us instead.
-      result.append(.define("SWT_TESTING_LIBRARY_VERSION", to: "0"))
       result.append(.define("SWT_TESTING_LIBRARY_COMMIT_HASH", to: #""\#(gitHubSHA)""#))
     }
 

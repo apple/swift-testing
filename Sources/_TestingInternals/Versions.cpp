@@ -10,11 +10,37 @@
 
 #include "Versions.h"
 
+#include <array>
+#include <algorithm>
+#include <iterator>
+
 const char *swt_getTestingLibraryVersion(void) {
 #if defined(SWT_TESTING_LIBRARY_VERSION)
+  // The current environment explicitly specifies a version string to return.
   return SWT_TESTING_LIBRARY_VERSION;
+#elif __has_embed("../../VERSION.txt")
+  static constinit auto version = [] () constexpr {
+    // Read the version from version.txt at the root of the package's repo.
+    char version[] = {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wc23-extensions"
+#embed "../../VERSION.txt"
+#pragma clang diagnostic pop
+    };
+
+    // Copy the first line from the C string into a C array so that we can
+    // return it from this closure.
+    std::array<char, std::size(version) + 1> result {};
+    auto i = std::find_if(std::begin(version), std::end(version), [] (char c) {
+      return c == '\r' || c == '\n';
+    });
+    std::copy(std::begin(version), i, result.begin());
+    return result;
+  }();
+
+  return version.data();
 #else
-#warning SWT_TESTING_LIBRARY_VERSION not defined: testing library version is unavailable
+#warning SWT_TESTING_LIBRARY_VERSION not defined and VERSION.txt not found: testing library version is unavailable
   return nullptr;
 #endif
 }

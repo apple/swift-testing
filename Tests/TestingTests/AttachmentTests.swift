@@ -227,7 +227,7 @@ struct AttachmentTests {
           return
         }
 
-        #expect(attachment.attachableValue is MySendableAttachable)
+        #expect((attachment.attachableValue as Any) is AnyAttachable.Wrapped)
         #expect(attachment.sourceLocation.fileID == #fileID)
        valueAttached()
       }

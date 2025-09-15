@@ -484,7 +484,7 @@ final class IssueTests: XCTestCase {
   }
 
   func testCastAsAnyProtocol() async {
-    // Sanity check that we parse types cleanly.
+    // Check that we parse types cleanly.
     await Test {
       #expect((1 as Any) is any Numeric)
       _ = try #require((1 as Any) as? any Numeric)

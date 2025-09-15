@@ -224,7 +224,7 @@ func spawnExecutable(
       }
 #if SWT_TARGET_OS_APPLE && DEBUG
       // Resume the process.
-      _ = kill(pid, SIGCONT)
+      _ = kill(pid, SIGCONT) // ignore-unacceptable-language
 #endif
       return pid
     }

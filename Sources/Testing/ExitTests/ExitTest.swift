@@ -263,7 +263,7 @@ extension ExitTest {
     // code 3 [...]".
     //
     // The Wine project's implementation of raise() calls `_exit(3)` by default.
-    // See https://github.com/wine-mirror/wine/blob/master/dlls/msvcrt/except.c
+    // See https://github.com/wine-mirror/wine/blob/master/dlls/msvcrt/except.c (ignore-unacceptable-language)
     //
     // Finally, an official copy of the UCRT sources (not up to date) is hosted
     // at https://www.nuget.org/packages/Microsoft.Windows.SDK.CRTSource . That

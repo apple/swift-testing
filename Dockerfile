@@ -11,7 +11,7 @@
 FROM swiftlang/swift:nightly-main-jammy
 
 # Set up the current build user in the same way done in the Swift.org CI system:
-# https://github.com/swiftlang/swift-docker/blob/main/swift-ci/master/ubuntu/22.04/Dockerfile
+# https://github.com/swiftlang/swift-docker/blob/main/swift-ci/main/ubuntu/22.04/Dockerfile
 
 RUN groupadd -g 998 build-user && \
     useradd -m -r -u 998 -g build-user build-user

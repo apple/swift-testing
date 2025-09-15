@@ -37,7 +37,7 @@ struct CartesianProductTests {
 
   @Test("First element is correct")
   func firstElement() throws {
-    // Sanity-check the first element is correct. (This value is also tested in
+    // Check that the first element is correct. (This value is also tested in
     // testCompleteEquality().)
     let (c1, c2, product) = computeCartesianProduct()
     let first = try #require(product.first(where: { _ in true }))

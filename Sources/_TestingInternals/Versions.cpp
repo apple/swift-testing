@@ -13,34 +13,42 @@
 #include <array>
 #include <algorithm>
 #include <iterator>
+#include <mutex>
 
 const char *swt_getTestingLibraryVersion(void) {
 #if defined(SWT_TESTING_LIBRARY_VERSION)
   // The current environment explicitly specifies a version string to return.
+  // All CMake builds should take this path (see CompilerSettings.cmake.)
   return SWT_TESTING_LIBRARY_VERSION;
-#elif __has_embed("../../VERSION.txt")
-  static constinit auto version = [] () constexpr {
-    // Read the version from version.txt at the root of the package's repo.
-    char version[] = {
+#elif __clang_major__ >= 17 && defined(__has_embed)
+#if __has_embed("../../VERSION.txt")
+  // Read the version from version.txt at the root of the package's repo.
+  static char version[] = {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wc23-extensions"
-#embed "../../VERSION.txt"
+#embed "../../VERSION.txt" suffix(, '\0')
 #pragma clang diagnostic pop
-    };
+  };
 
-    // Copy the first line from the C string into a C array so that we can
-    // return it from this closure.
-    std::array<char, std::size(version) + 1> result {};
+  // Zero out the newline character and anything after it.
+  static std::once_flag once;
+  std::call_once(once, [] {
     auto i = std::find_if(std::begin(version), std::end(version), [] (char c) {
       return c == '\r' || c == '\n';
     });
-    std::copy(std::begin(version), i, result.begin());
-    return result;
-  }();
+    std::fill(i, std::end(version), '\0');
+  });
 
-  return version.data();
+  return version;
 #else
 #warning SWT_TESTING_LIBRARY_VERSION not defined and VERSION.txt not found: testing library version is unavailable
+  return nullptr;
+#endif
+#elif defined(__OpenBSD__)
+  // OpenBSD's version of clang doesn't support __has_embed or #embed.
+  return nullptr;
+#else
+#warning SWT_TESTING_LIBRARY_VERSION not defined and could not read from VERSION.txt at compile time: testing library version is unavailable
   return nullptr;
 #endif
 }

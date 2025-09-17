@@ -35,10 +35,8 @@ their problems.
 
 #### Related videos
 
-@Links(visualStyle: compactGrid) {
-  - <doc://com.apple.documentation/videos/play/wwdc2024/10179>
-  - <doc://com.apple.documentation/videos/play/wwdc2024/10195>
-}
+- [Meet Swift Testing](https://developer.apple.com/videos/play/wwdc2024/10179)
+- [Go further with Swift Testing](https://developer.apple.com/videos/play/wwdc2024/10195)
 
 ## Topics
 

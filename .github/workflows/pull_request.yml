@@ -24,6 +24,6 @@ jobs:
     uses: swiftlang/github-workflows/.github/workflows/soundness.yml@main
     with:
       license_header_check_project_name: "Swift"
-      docs_check_enabled: false
+      docs_check_container_image: "swift:6.2-noble"
       format_check_enabled: false
       api_breakage_check_enabled: false

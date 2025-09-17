@@ -556,9 +556,11 @@ test function with an instance of this trait type to control whether it runs:
   }
 }
 
-<!-- TODO: document Test.cancel() and Test.Case.cancel() here
+<!-- TODO: document Test.cancel() and Test.Case.cancel() here, and update
+     relevant links to use proper DocC symbol references.
+
 If a test has already started running and you determine it cannot complete and
-should end early without failing, use ``Test/cancel(_:sourceLocation:)`` instead
+should end early without failing, use `Test/cancel(_:sourceLocation:)` instead
 of [`XCTSkip`](https://developer.apple.com/documentation/xctest/xctskip) to
 cancel the task associated with the current test:
 
@@ -592,7 +594,7 @@ cancel the task associated with the current test:
 }
 
 If the test is parameterized and you only want to cancel the current test case
-rather than the entire test, use ``Test/Case/cancel(_:sourceLocation:)``.
+rather than the entire test, use `Test/Case/cancel(_:sourceLocation:)`.
 -->
 
 ### Annotate known issues

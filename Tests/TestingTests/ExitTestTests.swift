@@ -14,12 +14,19 @@ private import _TestingInternals
 #if !SWT_NO_EXIT_TESTS
 @Suite("Exit test tests") struct ExitTestTests {
   @Test("Signal names are reported (where supported)") func signalName() {
-    let exitStatus = ExitStatus.signal(SIGABRT)
-#if SWT_TARGET_OS_APPLE || os(Linux) || os(FreeBSD) || os(OpenBSD) || os(Android)
-    #expect(String(describing: exitStatus) == ".signal(SIGABRT → \(SIGABRT))")
-#else
-    #expect(String(describing: exitStatus) == ".signal(\(SIGABRT))")
+    var hasSignalNames = false
+#if SWT_TARGET_OS_APPLE || os(FreeBSD) || os(OpenBSD) || os(Android)
+    hasSignalNames = true
+#elseif os(Linux) && !SWT_NO_DYNAMIC_LINKING
+    hasSignalNames = (symbol(named: "sigabbrev_np") != nil)
 #endif
+
+    let exitStatus = ExitStatus.signal(SIGABRT)
+    if Bool(hasSignalNames) {
+      #expect(String(describing: exitStatus) == ".signal(SIGABRT → \(SIGABRT))")
+    } else {
+      #expect(String(describing: exitStatus) == ".signal(\(SIGABRT))")
+    }
   }
 
   @Test("Exit tests (passing)") func passing() async {

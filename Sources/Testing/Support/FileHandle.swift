@@ -704,9 +704,9 @@ func setFD_CLOEXEC(_ flag: Bool, onFileDescriptor fd: CInt) throws {
     throw CError(rawValue: swt_errno())
   case let oldValue:
     let newValue = if flag {
-      oldValue & ~FD_CLOEXEC
-    } else {
       oldValue | FD_CLOEXEC
+    } else {
+      oldValue & ~FD_CLOEXEC
     }
     if oldValue == newValue {
       // No need to make a second syscall as nothing has changed.

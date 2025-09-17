@@ -81,7 +81,7 @@ extension TimeValue: Codable {}
 
 extension TimeValue: CustomStringConvertible {
   var description: String {
-#if os(WASI)
+#if os(WASI) && compiler(<6.3)
     // BUG: https://github.com/swiftlang/swift/issues/72398
     return String(describing: Duration(self))
 #else

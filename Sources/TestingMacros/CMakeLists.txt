@@ -12,6 +12,8 @@ if(POLICY CMP0157)
   cmake_policy(SET CMP0157 NEW)
 endif()
 
+set(SWT_SOURCE_ROOT_DIR ${CMAKE_SOURCE_DIR}/../..)
+
 project(TestingMacros
   LANGUAGES Swift)
 

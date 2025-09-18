@@ -405,23 +405,6 @@ extension TypeInfo: Hashable {
   }
 }
 
-#if compiler(<6.2)
-// MARK: - ObjectIdentifier support
-
-extension ObjectIdentifier {
-  /// Initialize an instance of this type from a type reference.
-  ///
-  /// - Parameters:
-  ///   - type: The type to initialize this instance from.
-  ///
-  /// - Bug: The standard library should support this conversion.
-  ///   ([134276458](rdar://134276458), [134415960](rdar://134415960))
-  fileprivate init(_ type: any ~Copyable.Type) {
-    self.init(unsafeBitCast(type, to: Any.Type.self))
-  }
-}
-#endif
-
 // MARK: - Codable
 
 extension TypeInfo: Codable {

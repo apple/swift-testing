@@ -131,7 +131,6 @@ public macro require<T>(
 
 // MARK: - Matching errors by type
 
-#if compiler(>=6.2)
 /// Check that an expression always throws an error of a given type.
 ///
 /// - Parameters:
@@ -197,7 +196,6 @@ public macro expect<E, R>(
   sourceLocation: SourceLocation = #_sourceLocation,
   performing expression: () throws -> R
 ) -> E? = #externalMacro(module: "TestingMacros", type: "ExpectMacro") where E: Error
-#endif
 
 /// Check that an expression always throws an error of a given type.
 ///
@@ -263,7 +261,6 @@ public macro expect<E, R>(
   performing expression: () async throws -> R
 ) -> E? = #externalMacro(module: "TestingMacros", type: "ExpectMacro") where E: Error
 
-#if compiler(>=6.2)
 /// Check that an expression always throws an error of a given type, and throw
 /// an error if it does not.
 ///
@@ -313,7 +310,6 @@ public macro require<E, R>(
   sourceLocation: SourceLocation = #_sourceLocation,
   performing expression: () throws -> R
 ) -> E = #externalMacro(module: "TestingMacros", type: "RequireThrowsMacro") where E: Error
-#endif
 
 /// Check that an expression always throws an error of a given type, and throw
 /// an error if it does not.
@@ -363,7 +359,6 @@ public macro require<E, R>(
   performing expression: () async throws -> R
 ) -> E = #externalMacro(module: "TestingMacros", type: "RequireThrowsMacro") where E: Error
 
-#if compiler(>=6.2)
 /// Check that an expression never throws an error, and throw an error if it
 /// does.
 ///
@@ -383,7 +378,6 @@ public macro require<R>(
   sourceLocation: SourceLocation = #_sourceLocation,
   performing expression: () throws -> R
 ) = #externalMacro(module: "TestingMacros", type: "RequireThrowsNeverMacro")
-#endif
 
 /// Check that an expression never throws an error, and throw an error if it
 /// does.
@@ -407,7 +401,6 @@ public macro require<R>(
 
 // MARK: - Matching instances of equatable errors
 
-#if compiler(>=6.2)
 /// Check that an expression always throws a specific error.
 ///
 /// - Parameters:
@@ -449,7 +442,6 @@ public macro expect<E, R>(
   sourceLocation: SourceLocation = #_sourceLocation,
   performing expression: () throws -> R
 ) -> E? = #externalMacro(module: "TestingMacros", type: "ExpectMacro") where E: Error & Equatable
-#endif
 
 /// Check that an expression always throws a specific error.
 ///
@@ -491,7 +483,6 @@ public macro expect<E, R>(
   performing expression: () async throws -> R
 ) -> E? = #externalMacro(module: "TestingMacros", type: "ExpectMacro") where E: Error & Equatable
 
-#if compiler(>=6.2)
 /// Check that an expression always throws a specific error, and throw an error
 /// if it does not.
 ///
@@ -537,7 +528,6 @@ public macro require<E, R>(
   sourceLocation: SourceLocation = #_sourceLocation,
   performing expression: () throws -> R
 ) -> E = #externalMacro(module: "TestingMacros", type: "RequireMacro") where E: Error & Equatable
-#endif
 
 /// Check that an expression always throws a specific error, and throw an error
 /// if it does not.
@@ -585,7 +575,6 @@ public macro require<E, R>(
 
 // MARK: - Arbitrary error matching
 
-#if compiler(>=6.2)
 /// Check that an expression always throws an error matching some condition.
 ///
 /// - Parameters:
@@ -649,7 +638,6 @@ public macro expect<R>(
   performing expression: () throws -> R,
   throws errorMatcher: (any Error) throws -> Bool
 ) -> (any Error)? = #externalMacro(module: "TestingMacros", type: "ExpectMacro")
-#endif
 
 /// Check that an expression always throws an error matching some condition.
 ///
@@ -713,7 +701,6 @@ public macro expect<R>(
   throws errorMatcher: (any Error) async throws -> Bool
 ) -> (any Error)? = #externalMacro(module: "TestingMacros", type: "ExpectMacro")
 
-#if compiler(>=6.2)
 /// Check that an expression always throws an error matching some condition, and
 /// throw an error if it does not.
 ///
@@ -784,7 +771,6 @@ public macro require<R>(
   performing expression: () throws -> R,
   throws errorMatcher: (any Error) throws -> Bool
 ) -> any Error = #externalMacro(module: "TestingMacros", type: "RequireMacro")
-#endif
 
 /// Check that an expression always throws an error matching some condition, and
 /// throw an error if it does not.

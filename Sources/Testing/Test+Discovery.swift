@@ -39,10 +39,7 @@ extension Test {
   ///
   /// - Warning: This function is used to implement the `@Test` macro. Do not
   ///   use it directly.
-#if compiler(>=6.2)
-  @safe
-#endif
-  public static func __store(
+  @safe public static func __store(
     _ generator: @escaping @Sendable () async -> Test,
     into outValue: UnsafeMutableRawPointer,
     asTypeAt typeAddress: UnsafeRawPointer

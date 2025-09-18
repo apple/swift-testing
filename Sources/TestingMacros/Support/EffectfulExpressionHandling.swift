@@ -130,17 +130,6 @@ extension BidirectionalCollection<Syntax> {
 
 // MARK: - Inserting effect keywords/thunks
 
-/// Whether or not the `unsafe` expression keyword is supported.
-var isUnsafeKeywordSupported: Bool {
-  // The 'unsafe' keyword was introduced in 6.2 as part of SE-0458. Older
-  // toolchains are not aware of it.
-#if compiler(>=6.2)
-  true
-#else
-  false
-#endif
-}
-
 /// Make a function call expression to an effectful thunk function provided by
 /// the testing library.
 ///
@@ -184,8 +173,7 @@ func applyEffectfulKeywords(_ effectfulKeywords: Set<Keyword>, to expr: some Exp
 
   let needAwait = effectfulKeywords.contains(.await) && !expr.is(AwaitExprSyntax.self)
   let needTry = effectfulKeywords.contains(.try) && !expr.is(TryExprSyntax.self)
-
-  let needUnsafe = isUnsafeKeywordSupported && effectfulKeywords.contains(.unsafe) && !expr.is(UnsafeExprSyntax.self)
+  let needUnsafe = effectfulKeywords.contains(.unsafe) && !expr.is(UnsafeExprSyntax.self)
 
   // First, add thunk function calls.
   if insertThunkCalls {

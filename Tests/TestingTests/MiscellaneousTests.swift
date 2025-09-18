@@ -297,7 +297,6 @@ struct MiscellaneousTests {
     #expect(testType.displayName == "Named Sendable test type")
   }
 
-#if compiler(>=6.2) && hasFeature(RawIdentifiers)
   @Test func `Test with raw identifier gets a display name`() throws {
     let test = try #require(Test.current)
     #expect(test.displayName == "Test with raw identifier gets a display name")
@@ -320,7 +319,6 @@ struct MiscellaneousTests {
   func `Test with raw identifier and raw identifier parameter labels can compile`(`argument name` i: Int) {
     #expect(i == 0)
   }
-#endif
 
   @Test("Free functions are runnable")
   func freeFunction() async throws {

@@ -13,7 +13,7 @@ private import Testing
 public import WinSDK
 
 @_spi(Experimental)
-extension UnsafeMutablePointer: AttachableAsIWICBitmapSource where Pointee: _AttachableByAddressAsIWICBitmapSource {
+extension UnsafeMutablePointer: _AttachableAsImage, AttachableAsIWICBitmapSource where Pointee: _AttachableByAddressAsIWICBitmapSource {
   public func copyAttachableIWICBitmapSource() throws -> UnsafeMutablePointer<IWICBitmapSource> {
     let factory = try IWICImagingFactory.create()
     defer {
@@ -30,7 +30,7 @@ extension UnsafeMutablePointer: AttachableAsIWICBitmapSource where Pointee: _Att
     Pointee._copyAttachableValue(at: self)
   }
 
-  public consuming func _deinitializeAttachableValue() {
+  public func _deinitializeAttachableValue() {
     Pointee._deinitializeAttachableValue(at: self)
   }
 }

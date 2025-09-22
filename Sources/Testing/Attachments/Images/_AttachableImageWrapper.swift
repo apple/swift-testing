@@ -21,24 +21,20 @@
 /// | Windows | [`HBITMAP`](https://learn.microsoft.com/en-us/windows/win32/gdi/bitmaps), [`HICON`](https://learn.microsoft.com/en-us/windows/win32/menurc/icons), [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource) (including its subclasses declared by Windows Imaging Component) |
 /// }
 @available(_uttypesAPI, *)
-public final class _AttachableImageWrapper<Image>: Sendable {
+public final class _AttachableImageWrapper<Image>: Sendable where Image: _AttachableAsImage {
   /// The underlying image.
   private nonisolated(unsafe) let _image: Image
 
   /// The image format to use when encoding the represented image.
   package let imageFormat: AttachableImageFormat?
 
-  /// A deinitializer function to call to clean up `image`.
-  private let _deinit: @Sendable (consuming Image) -> Void
-
-  package init(image: Image, imageFormat: AttachableImageFormat?, deinitializingWith `deinit`: @escaping @Sendable (consuming Image) -> Void) {
-    self._image = image
+  init(image: Image, imageFormat: AttachableImageFormat?) {
+    self._image = image._copyAttachableValue()
     self.imageFormat = imageFormat
-    self._deinit = `deinit`
   }
 
   deinit {
-    _deinit(_image)
+    _image._deinitializeAttachableValue()
   }
 }
 

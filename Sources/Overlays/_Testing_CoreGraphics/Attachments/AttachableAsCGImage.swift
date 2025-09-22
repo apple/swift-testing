@@ -39,7 +39,7 @@ private import ImageIO
 ///   @Available(Swift, introduced: 6.3)
 /// }
 @available(_uttypesAPI, *)
-public protocol AttachableAsCGImage: SendableMetatype {
+public protocol AttachableAsCGImage: _AttachableAsImage, SendableMetatype {
   /// An instance of `CGImage` representing this image.
   ///
   /// - Throws: Any error that prevents the creation of an image.
@@ -68,22 +68,6 @@ public protocol AttachableAsCGImage: SendableMetatype {
   /// This property is not part of the public interface of the testing
   /// library. It may be removed in a future update.
   var _attachmentScaleFactor: CGFloat { get }
-
-  /// Make a copy of this instance to pass to an attachment.
-  ///
-  /// - Returns: A copy of `self`, or `self` if no copy is needed.
-  ///
-  /// The testing library uses this function to take ownership of image
-  /// resources that test authors pass to it. If possible, make a copy of or add
-  /// a reference to `self`. If this type does not support making copies, return
-  /// `self` verbatim.
-  ///
-  /// The default implementation of this function when `Self` conforms to
-  /// `Sendable` simply returns `self`.
-  ///
-  /// This function is not part of the public interface of the testing library.
-  /// It may be removed in a future update.
-  func _copyAttachableValue() -> Self
 }
 
 @available(_uttypesAPI, *)
@@ -95,6 +79,8 @@ extension AttachableAsCGImage {
   public var _attachmentScaleFactor: CGFloat {
     1.0
   }
+
+  public func _deinitializeAttachableValue() {}
 }
 
 @available(_uttypesAPI, *)

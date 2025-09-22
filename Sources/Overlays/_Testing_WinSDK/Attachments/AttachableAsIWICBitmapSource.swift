@@ -113,7 +113,7 @@ public protocol _AttachableByAddressAsIWICBitmapSource {
 /// you have an image in another format that needs to be attached to a test,
 /// first convert it to an instance of one of the types above.
 @_spi(Experimental)
-public protocol AttachableAsIWICBitmapSource: SendableMetatype {
+public protocol AttachableAsIWICBitmapSource: _AttachableAsImage, SendableMetatype {
   /// Create a WIC bitmap source representing an instance of this type.
   ///
   /// - Returns: A pointer to a new WIC bitmap source representing this image.
@@ -145,39 +145,6 @@ public protocol AttachableAsIWICBitmapSource: SendableMetatype {
   func _copyAttachableIWICBitmapSource(
     using factory: UnsafeMutablePointer<IWICImagingFactory>
   ) throws -> UnsafeMutablePointer<IWICBitmapSource>
-
-  /// Make a copy of this instance.
-  ///
-  /// - Returns: A copy of `self`, or `self` if this type does not support a
-  ///   copying operation.
-  ///
-  /// The testing library uses this function to take ownership of image
-  /// resources that test authors pass to it. If possible, make a copy of or add
-  /// a reference to `self`. If this type does not support making copies, return
-  /// `self` verbatim.
-  ///
-  /// The default implementation of this function when `Self` conforms to
-  /// `Sendable` simply returns `self`.
-  ///
-  /// This function is not part of the public interface of the testing library.
-  /// It may be removed in a future update.
-  func _copyAttachableValue() -> Self
-
-  /// Manually deinitialize any resources associated with this image.
-  ///
-  /// The implementation of this function cleans up any resources (such as
-  /// handles or COM objects) associated with this image. The testing library
-  /// automatically invokes this function as needed.
-  ///
-  /// This function is not responsible for releasing the image returned from
-  /// `_copyAttachableIWICBitmapSource(using:)`.
-  ///
-  /// The default implementation of this function when `Self` conforms to
-  /// `Sendable` does nothing.
-  ///
-  /// This function is not part of the public interface of the testing library.
-  /// It may be removed in a future update.
-  func _deinitializeAttachableValue()
 }
 
 extension AttachableAsIWICBitmapSource {
@@ -186,13 +153,5 @@ extension AttachableAsIWICBitmapSource {
   ) throws -> UnsafeMutablePointer<IWICBitmapSource> {
     try copyAttachableIWICBitmapSource()
   }
-}
-
-extension AttachableAsIWICBitmapSource where Self: Sendable {
-  public func _copyAttachableValue() -> Self {
-    self
-  }
-
-  public func _deinitializeAttachableValue() {}
 }
 #endif

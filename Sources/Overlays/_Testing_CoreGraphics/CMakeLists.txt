@@ -11,7 +11,6 @@ if(APPLE)
     Attachments/_AttachableImageWrapper+AttachableWrapper.swift
     Attachments/AttachableAsCGImage.swift
     Attachments/AttachableImageFormat+UTType.swift
-    Attachments/Attachment+AttachableAsCGImage.swift
     Attachments/CGImage+AttachableAsCGImage.swift
     ReexportTesting.swift)
 

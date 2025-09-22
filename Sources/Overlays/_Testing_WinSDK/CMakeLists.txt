@@ -11,7 +11,6 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     Attachments/_AttachableImageWrapper+AttachableWrapper.swift
     Attachments/AttachableAsIWICBitmapSource.swift
     Attachments/AttachableImageFormat+CLSID.swift
-    Attachments/Attachment+AttachableAsIWICBitmapSource.swift
     Attachments/HBITMAP+AttachableAsIWICBitmapSource.swift
     Attachments/HICON+AttachableAsIWICBitmapSource.swift
     Attachments/IWICBitmapSource+AttachableAsIWICBitmapSource.swift

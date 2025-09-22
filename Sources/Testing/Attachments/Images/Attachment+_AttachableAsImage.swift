@@ -8,9 +8,6 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
-#if SWT_TARGET_OS_APPLE && canImport(CoreGraphics)
-public import Testing
-
 @available(_uttypesAPI, *)
 extension Attachment {
   /// Initialize an instance of this type that encloses the given image.
@@ -52,12 +49,8 @@ extension Attachment {
     named preferredName: String? = nil,
     as imageFormat: AttachableImageFormat? = nil,
     sourceLocation: SourceLocation = #_sourceLocation
-  ) where T: AttachableAsCGImage, AttachableValue == _AttachableImageWrapper<T> {
-    let imageWrapper = _AttachableImageWrapper(
-      image: image._copyAttachableValue(),
-      imageFormat: imageFormat,
-      deinitializingWith: { _ in }
-    )
+  ) where AttachableValue: _AttachableImageWrapper<T> & AttachableWrapper {
+    let imageWrapper = AttachableValue(image: image, imageFormat: imageFormat)
     self.init(imageWrapper, named: preferredName, sourceLocation: sourceLocation)
   }
 
@@ -99,7 +92,7 @@ extension Attachment {
     named preferredName: String? = nil,
     as imageFormat: AttachableImageFormat? = nil,
     sourceLocation: SourceLocation = #_sourceLocation
-  ) where T: AttachableAsCGImage, AttachableValue == _AttachableImageWrapper<T> {
+  ) where AttachableValue: _AttachableImageWrapper<T> & AttachableWrapper {
     let attachment = Self(image, named: preferredName, as: imageFormat, sourceLocation: sourceLocation)
     Self.record(attachment, sourceLocation: sourceLocation)
   }
@@ -109,11 +102,10 @@ extension Attachment {
 
 @_spi(Experimental) // STOP: not part of ST-0014
 @available(_uttypesAPI, *)
-extension Attachment where AttachableValue: AttachableWrapper, AttachableValue.Wrapped: AttachableAsCGImage {
+extension Attachment where AttachableValue: AttachableWrapper, AttachableValue.Wrapped: _AttachableAsImage {
   /// The image format to use when encoding the represented image.
   @_disfavoredOverload public var imageFormat: AttachableImageFormat? {
     // FIXME: no way to express `where AttachableValue == _AttachableImageWrapper<???>` on a property (see rdar://47559973)
     (attachableValue as? _AttachableImageWrapper<AttachableValue.Wrapped>)?.imageFormat
   }
 }
-#endif

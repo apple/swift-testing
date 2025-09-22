@@ -15,46 +15,10 @@ internal let defaultPollingConfiguration = (
   pollingInterval: Duration.milliseconds(1)
 )
 
-/// A type describing an error thrown when polling fails.
-@_spi(Experimental)
-public struct PollingFailedError: Error, Sendable, Codable {
-  /// A user-specified comment describing this confirmation
-  public var comment: Comment?
-
-  /// A ``SourceContext`` indicating where and how this confirmation was called
-  @_spi(ForToolsIntegrationOnly)
-  public var sourceContext: SourceContext
-
-  /// Initialize an instance of this type with the specified details
-  ///
-  /// - Parameters:
-  ///   - comment: A user-specified comment describing this confirmation.
-  ///     Defaults to `nil`.
-  ///   - sourceContext: A ``SourceContext`` indicating where and how this
-  ///     confirmation was called.
-  public init(
-    comment: Comment? = nil,
-    sourceContext: SourceContext
-  ) {
-    self.comment = comment
-    self.sourceContext = sourceContext
-  }
-}
-
-extension PollingFailedError: CustomIssueRepresentable {
-  func customize(_ issue: consuming Issue) -> Issue {
-    if let comment {
-      issue.comments.append(comment)
-    }
-    issue.kind = .pollingConfirmationFailed
-    issue.sourceContext = sourceContext
-    return issue
-  }
-}
-
-/// A type defining when to stop polling early.
+/// A type defining when to stop polling.
 /// This also determines what happens if the duration elapses during polling.
-public enum PollingStopCondition: Sendable, Equatable {
+@_spi(Experimental)
+public enum PollingStopCondition: Sendable, Equatable, Codable {
   /// Evaluates the expression until the first time it returns true.
   /// If it does not pass once by the time the timeout is reached, then a
   /// failure will be reported.
@@ -67,6 +31,61 @@ public enum PollingStopCondition: Sendable, Equatable {
   /// If the expression does not finish evaluating before the timeout is
   /// reached, then a failure will be reported.
   case stopsPassing
+}
+
+/// A type describing why polling failed
+@_spi(Experimental)
+public enum PollingFailureReason: Sendable, Codable {
+  /// The polling failed because it was cancelled using `Task.cancel`.
+  case cancelled
+
+  /// The polling failed because the stop condition failed.
+  case stopConditionFailed(PollingStopCondition)
+}
+
+/// A type describing an error thrown when polling fails.
+@_spi(Experimental)
+public struct PollingFailedError: Error, Sendable, Codable {
+  /// A user-specified comment describing this confirmation
+  public var comment: Comment?
+
+  /// Why polling failed, either cancelled, or because the stop condition failed.
+  public var reason: PollingFailureReason
+
+  /// A ``SourceContext`` indicating where and how this confirmation was called
+  @_spi(ForToolsIntegrationOnly)
+  public var sourceContext: SourceContext
+
+  /// Initialize an instance of this type with the specified details
+  ///
+  /// - Parameters:
+  ///   - comment: A user-specified comment describing this confirmation.
+  ///     Defaults to `nil`.
+  ///   - reason: The reason why polling failed.
+  ///   - sourceContext: A ``SourceContext`` indicating where and how this
+  ///     confirmation was called.
+  init(
+    comment: Comment? = nil,
+    reason: PollingFailureReason,
+    sourceContext: SourceContext,
+  ) {
+    self.comment = comment
+    self.reason = reason
+    self.sourceContext = sourceContext
+  }
+}
+
+extension PollingFailedError: CustomIssueRepresentable {
+  func customize(_ issue: consuming Issue) -> Issue {
+    if let comment {
+      issue.comments.append(comment)
+    }
+    issue.kind = .pollingConfirmationFailed(
+      reason: reason
+    )
+    issue.sourceContext = sourceContext
+    return issue
+  }
 }
 
 /// Poll expression within the duration based on the given stop condition
@@ -229,23 +248,46 @@ private func getValueFromTrait<TraitKind, Value>(
 }
 
 extension PollingStopCondition {
+  /// The result of processing polling.
+  enum PollingProcessResult<R> {
+    /// Continue to poll.
+    case continuePolling
+    /// Polling succeeded.
+    case succeeded(R)
+    /// Polling failed.
+    case failed
+  }
   /// Process the result of a polled expression and decide whether to continue
   /// polling.
   ///
   /// - Parameters:
   ///   - expressionResult: The result of the polled expression.
+  ///   - wasLastPollingAttempt: If this was the last time we're attempting to
+  ///     poll.
   ///
-  /// - Returns: A poll result (if polling should stop), or nil (if polling
-  ///   should continue).
-  @available(_clockAPI, *)
-  fileprivate func shouldStopPolling(
-    expressionResult result: Bool
-  ) -> Bool {
+  /// - Returns: A process result. Whether to continue polling, stop because
+  ///   polling failed, or stop because polling succeeded.
+  fileprivate func process<R>(
+    expressionResult result: R?,
+    wasLastPollingAttempt: Bool
+  ) -> PollingProcessResult<R> {
     switch self {
     case .firstPass:
-      return result
+      if let result {
+        return .succeeded(result)
+      } else {
+        return .continuePolling
+      }
     case .stopsPassing:
-      return !result
+      if let result {
+        if wasLastPollingAttempt {
+          return .succeeded(result)
+        } else {
+          return .continuePolling
+        }
+      } else {
+        return .failed
+      }
     }
   }
 
@@ -344,11 +386,30 @@ private struct Poller {
 
     let iterations = max(Int(duration.seconds() / interval.seconds()), 1)
 
-    if let value = await poll(iterations: iterations, expression: body) {
+    let failureReason: PollingFailureReason
+    switch await poll(iterations: iterations, expression: body) {
+    case let .succeeded(value):
       return value
-    } else {
-      throw PollingFailedError(comment: comment, sourceContext: sourceContext)
+    case .cancelled:
+      failureReason = .cancelled
+    case .failed:
+      failureReason = .stopConditionFailed(stopCondition)
     }
+    throw PollingFailedError(
+      comment: comment,
+      reason: failureReason,
+      sourceContext: sourceContext
+    )
+  }
+
+  /// The result of polling.
+  private enum PollingResult<R> {
+    /// Polling was cancelled using `Task.Cancel`. This is treated as a failure.
+    case cancelled
+    /// The stop condition failed.
+    case failed
+    /// The stop condition passed.
+    case succeeded(R)
   }
 
   /// This function contains the logic for continuously polling an expression,
@@ -363,26 +424,27 @@ private struct Poller {
     iterations: Int,
     isolation: isolated (any Actor)? = #isolation,
     expression: @escaping () async -> sending R?
-  ) async -> R? {
-    var lastResult: R?
+  ) async -> PollingResult<R> {
     for iteration in 0..<iterations {
-      lastResult = await expression()
-      if stopCondition.shouldStopPolling(expressionResult: lastResult != nil) {
-        return lastResult
-      }
-      if iteration == (iterations - 1) {
-        // don't bother sleeping if it's the last iteration.
-        break
+      switch stopCondition.process(
+        expressionResult: await expression(),
+        wasLastPollingAttempt: iteration == (iterations - 1)
+      ) {
+      case .continuePolling: break
+      case let .succeeded(value):
+        return .succeeded(value)
+      case .failed:
+        return .failed
       }
       do {
         try await Task.sleep(for: interval)
       } catch {
         // `Task.sleep` should only throw an error if it's cancelled
         // during the sleep period.
-        return nil
+        return .cancelled
       }
     }
-    return lastResult
+    return .failed
   }
 }
 

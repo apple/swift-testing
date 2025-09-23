@@ -210,6 +210,18 @@ struct PollingConfirmationTests {
           ) { true }
         }
       }
+
+      @available(_clockAPI, *)
+      @Test("Handles extremely large polling iterations")
+      func handlesLargePollingIterations() async throws {
+        await #expect(processExitsWith: .success) {
+          try await confirmation(
+            until: .firstPass,
+            within: .seconds(Int.max),
+            pollingEvery: .nanoseconds(1)
+          ) { true }
+        }
+      }
 #endif
     }
   }

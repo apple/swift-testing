@@ -384,7 +384,11 @@ private struct Poller {
     precondition(interval > Duration.zero)
     precondition(duration > interval)
 
-    let iterations = max(Int(duration.seconds() / interval.seconds()), 1)
+    let iterations = Int(exactly:
+        max(duration.seconds() / interval.seconds(), 1).rounded()
+    ) ?? Int.max
+    // if Int(exactly:) returns nil, then that generally means the value is too
+    // large. In which case, we should fall back to Int.max.
 
     let failureReason: PollingFailureReason
     switch await poll(iterations: iterations, expression: body) {

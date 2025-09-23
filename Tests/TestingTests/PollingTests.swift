@@ -256,7 +256,7 @@ struct PollingConfirmationTests {
     }
 
     @available(_clockAPI, *)
-    @Test("if the closures starts off as true, but becomes false")
+    @Test("if the closure starts off as true, but becomes false")
     func changingFromFail() async {
       let incrementor = Incrementor()
       let issues = await runTest {
@@ -347,7 +347,7 @@ struct PollingConfirmationTests {
 
       @available(_clockAPI, *)
       @Test(
-        "When test configuration porvided, uses the test configuration",
+        "When test configuration provided, uses the test configuration",
         .pollingConfirmationDefaults(
           until: .stopsPassing,
           within: .milliseconds(10)

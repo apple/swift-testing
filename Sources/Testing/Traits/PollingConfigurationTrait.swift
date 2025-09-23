@@ -20,13 +20,15 @@ public struct PollingConfirmationConfigurationTrait: TestTrait, SuiteTrait {
   public var stopCondition: PollingStopCondition
 
   /// How long to continue polling for. If nil, this will fall back to the next
-  /// inner-most `PollingUntilStopsPassingConfigurationTrait.duration` value.
+  /// inner-most `PollingConfirmationConfigurationTrait.duration` value for this
+  /// stop condition.
   /// If no non-nil values are found, then it will use 1 second.
   public var duration: Duration?
 
   /// The minimum amount of time to wait between polling attempts. If nil, this
-  /// will fall back to earlier `PollingUntilStopsPassingConfigurationTrait.interval`
-  /// values. If no non-nil values are found, then it will use 1 millisecond.
+  /// will fall back to earlier `PollingConfirmationConfigurationTrait.interval`
+  /// values for this stop condition. If no non-nil values are found, then it
+  /// will use 1 millisecond.
   public var interval: Duration?
 
   public var isRecursive: Bool { true }
@@ -53,7 +55,7 @@ extension Trait where Self == PollingConfirmationConfigurationTrait {
   ///     This value may not correspond to the wall-clock time that polling
   ///     lasts for, especially on highly-loaded systems with a lot of tests
   ///     running.
-  ///     if nil, polling will be attempted for approximately 1 second.
+  ///     If nil, polling will be attempted for approximately 1 second.
   ///     `duration` must be greater than 0.
   ///   - interval: The minimum amount of time to wait between polling
   ///     attempts.

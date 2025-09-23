@@ -762,7 +762,7 @@ extension ExitTest {
     }
     configuration.eventHandler = { event, eventContext in
       switch event.kind {
-      case .issueRecorded, .valueAttached, .testCancelled, .testCaseCancelled:
+      case .issueRecorded, .valueAttached, .testCancelled:
         eventHandler(event, eventContext)
       default:
         // Don't forward other kinds of event.
@@ -1070,8 +1070,6 @@ extension ExitTest {
       Attachment.record(attachment, sourceLocation: event._sourceLocation!)
     } else if case .testCancelled = event.kind {
       _ = try? Test.cancel(with: skipInfo)
-    } else if case .testCaseCancelled = event.kind {
-      _ = try? Test.Case.cancel(with: skipInfo)
     }
   }
 

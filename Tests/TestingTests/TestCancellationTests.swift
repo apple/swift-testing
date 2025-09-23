@@ -60,32 +60,11 @@
     }
   }
 
-  @Test func `Cancelling a non-parameterized test via Test.Case.cancel()`() async {
-    await testCancellation(testCancelled: 1, testCaseCancelled: 1) { configuration in
-      await Test {
-        try Test.Case.cancel("Cancelled test")
-      }.run(configuration: configuration)
-    }
-  }
-
   @Test func `Cancelling a test case in a parameterized test`() async {
     await testCancellation(testCaseCancelled: 5, issueRecorded: 5) { configuration in
       await Test(arguments: 0 ..< 10) { i in
         if (i % 2) == 0 {
-          try Test.Case.cancel("\(i) is even!")
-        }
-        Issue.record("\(i) records an issue!")
-      }.run(configuration: configuration)
-    }
-  }
-
-  @Test func `Cancelling an entire parameterized test`() async {
-    await testCancellation(testCancelled: 1, testCaseCancelled: 10) { configuration in
-      // .serialized to ensure that none of the cases complete before the first
-      // one cancels the test.
-      await Test(.serialized, arguments: 0 ..< 10) { i in
-        if i == 0 {
-          try Test.cancel("\(i) cancelled the test")
+          try Test.cancel("\(i) is even!")
         }
         Issue.record("\(i) records an issue!")
       }.run(configuration: configuration)
@@ -176,18 +155,6 @@
       await Test {
         await #expect(processExitsWith: .success) {
           try Test.cancel("Cancelled test")
-        }
-        #expect(Task.isCancelled)
-        try Task.checkCancellation()
-      }.run(configuration: configuration)
-    }
-  }
-
-  @Test func `Cancelling the current test case from within an exit test`() async {
-    await testCancellation(testCancelled: 1, testCaseCancelled: 1) { configuration in
-      await Test {
-        await #expect(processExitsWith: .success) {
-          try Test.Case.cancel("Cancelled test")
         }
         #expect(Task.isCancelled)
         try Task.checkCancellation()

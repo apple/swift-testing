@@ -206,6 +206,7 @@ extension Test {
   static func withCurrent<R>(_ test: Self, perform body: () async throws -> R) async rethrows -> R {
     var runtimeState = Runner.RuntimeState.current ?? .init()
     runtimeState.test = test
+    runtimeState.testCase = nil
     return try await Runner.RuntimeState.$current.withValue(runtimeState) {
       try await test.withCancellationHandling(body)
     }

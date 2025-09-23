@@ -8,6 +8,9 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
+#if SWT_NO_IMAGE_ATTACHMENTS
+@available(*, unavailable, message: "Image attachments are not available on this platform.")
+#endif
 @available(_uttypesAPI, *)
 extension Attachment {
   /// Initialize an instance of this type that encloses the given image.
@@ -101,6 +104,9 @@ extension Attachment {
 // MARK: -
 
 @_spi(Experimental) // STOP: not part of ST-0014
+#if SWT_NO_IMAGE_ATTACHMENTS
+@available(*, unavailable, message: "Image attachments are not available on this platform.")
+#endif
 @available(_uttypesAPI, *)
 extension Attachment where AttachableValue: AttachableWrapper, AttachableValue.Wrapped: _AttachableAsImage {
   /// The image format to use when encoding the represented image.

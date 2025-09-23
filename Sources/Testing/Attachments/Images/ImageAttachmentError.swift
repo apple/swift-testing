@@ -11,6 +11,9 @@
 private import _TestingInternals
 
 /// A type representing an error that can occur when attaching an image.
+#if SWT_NO_IMAGE_ATTACHMENTS
+@available(*, unavailable, message: "Image attachments are not available on this platform.")
+#endif
 package enum ImageAttachmentError: Error {
 #if SWT_TARGET_OS_APPLE
   /// The image could not be converted to an instance of `CGImage`.
@@ -39,6 +42,9 @@ package enum ImageAttachmentError: Error {
 #endif
 }
 
+#if SWT_NO_IMAGE_ATTACHMENTS
+@available(*, unavailable, message: "Image attachments are not available on this platform.")
+#endif
 extension ImageAttachmentError: CustomStringConvertible {
   package var description: String {
 #if SWT_TARGET_OS_APPLE

@@ -71,11 +71,8 @@ public struct SourceLocation: Sendable {
   }
 
   /// The path to the source file.
-  ///
-  /// - Warning: This property is provided temporarily to aid in integrating the
-  ///   testing library with existing tools such as Swift Package Manager. It
-  ///   will be removed in a future release.
-  public var _filePath: String
+  @_spi(Experimental)
+  public var filePath: String
 
   /// The line in the source file.
   ///
@@ -118,7 +115,7 @@ public struct SourceLocation: Sendable {
     precondition(column > 0, "SourceLocation.column must be greater than 0 (was \(column))")
 
     self.fileID = fileID
-    self._filePath = filePath
+    self.filePath = filePath
     self.line = line
     self.column = column
   }
@@ -167,4 +164,56 @@ extension SourceLocation: CustomStringConvertible, CustomDebugStringConvertible 
 
 // MARK: - Codable
 
-extension SourceLocation: Codable {}
+extension SourceLocation: Codable {
+  private enum _CodingKeys: String, CodingKey {
+    case fileID
+    case filePath
+    case line
+    case column
+
+    /// A backwards-compatible synonym of ``filePath``.
+    case _filePath
+  }
+
+  public func encode(to encoder: any Encoder) throws {
+    var container = encoder.container(keyedBy: _CodingKeys.self)
+    try container.encode(fileID, forKey: .fileID)
+    try container.encode(line, forKey: .line)
+    try container.encode(column, forKey: .column)
+
+    // For backwards-compatibility, we must always encode "_filePath".
+    try container.encode(filePath, forKey: ._filePath)
+    try container.encode(filePath, forKey: .filePath)
+  }
+
+  public init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: _CodingKeys.self)
+    fileID = try container.decode(String.self, forKey: .fileID)
+    line = try container.decode(Int.self, forKey: .line)
+    column = try container.decode(Int.self, forKey: .column)
+
+    // For simplicity's sake, we won't be picky about which key contains the
+    // file path.
+    filePath = try container.decodeIfPresent(String.self, forKey: .filePath)
+      ?? container.decode(String.self, forKey: ._filePath)
+  }
+}
+
+// MARK: - Deprecated
+
+extension SourceLocation {
+  /// The path to the source file.
+  ///
+  /// - Warning: This property is provided temporarily to aid in integrating the
+  ///   testing library with existing tools such as Swift Package Manager. It
+  ///   will be removed in a future release.
+  @available(swift, deprecated: 100000.0, renamed: "filePath")
+  public var _filePath: String {
+    get {
+      filePath
+    }
+    set {
+      filePath = newValue
+    }
+  }
+}

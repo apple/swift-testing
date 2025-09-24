@@ -1175,7 +1175,6 @@ public func __checkClosureCall(
 ///
 /// - Warning: This function is used to implement the `#expect()` and
 ///   `#require()` macros. Do not call it directly.
-@_spi(Experimental)
 public func __checkClosureCall<each T>(
   identifiedBy exitTestID: (UInt64, UInt64, UInt64, UInt64),
   encodingCapturedValues capturedValues: (repeat each T),

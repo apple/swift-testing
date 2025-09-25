@@ -35,6 +35,7 @@ private import _TestingInternals
 ///   @Available(Xcode, introduced: 26.0)
 /// }
 #if SWT_NO_EXIT_TESTS
+@_unavailableInEmbedded
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #endif
 public struct ExitTest: Sendable, ~Copyable {

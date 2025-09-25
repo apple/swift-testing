@@ -11,6 +11,7 @@
 private import _TestingInternals
 
 #if SWT_NO_EXIT_TESTS
+@_unavailableInEmbedded
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #endif
 extension ExitTest {
@@ -58,6 +59,7 @@ extension ExitTest {
 // MARK: -
 
 #if SWT_NO_EXIT_TESTS
+@_unavailableInEmbedded
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #endif
 extension ExitTest.Condition {
@@ -177,6 +179,7 @@ extension ExitTest.Condition {
 // MARK: - CustomStringConvertible
 
 #if SWT_NO_EXIT_TESTS
+@_unavailableInEmbedded
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #endif
 extension ExitTest.Condition: CustomStringConvertible {
@@ -199,6 +202,7 @@ extension ExitTest.Condition: CustomStringConvertible {
 // MARK: - Comparison
 
 #if SWT_NO_EXIT_TESTS
+@_unavailableInEmbedded
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #endif
 extension ExitTest.Condition {

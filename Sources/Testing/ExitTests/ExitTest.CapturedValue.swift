@@ -12,6 +12,7 @@ private import _TestingInternals
 
 @_spi(ForToolsIntegrationOnly)
 #if SWT_NO_EXIT_TESTS
+@_unavailableInEmbedded
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #endif
 extension ExitTest {

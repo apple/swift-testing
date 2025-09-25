@@ -556,7 +556,7 @@ extension Test {
 ///
 /// - Warning: This function is used to implement the `@Test` macro. Do not use
 ///   it directly.
-@unsafe @inlinable public func __requiringUnsafe<T>(_ value: consuming T) throws -> T where T: ~Copyable {
+@unsafe @inlinable public func __requiringUnsafe<T>(_ value: consuming T) -> T where T: ~Copyable {
   value
 }
 

@@ -285,7 +285,7 @@ struct SwiftPMTests {
   @Test("Unsupported ABI version")
   func unsupportedABIVersion() async throws {
     let versionNumber = VersionNumber(-100, 0)
-    let versionTypeInfo = ABI.version(forVersionNumber: versionNumber).map(TypeInfo.init(describing:))
+    let versionTypeInfo = ABI.version(forVersionNumber: versionNumber).map {TypeInfo(describing: $0) }
     #expect(versionTypeInfo == nil)
   }
 
@@ -294,7 +294,7 @@ struct SwiftPMTests {
     #expect(swiftCompilerVersion >= VersionNumber(6, 0))
     #expect(swiftCompilerVersion < VersionNumber(8, 0), "Swift 8.0 is here! Please update this test.")
     let versionNumber = VersionNumber(8, 0)
-    let versionTypeInfo = ABI.version(forVersionNumber: versionNumber).map(TypeInfo.init(describing:))
+    let versionTypeInfo = ABI.version(forVersionNumber: versionNumber).map {TypeInfo(describing: $0) }
     #expect(versionTypeInfo == nil)
   }
 

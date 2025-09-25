@@ -157,16 +157,16 @@ extension Test {
   ///
   /// - Warning: This function is used to implement the `@Test` macro. Do not
   ///   call it directly.
-  public static func __function(
+  public static func __function<S>(
     named testFunctionName: String,
-    in containingType: (any ~Copyable.Type)?,
+    in containingType: S.Type?,
     xcTestCompatibleSelector: __XCTestCompatibleSelector?,
     displayName: String? = nil,
     traits: [any TestTrait],
     sourceLocation: SourceLocation,
     parameters: [__Parameter] = [],
     testFunction: @escaping @Sendable () async throws -> Void
-  ) -> Self {
+  ) -> Self where S: ~Copyable {
     // Don't use Optional.map here due to a miscompile/crash. Expand out to an
     // if expression instead. SEE: rdar://134280902
     let containingTypeInfo: TypeInfo? = if let containingType {
@@ -241,9 +241,9 @@ extension Test {
   ///
   /// - Warning: This function is used to implement the `@Test` macro. Do not
   ///   call it directly.
-  public static func __function<C>(
+  public static func __function<S, C>(
     named testFunctionName: String,
-    in containingType: (any ~Copyable.Type)?,
+    in containingType: S.Type?,
     xcTestCompatibleSelector: __XCTestCompatibleSelector?,
     displayName: String? = nil,
     traits: [any TestTrait],
@@ -251,7 +251,7 @@ extension Test {
     sourceLocation: SourceLocation,
     parameters paramTuples: [__Parameter],
     testFunction: @escaping @Sendable (C.Element) async throws -> Void
-  ) -> Self where C: Collection & Sendable, C.Element: Sendable {
+  ) -> Self where S: ~Copyable, C: Collection & Sendable, C.Element: Sendable {
     let containingTypeInfo: TypeInfo? = if let containingType {
       TypeInfo(describing: containingType)
     } else {
@@ -388,9 +388,9 @@ extension Test {
   ///
   /// - Warning: This function is used to implement the `@Test` macro. Do not
   ///   call it directly.
-  public static func __function<C1, C2>(
+  public static func __function<S, C1, C2>(
     named testFunctionName: String,
-    in containingType: (any ~Copyable.Type)?,
+    in containingType: S.Type?,
     xcTestCompatibleSelector: __XCTestCompatibleSelector?,
     displayName: String? = nil,
     traits: [any TestTrait],
@@ -398,7 +398,7 @@ extension Test {
     sourceLocation: SourceLocation,
     parameters paramTuples: [__Parameter],
     testFunction: @escaping @Sendable (C1.Element, C2.Element) async throws -> Void
-  ) -> Self where C1: Collection & Sendable, C1.Element: Sendable, C2: Collection & Sendable, C2.Element: Sendable {
+  ) -> Self where S: ~Copyable, C1: Collection & Sendable, C1.Element: Sendable, C2: Collection & Sendable, C2.Element: Sendable {
     let containingTypeInfo: TypeInfo? = if let containingType {
       TypeInfo(describing: containingType)
     } else {
@@ -416,9 +416,9 @@ extension Test {
   ///
   /// - Warning: This function is used to implement the `@Test` macro. Do not
   ///   call it directly.
-  public static func __function<C, E1, E2>(
+  public static func __function<S, C, E1, E2>(
     named testFunctionName: String,
-    in containingType: (any ~Copyable.Type)?,
+    in containingType: S.Type?,
     xcTestCompatibleSelector: __XCTestCompatibleSelector?,
     displayName: String? = nil,
     traits: [any TestTrait],
@@ -426,7 +426,7 @@ extension Test {
     sourceLocation: SourceLocation,
     parameters paramTuples: [__Parameter],
     testFunction: @escaping @Sendable ((E1, E2)) async throws -> Void
-  ) -> Self where C: Collection & Sendable, C.Element == (E1, E2), E1: Sendable, E2: Sendable {
+  ) -> Self where S: ~Copyable, C: Collection & Sendable, C.Element == (E1, E2), E1: Sendable, E2: Sendable {
     let containingTypeInfo: TypeInfo? = if let containingType {
       TypeInfo(describing: containingType)
     } else {
@@ -447,9 +447,9 @@ extension Test {
   ///
   /// - Warning: This function is used to implement the `@Test` macro. Do not
   ///   call it directly.
-  public static func __function<Key, Value>(
+  public static func __function<S, Key, Value>(
     named testFunctionName: String,
-    in containingType: (any ~Copyable.Type)?,
+    in containingType: S.Type?,
     xcTestCompatibleSelector: __XCTestCompatibleSelector?,
     displayName: String? = nil,
     traits: [any TestTrait],
@@ -457,7 +457,7 @@ extension Test {
     sourceLocation: SourceLocation,
     parameters paramTuples: [__Parameter],
     testFunction: @escaping @Sendable ((Key, Value)) async throws -> Void
-  ) -> Self where Key: Sendable, Value: Sendable {
+  ) -> Self where S: ~Copyable, Key: Sendable, Value: Sendable {
     let containingTypeInfo: TypeInfo? = if let containingType {
       TypeInfo(describing: containingType)
     } else {
@@ -472,9 +472,9 @@ extension Test {
   ///
   /// - Warning: This function is used to implement the `@Test` macro. Do not
   ///   call it directly.
-  public static func __function<C1, C2>(
+  public static func __function<S, C1, C2>(
     named testFunctionName: String,
-    in containingType: (any ~Copyable.Type)?,
+    in containingType: S.Type?,
     xcTestCompatibleSelector: __XCTestCompatibleSelector?,
     displayName: String? = nil,
     traits: [any TestTrait],
@@ -482,7 +482,7 @@ extension Test {
     sourceLocation: SourceLocation,
     parameters paramTuples: [__Parameter],
     testFunction: @escaping @Sendable (C1.Element, C2.Element) async throws -> Void
-  ) -> Self where C1: Collection & Sendable, C1.Element: Sendable, C2: Collection & Sendable, C2.Element: Sendable {
+  ) -> Self where S: ~Copyable, C1: Collection & Sendable, C1.Element: Sendable, C2: Collection & Sendable, C2.Element: Sendable {
     let containingTypeInfo: TypeInfo? = if let containingType {
       TypeInfo(describing: containingType)
     } else {

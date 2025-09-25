@@ -382,7 +382,7 @@ public struct TestDeclarationMacro: PeerMacro, Sendable {
 
     // Get the name of the type containing the function for passing to the test
     // factory function later.
-    let typeNameExpr: ExprSyntax = typeName.map { "\($0).self" } ?? "nil"
+    let typeNameExpr: ExprSyntax = typeName.map { "\($0).self" } ?? "nil as Swift.Never.Type?"
 
     if typeName != nil, let genericGuardDecl = makeGenericGuardDecl(guardingAgainst: functionDecl, in: context) {
       result.append(genericGuardDecl)

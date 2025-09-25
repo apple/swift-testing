@@ -119,6 +119,7 @@ extension Backtrace: Codable {
 // MARK: - Backtraces for thrown errors
 
 extension Backtrace {
+#if !hasFeature(Embedded)
   // MARK: - Error cache keys
 
   /// A type used as a cache key that uniquely identifies error existential
@@ -321,6 +322,7 @@ extension Backtrace {
     }
     forward(errorType)
   }
+#endif
 
   /// Whether or not Foundation provides a function that triggers the capture of
   /// backtaces when instances of `NSError` or `CFError` are created.
@@ -336,7 +338,7 @@ extension Backtrace {
   /// - Note: The underlying Foundation function is called (if present) the
   ///   first time the value of this property is read.
   static let isFoundationCaptureEnabled = {
-#if _runtime(_ObjC) && !SWT_NO_DYNAMIC_LINKING
+#if !hasFeature(Embedded) && _runtime(_ObjC) && !SWT_NO_DYNAMIC_LINKING
     if Environment.flag(named: "SWT_FOUNDATION_ERROR_BACKTRACING_ENABLED") == true {
       let _CFErrorSetCallStackCaptureEnabled = symbol(named: "_CFErrorSetCallStackCaptureEnabled").map {
         castCFunction(at: $0, to: (@convention(c) (DarwinBoolean) -> DarwinBoolean).self)
@@ -348,6 +350,7 @@ extension Backtrace {
     return false
   }()
 
+#if !hasFeature(Embedded)
   /// The implementation of ``Backtrace/startCachingForThrownErrors()``, run
   /// only once.
   ///
@@ -373,6 +376,7 @@ extension Backtrace {
       }
     }
   }()
+#endif
 
   /// Configure the Swift runtime to allow capturing backtraces when errors are
   /// thrown.
@@ -381,7 +385,9 @@ extension Backtrace {
   /// developer-supplied code to ensure that thrown errors' backtraces are
   /// always captured.
   static func startCachingForThrownErrors() {
+#if !hasFeature(Embedded)
     __SWIFT_TESTING_IS_CAPTURING_A_BACKTRACE_FOR_A_THROWN_ERROR__
+#endif
   }
 
   /// Flush stale entries from the error-mapping cache.
@@ -389,9 +395,11 @@ extension Backtrace {
   /// Call this function periodically to ensure that errors do not continue to
   /// take up space in the cache after they have been deinitialized.
   static func flushThrownErrorCache() {
+#if !hasFeature(Embedded)
     _errorMappingCache.withLock { cache in
       cache = cache.filter { $0.value.errorObject != nil }
     }
+#endif
   }
 
   /// Initialize an instance of this type with the previously-cached backtrace
@@ -411,6 +419,7 @@ extension Backtrace {
   ///   initializer cannot be made an instance method or property of `Error`
   ///   because doing so will cause Swift-native errors to be unboxed into
   ///   existential containers with different addresses.
+#if !hasFeature(Embedded)
   @inline(never)
   init?(forFirstThrowOf error: any Error, checkFoundation: Bool = true) {
     if checkFoundation && Self.isFoundationCaptureEnabled,
@@ -430,4 +439,9 @@ extension Backtrace {
       return nil
     }
   }
+#else
+  init?(forFirstThrowOf error: some Error, checkFoundation: Bool = true) {
+    return nil
+  }
+#endif
 }

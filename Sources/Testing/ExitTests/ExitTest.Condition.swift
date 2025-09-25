@@ -176,7 +176,6 @@ extension ExitTest.Condition {
 
 // MARK: - CustomStringConvertible
 
-@_spi(Experimental)
 #if SWT_NO_EXIT_TESTS
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #endif

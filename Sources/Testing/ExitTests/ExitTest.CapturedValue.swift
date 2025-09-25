@@ -10,7 +10,7 @@
 
 private import _TestingInternals
 
-@_spi(Experimental) @_spi(ForToolsIntegrationOnly)
+@_spi(ForToolsIntegrationOnly)
 #if SWT_NO_EXIT_TESTS
 @available(*, unavailable, message: "Exit tests are not available on this platform.")
 #endif

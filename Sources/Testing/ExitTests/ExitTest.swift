@@ -128,7 +128,7 @@ public struct ExitTest: Sendable, ~Copyable {
   ///
   /// The order of values in this array must be the same between the parent and
   /// child processes.
-  @_spi(Experimental) @_spi(ForToolsIntegrationOnly)
+  @_spi(ForToolsIntegrationOnly)
   public var capturedValues = [CapturedValue]()
 
   /// Make a copy of this instance.

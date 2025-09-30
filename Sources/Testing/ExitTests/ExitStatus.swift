@@ -121,6 +121,7 @@ extension ExitStatus: CustomStringConvertible {
       var signalName: String?
 
 #if SWT_TARGET_OS_APPLE || os(FreeBSD) || os(OpenBSD) || os(Android)
+#if !SWT_NO_SYS_SIGNAME
       // These platforms define sys_signame with a size, which is imported
       // into Swift as a tuple.
       withUnsafeBytes(of: sys_signame) { sys_signame in
@@ -130,6 +131,7 @@ extension ExitStatus: CustomStringConvertible {
           }
         }
       }
+#endif
 #elseif os(Linux)
 #if !SWT_NO_DYNAMIC_LINKING
       signalName = _sigabbrev_np?(signal).flatMap(String.init(validatingCString:))

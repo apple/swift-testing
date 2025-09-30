@@ -324,6 +324,24 @@ extension Backtrace {
   }
 #endif
 
+#if !hasFeature(Embedded) && SWT_TARGET_OS_APPLE && !SWT_NO_DYNAMIC_LINKING
+  /// A function provided by Core Foundation that copies the captured backtrace
+  /// from storage inside `CFError` or `NSError`.
+  ///
+  /// - Parameters:
+  ///   - error: The error whose backtrace is desired.
+  ///
+  /// - Returns: The backtrace (as an instance of `NSArray`) captured by `error`
+  ///   when it was created, or `nil` if none was captured. The caller is
+  ///   responsible for releasing this object when done.
+  ///
+  /// This function was added in an internal Foundation PR and is not available
+  /// on older systems.
+  private static let _CFErrorCopyCallStackReturnAddresses = symbol(named: "_CFErrorCopyCallStackReturnAddresses").map {
+    castCFunction(at: $0, to: (@convention(c) (_ error: any Error) -> Unmanaged<AnyObject>?).self)
+  }
+#endif
+
   /// Whether or not Foundation provides a function that triggers the capture of
   /// backtaces when instances of `NSError` or `CFError` are created.
   ///
@@ -339,7 +357,11 @@ extension Backtrace {
   ///   first time the value of this property is read.
   static let isFoundationCaptureEnabled = {
 #if !hasFeature(Embedded) && _runtime(_ObjC) && !SWT_NO_DYNAMIC_LINKING
-    if Environment.flag(named: "SWT_FOUNDATION_ERROR_BACKTRACING_ENABLED") == true {
+    // Check the environment variable; if it isn't set, enable if and only if
+    // the Core Foundation getter function is implemented.
+    let foundationBacktracesEnabled = Environment.flag(named: "SWT_FOUNDATION_ERROR_BACKTRACING_ENABLED")
+      ?? (_CFErrorCopyCallStackReturnAddresses != nil)
+    if foundationBacktracesEnabled {
       let _CFErrorSetCallStackCaptureEnabled = symbol(named: "_CFErrorSetCallStackCaptureEnabled").map {
         castCFunction(at: $0, to: (@convention(c) (DarwinBoolean) -> DarwinBoolean).self)
       }
@@ -422,11 +444,19 @@ extension Backtrace {
 #if !hasFeature(Embedded)
   @inline(never)
   init?(forFirstThrowOf error: any Error, checkFoundation: Bool = true) {
-    if checkFoundation && Self.isFoundationCaptureEnabled,
-       let userInfo = error._userInfo as? [String: Any],
-       let addresses = userInfo["NSCallStackReturnAddresses"] as? [Address], !addresses.isEmpty {
-      self.init(addresses: addresses)
-      return
+    if checkFoundation && Self.isFoundationCaptureEnabled {
+#if !hasFeature(Embedded) && SWT_TARGET_OS_APPLE && !SWT_NO_DYNAMIC_LINKING
+      if let addresses = Self._CFErrorCopyCallStackReturnAddresses?(error)?.takeRetainedValue() as? [Address] {
+        self.init(addresses: addresses)
+        return
+      }
+#endif
+
+      if let userInfo = error._userInfo as? [String: Any],
+         let addresses = userInfo["NSCallStackReturnAddresses"] as? [Address], !addresses.isEmpty {
+        self.init(addresses: addresses)
+        return
+      }
     }
 
     let entry = Self._errorMappingCache.withLock { cache in

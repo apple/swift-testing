@@ -819,6 +819,29 @@ final class RunnerTests: XCTestCase {
     await fulfillment(of: [testStarted], timeout: 0.0)
   }
 
+  @Suite(.hidden) struct UnavailableInEmbeddedTests {
+    @Test(.hidden)
+    @_unavailableInEmbedded
+    func embedded() {}
+  }
+
+  func testUnavailableInEmbeddedAttribute() async throws {
+    let testStarted = expectation(description: "Test started")
+#if !hasFeature(Embedded)
+    testStarted.expectedFulfillmentCount = 3
+#else
+    testStarted.isInverted = true
+#endif
+    var configuration = Configuration()
+    configuration.eventHandler = { event, _ in
+      if case .testStarted = event.kind {
+        testStarted.fulfill()
+      }
+    }
+    await runTest(for: UnavailableInEmbeddedTests.self, configuration: configuration)
+    await fulfillment(of: [testStarted], timeout: 0.0)
+  }
+
 #if !SWT_NO_GLOBAL_ACTORS
   @TaskLocal static var isMainActorIsolationEnforced = false
 

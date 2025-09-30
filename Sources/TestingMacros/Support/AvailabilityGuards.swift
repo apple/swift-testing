@@ -169,6 +169,11 @@ func createAvailabilityTraitExprs(
     _createAvailabilityTraitExpr(from: availability, when: .obsoleted, in: context)
   }
 
+  if let attribute = decl.unavailableInEmbeddedAttribute {
+    let sourceLocationExpr = createSourceLocationExpr(of: attribute, context: context)
+    result += [".__unavailableInEmbedded(sourceLocation: \(sourceLocationExpr))"]
+  }
+
   return result
 }
 
@@ -288,6 +293,17 @@ func createSyntaxNode(
       #endif
       """
     }
+  }
+
+  // Handle Embedded Swift.
+  if decl.unavailableInEmbeddedAttribute != nil {
+    result = """
+      #if !hasFeature(Embedded)
+      \(result)
+      #else
+      \(exitStatement)
+      #endif
+      """
   }
 
   return result

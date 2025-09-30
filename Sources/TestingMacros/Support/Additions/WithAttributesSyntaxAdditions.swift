@@ -105,13 +105,13 @@ extension WithAttributesSyntax {
   /// The first `@available(*, noasync)` or `@_unavailableFromAsync` attribute
   /// on this instance, if any.
   var noasyncAttribute: AttributeSyntax? {
-    availability(when: .noasync).first?.attribute ?? attributes.lazy
-      .compactMap { attribute in
-        if case let .attribute(attribute) = attribute {
-          return attribute
-        }
-        return nil
-      }.first { $0.attributeNameText == "_unavailableFromAsync" }
+    availability(when: .noasync).first?.attribute
+      ?? attributes(named: "_unavailableFromAsync", inModuleNamed: "Swift").first
+  }
+
+  /// The first `@_unavailableInEmbedded` attribute on this instance, if any.
+  var unavailableInEmbeddedAttribute: AttributeSyntax? {
+    attributes(named: "_unavailableInEmbedded", inModuleNamed: "Swift").first
   }
 
   /// Find all attributes on this node, if any, with the given name.

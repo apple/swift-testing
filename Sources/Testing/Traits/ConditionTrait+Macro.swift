@@ -124,4 +124,27 @@ extension Trait where Self == ConditionTrait {
       sourceLocation: sourceLocation
     )
   }
+
+  /// Create a trait controlling availability of a test based on an
+  /// `@_unavailableInEmbedded` attribute applied to it.
+  ///
+  /// - Parameters:
+  ///   - sourceLocation: The source location of the test.
+  ///
+  /// - Returns: A trait.
+  ///
+  /// - Warning: This function is used to implement the `@Test` macro. Do not
+  ///   call it directly.
+  public static func __unavailableInEmbedded(sourceLocation: SourceLocation) -> Self {
+#if hasFeature(Embedded)
+    let isEmbedded = true
+#else
+    let isEmbedded = false
+#endif
+    return Self(
+      kind: .unconditional(!isEmbedded),
+      comments: ["Marked @_unavailableInEmbedded"],
+      sourceLocation: sourceLocation
+    )
+  }
 }

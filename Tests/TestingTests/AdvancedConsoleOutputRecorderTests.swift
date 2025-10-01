@@ -8,7 +8,9 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
+#if canImport(Foundation)
 @testable @_spi(Experimental) @_spi(ForToolsIntegrationOnly) import Testing
+import Foundation
 
 @Suite("Advanced Console Output Recorder Tests")
 struct AdvancedConsoleOutputRecorderTests {
@@ -237,3 +239,4 @@ struct SimpleTestSuite {
     #expect(Bool(true))
   }
 } 
+#endif

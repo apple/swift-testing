@@ -361,7 +361,7 @@ extension Event.HumanReadableOutputRecorder {
           comments.append("Swift Standard Library Version: \(swiftStandardLibraryVersion)")
         }
         comments.append("Swift Compiler Version: \(swiftCompilerVersion)")
-#if canImport(Glibc) && !os(FreeBSD) && !os(OpenBSD)
+#if os(Linux) && canImport(Glibc)
         comments.append("GNU C Library Version: \(glibcVersion)")
 #endif
       }

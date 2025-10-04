@@ -198,7 +198,7 @@ var swiftCompilerVersion: VersionNumber {
   )
 }
 
-#if canImport(Glibc) && !os(FreeBSD) && !os(OpenBSD)
+#if os(Linux) && canImport(Glibc)
 /// The (runtime, not compile-time) version of glibc in use on this system.
 ///
 /// This value is not part of the public interface of the testing library.

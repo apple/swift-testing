@@ -67,12 +67,12 @@ struct ABIEntryPointTests {
     passing arguments: __CommandLineArguments_v0,
     recordHandler: @escaping @Sendable (_ recordJSON: UnsafeRawBufferPointer) -> Void = { _ in }
   ) async throws -> Bool {
-#if !os(Linux) && !os(FreeBSD) && !os(Android) && !SWT_NO_DYNAMIC_LINKING
+#if !(os(Linux) || os(FreeBSD) || os(OpenBSD) || os(Android)) && !SWT_NO_DYNAMIC_LINKING
     // Get the ABI entry point by dynamically looking it up at runtime.
     //
-    // NOTE: The standard Linux linker does not allow exporting symbols from
-    // executables, so dlsym() does not let us find this function on that
-    // platform when built as an executable rather than a dynamic library.
+    // NOTE: The standard linkers on these platforms do not export symbols from
+    // executables, so dlsym() does not let us find this function on these
+    // platforms when built as an executable rather than a dynamic library.
     let abiv0_getEntryPoint = try withTestingLibraryImageAddress { testingLibrary in
       try #require(
         symbol(in: testingLibrary, named: "swt_abiv0_getEntryPoint").map {
@@ -187,8 +187,9 @@ private func withTestingLibraryImageAddress<R>(_ body: (ImageAddress?) throws ->
   defer {
     dlclose(testingLibraryAddress)
   }
-#elseif os(Linux) || os(FreeBSD) || os(Android)
-  // When using glibc, dladdr() is only available if __USE_GNU is specified.
+#elseif os(Linux) || os(FreeBSD) || os(OpenBSD) || os(Android)
+  // We can't dynamically look up a function linked into the test executable on
+  // ELF-based platforms.
 #elseif os(Windows)
   let flags = DWORD(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS)
   try addressInTestingLibrary.withMemoryRebound(to: wchar_t.self, capacity: MemoryLayout<UnsafeRawPointer>.stride / MemoryLayout<wchar_t>.stride) { addressInTestingLibrary in

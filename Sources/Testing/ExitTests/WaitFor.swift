@@ -85,11 +85,7 @@ private let _childProcessContinuations = LockedWith<pthread_mutex_t, [pid_t: Che
 /// A condition variable used to suspend the waiter thread created by
 /// `_createWaitThread()` when there are no child processes to await.
 private nonisolated(unsafe) let _waitThreadNoChildrenCondition = {
-#if os(FreeBSD) || os(OpenBSD)
-  let result = UnsafeMutablePointer<pthread_cond_t?>.allocate(capacity: 1)
-#else
   let result = UnsafeMutablePointer<pthread_cond_t>.allocate(capacity: 1)
-#endif
   _ = pthread_cond_init(result, nil)
   return result
 }()

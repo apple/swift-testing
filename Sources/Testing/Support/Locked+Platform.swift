@@ -39,9 +39,10 @@ extension os_unfair_lock_s: Lockable {
 
 #if os(FreeBSD) || os(OpenBSD)
 typealias pthread_mutex_t = _TestingInternals.pthread_mutex_t?
+typealias pthread_cond_t = _TestingInternals.pthread_cond_t?
 #endif
 
-#if SWT_TARGET_OS_APPLE || os(Linux) || os(Android) || (os(WASI) && _runtime(_multithreaded)) || os(FreeBSD) || os(OpenBSD)
+#if SWT_TARGET_OS_APPLE || os(Linux) || os(FreeBSD) || os(OpenBSD) || os(Android) || (os(WASI) && _runtime(_multithreaded))
 extension pthread_mutex_t: Lockable {
   static func initializeLock(at lock: UnsafeMutablePointer<Self>) {
     _ = pthread_mutex_init(lock, nil)
@@ -83,7 +84,7 @@ extension SRWLOCK: Lockable {
 
 #if SWT_TARGET_OS_APPLE && !SWT_NO_OS_UNFAIR_LOCK
 typealias DefaultLock = os_unfair_lock
-#elseif SWT_TARGET_OS_APPLE || os(Linux) || os(Android) || (os(WASI) && _runtime(_multithreaded)) || os(FreeBSD) || os(OpenBSD)
+#elseif SWT_TARGET_OS_APPLE || os(Linux) || os(FreeBSD) || os(OpenBSD) || os(Android) || (os(WASI) && _runtime(_multithreaded))
 typealias DefaultLock = pthread_mutex_t
 #elseif os(Windows)
 typealias DefaultLock = SRWLOCK

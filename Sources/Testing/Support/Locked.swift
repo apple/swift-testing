@@ -8,7 +8,7 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
-private import _TestingInternals
+internal import _TestingInternals
 private import Synchronization
 
 /// A type that wraps a value requiring access from a synchronous caller during

@@ -8,38 +8,8 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
-internal import _TestingInternals
-
-/// A protocol defining a type, generally platform-specific, that satisfies the
-/// requirements of a lock or mutex.
-protocol Lockable {
-  /// Initialize the lock at the given address.
-  ///
-  /// - Parameters:
-  ///   - lock: A pointer to uninitialized memory that should be initialized as
-  ///     an instance of this type.
-  static func initializeLock(at lock: UnsafeMutablePointer<Self>)
-
-  /// Deinitialize the lock at the given address.
-  ///
-  /// - Parameters:
-  ///   - lock: A pointer to initialized memory that should be deinitialized.
-  static func deinitializeLock(at lock: UnsafeMutablePointer<Self>)
-
-  /// Acquire the lock at the given address.
-  ///
-  /// - Parameters:
-  ///   - lock: The address of the lock to acquire.
-  static func unsafelyAcquireLock(at lock: UnsafeMutablePointer<Self>)
-
-  /// Relinquish the lock at the given address.
-  ///
-  /// - Parameters:
-  ///   - lock: The address of the lock to relinquish.
-  static func unsafelyRelinquishLock(at lock: UnsafeMutablePointer<Self>)
-}
-
-// MARK: -
+private import _TestingInternals
+private import Synchronization
 
 /// A type that wraps a value requiring access from a synchronous caller during
 /// concurrent execution.
@@ -52,30 +22,48 @@ protocol Lockable {
 /// concurrency tools.
 ///
 /// This type is not part of the public interface of the testing library.
-struct LockedWith<L, T>: RawRepresentable where L: Lockable {
-  /// A type providing heap-allocated storage for an instance of ``Locked``.
-  private final class _Storage: ManagedBuffer<T, L> {
-    deinit {
-      withUnsafeMutablePointerToElements { lock in
-        L.deinitializeLock(at: lock)
-      }
+struct Locked<T> {
+  /// A type providing storage for the underlying lock and wrapped value.
+#if SWT_TARGET_OS_APPLE && canImport(os)
+  private typealias _Storage = ManagedBuffer<T, os_unfair_lock_s>
+#else
+  private final class _Storage {
+    let mutex: Mutex<T>
+
+    init(_ rawValue: consuming sending T) {
+      mutex = Mutex(rawValue)
     }
   }
+#endif
 
   /// Storage for the underlying lock and wrapped value.
-  private nonisolated(unsafe) var _storage: ManagedBuffer<T, L>
+  private nonisolated(unsafe) var _storage: _Storage
+}
 
+extension Locked: Sendable where T: Sendable {}
+
+extension Locked: RawRepresentable {
   init(rawValue: T) {
-    _storage = _Storage.create(minimumCapacity: 1, makingHeaderWith: { _ in rawValue })
+#if SWT_TARGET_OS_APPLE && canImport(os)
+    _storage = .create(minimumCapacity: 1, makingHeaderWith: { _ in rawValue })
     _storage.withUnsafeMutablePointerToElements { lock in
-      L.initializeLock(at: lock)
+      lock.initialize(to: .init())
     }
+#else
+    nonisolated(unsafe) let rawValue = rawValue
+    _storage = _Storage(rawValue)
+#endif
   }
 
   var rawValue: T {
-    withLock { $0 }
+    withLock { rawValue in
+      nonisolated(unsafe) let rawValue = rawValue
+      return rawValue
+    }
   }
+}
 
+extension Locked {
   /// Acquire the lock and invoke a function while it is held.
   ///
   /// - Parameters:
@@ -88,55 +76,27 @@ struct LockedWith<L, T>: RawRepresentable where L: Lockable {
   /// This function can be used to synchronize access to shared data from a
   /// synchronous caller. Wherever possible, use actor isolation or other Swift
   /// concurrency tools.
-  nonmutating func withLock<R>(_ body: (inout T) throws -> R) rethrows -> R where R: ~Copyable {
-    try _storage.withUnsafeMutablePointers { rawValue, lock in
-      L.unsafelyAcquireLock(at: lock)
+  func withLock<R>(_ body: (inout T) throws -> sending R) rethrows -> sending R where R: ~Copyable {
+#if SWT_TARGET_OS_APPLE && canImport(os)
+    nonisolated(unsafe) let result = try _storage.withUnsafeMutablePointers { rawValue, lock in
+      os_unfair_lock_lock(lock)
       defer {
-        L.unsafelyRelinquishLock(at: lock)
+        os_unfair_lock_unlock(lock)
       }
       return try body(&rawValue.pointee)
     }
-  }
-
-  /// Acquire the lock and invoke a function while it is held, yielding both the
-  /// protected value and a reference to the underlying lock guarding it.
-  ///
-  /// - Parameters:
-  ///   - body: A closure to invoke while the lock is held.
-  ///
-  /// - Returns: Whatever is returned by `body`.
-  ///
-  /// - Throws: Whatever is thrown by `body`.
-  ///
-  /// This function is equivalent to ``withLock(_:)`` except that the closure
-  /// passed to it also takes a reference to the underlying lock guarding this
-  /// instance's wrapped value. This function can be used when platform-specific
-  /// functionality such as a `pthread_cond_t` is needed. Because the caller has
-  /// direct access to the lock and is able to unlock and re-lock it, it is
-  /// unsafe to modify the protected value.
-  ///
-  /// - Warning: Callers that unlock the lock _must_ lock it again before the
-  ///   closure returns. If the lock is not acquired when `body` returns, the
-  ///   effect is undefined.
-  nonmutating func withUnsafeUnderlyingLock<R>(_ body: (UnsafeMutablePointer<L>, T) throws -> R) rethrows -> R where R: ~Copyable {
-    try withLock { value in
-      try _storage.withUnsafeMutablePointerToElements { lock in
-        try body(lock, value)
-      }
+    return result
+#else
+    try _storage.mutex.withLock { rawValue in
+      try body(&rawValue)
     }
+#endif
   }
 }
 
-extension LockedWith: Sendable where T: Sendable {}
-
-/// A type that wraps a value requiring access from a synchronous caller during
-/// concurrent execution and which uses the default platform-specific lock type
-/// for the current platform.
-typealias Locked<T> = LockedWith<DefaultLock, T>
-
 // MARK: - Additions
 
-extension LockedWith where T: AdditiveArithmetic {
+extension Locked where T: AdditiveArithmetic & Sendable {
   /// Add something to the current wrapped value of this instance.
   ///
   /// - Parameters:
@@ -152,7 +112,7 @@ extension LockedWith where T: AdditiveArithmetic {
   }
 }
 
-extension LockedWith where T: Numeric {
+extension Locked where T: Numeric & Sendable {
   /// Increment the current wrapped value of this instance.
   ///
   /// - Returns: The sum of ``rawValue`` and `1`.
@@ -172,7 +132,7 @@ extension LockedWith where T: Numeric {
   }
 }
 
-extension LockedWith {
+extension Locked {
   /// Initialize an instance of this type with a raw value of `nil`.
   init<V>() where T == V? {
     self.init(rawValue: nil)
@@ -188,3 +148,10 @@ extension LockedWith {
     self.init(rawValue: [])
   }
 }
+
+// MARK: - POSIX conveniences
+
+#if os(FreeBSD) || os(OpenBSD)
+typealias pthread_mutex_t = _TestingInternals.pthread_mutex_t?
+typealias pthread_cond_t = _TestingInternals.pthread_cond_t?
+#endif

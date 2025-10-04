@@ -113,6 +113,13 @@ func spawnExecutable(
       withUnsafeTemporaryAllocation(of: sigset_t.self, capacity: 1) { allSignals in
         let allSignals = allSignals.baseAddress!
         sigfillset(allSignals)
+#if os(OpenBSD)
+        // On OpenBSD, attempting to set the signal handler for SIGKILL or
+        // SIGSTOP will cause the child process of a call to posix_spawn() to
+        // exit abnormally with exit code 127. See https://man.openbsd.org/sigaction.2#ERRORS
+        sigdelset(allSignals, SIGKILL)
+        sigdelset(allSignals, SIGSTOP)
+#endif
         posix_spawnattr_setsigdefault(attrs, allSignals);
         flags |= CShort(POSIX_SPAWN_SETSIGDEF)
       }

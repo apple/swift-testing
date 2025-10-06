@@ -352,6 +352,45 @@ extension __CommandLineArguments_v0: Codable {
   }
 }
 
+extension RandomAccessCollection<String> {
+  /// Get the value of the command line argument with the given name.
+  ///
+  /// - Parameters:
+  ///   - label: The label or name of the argument, e.g. `"--attachments-path"`.
+  ///   - index: The index where `label` should be found, or `nil` to search the
+  ///     entire collection.
+  ///
+  /// - Returns: The value of the argument named by `label` at `index`. If no
+  ///   value is available, or if `index` is not `nil` and the argument at
+  ///   `index` is not named `label`, returns `nil`.
+  ///
+  /// This function handles arguments of the form `--label value` and
+  /// `--label=value`. Other argument syntaxes are not supported.
+  fileprivate func argumentValue(forLabel label: String, at index: Index? = nil) -> String? {
+    guard let index else {
+      return indices.lazy
+        .compactMap { argumentValue(forLabel: label, at: $0) }
+        .first
+    }
+
+    let element = self[index]
+    if element == label {
+      let nextIndex = self.index(after: index)
+      if nextIndex < endIndex {
+        return self[nextIndex]
+      }
+    } else {
+      // Find an element equal to something like "--foo=bar" and split it.
+      let prefix = "\(label)="
+      if element.hasPrefix(prefix), let equalsIndex = element.firstIndex(of: "=") {
+        return String(element[equalsIndex...].dropFirst())
+      }
+    }
+
+    return nil
+  }
+}
+
 /// Initialize this instance given a sequence of command-line arguments passed
 /// from Swift Package Manager.
 ///
@@ -366,10 +405,6 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
   // Do not consider the executable path AKA argv[0].
   let args = args.dropFirst()
 
-  func isLastArgument(at index: [String].Index) -> Bool {
-    args.index(after: index) >= args.endIndex
-  }
-
 #if !SWT_NO_FILE_IO
 #if canImport(Foundation)
   // Configuration for the test run passed in as a JSON file (experimental)
@@ -379,9 +414,7 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
   // NOTE: While the output event stream is opened later, it is necessary to
   // open the configuration file early (here) in order to correctly construct
   // the resulting __CommandLineArguments_v0 instance.
-  if let configurationIndex = args.firstIndex(of: "--configuration-path") ?? args.firstIndex(of: "--experimental-configuration-path"),
-     !isLastArgument(at: configurationIndex) {
-    let path = args[args.index(after: configurationIndex)]
+  if let path = args.argumentValue(forLabel: "--configuration-path") ?? args.argumentValue(forLabel: "--experimental-configuration-path") {
     let file = try FileHandle(forReadingAtPath: path)
     let configurationJSON = try file.readToEnd()
     result = try configurationJSON.withUnsafeBufferPointer { configurationJSON in
@@ -394,24 +427,22 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
   }
 
   // Event stream output
-  if let eventOutputIndex = args.firstIndex(of: "--event-stream-output-path") ?? args.firstIndex(of: "--experimental-event-stream-output"),
-     !isLastArgument(at: eventOutputIndex) {
-    result.eventStreamOutputPath = args[args.index(after: eventOutputIndex)]
+  if let path = args.argumentValue(forLabel: "--event-stream-output-path") ?? args.argumentValue(forLabel: "--experimental-event-stream-output") {
+    result.eventStreamOutputPath = path
   }
+
   // Event stream version
   do {
-    var eventOutputVersionIndex: Array<String>.Index?
+    var versionString: String?
     var allowExperimental = false
-    eventOutputVersionIndex = args.firstIndex(of: "--event-stream-version")
-    if eventOutputVersionIndex == nil {
-      eventOutputVersionIndex = args.firstIndex(of: "--experimental-event-stream-version")
-      if eventOutputVersionIndex != nil {
+    versionString = args.argumentValue(forLabel: "--event-stream-version")
+    if versionString == nil {
+      versionString = args.argumentValue(forLabel: "--experimental-event-stream-version")
+      if versionString != nil {
         allowExperimental = true
       }
     }
-    if let eventOutputVersionIndex, !isLastArgument(at: eventOutputVersionIndex) {
-      let versionString = args[args.index(after: eventOutputVersionIndex)]
-
+    if let versionString {
       // If the caller specified a version that could not be parsed, treat it as
       // an invalid argument.
       guard let eventStreamVersion = VersionNumber(versionString) else {
@@ -432,14 +463,13 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
 #endif
 
   // XML output
-  if let xunitOutputIndex = args.firstIndex(of: "--xunit-output"), !isLastArgument(at: xunitOutputIndex) {
-    result.xunitOutput = args[args.index(after: xunitOutputIndex)]
+  if let xunitOutputPath = args.argumentValue(forLabel: "--xunit-output") {
+    result.xunitOutput = xunitOutputPath
   }
 
   // Attachment output
-  if let attachmentsPathIndex = args.firstIndex(of: "--attachments-path") ?? args.firstIndex(of: "--experimental-attachments-path"),
-     !isLastArgument(at: attachmentsPathIndex) {
-    result.attachmentsPath = args[args.index(after: attachmentsPathIndex)]
+  if let attachmentsPath = args.argumentValue(forLabel: "--attachments-path") ?? args.argumentValue(forLabel: "--experimental-attachments-path") {
+    result.attachmentsPath = attachmentsPath
   }
 #endif
 
@@ -457,13 +487,12 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
   }
 
   // Whether or not to symbolicate backtraces in the event stream.
-  if let symbolicateBacktracesIndex = args.firstIndex(of: "--symbolicate-backtraces"), !isLastArgument(at: symbolicateBacktracesIndex) {
-    result.symbolicateBacktraces = args[args.index(after: symbolicateBacktracesIndex)]
+  if let symbolicateBacktraces = args.argumentValue(forLabel: "--symbolicate-backtraces") {
+    result.symbolicateBacktraces = symbolicateBacktraces
   }
 
   // Verbosity
-  if let verbosityIndex = args.firstIndex(of: "--verbosity"), !isLastArgument(at: verbosityIndex),
-     let verbosity = Int(args[args.index(after: verbosityIndex)]) {
+  if let verbosity = args.argumentValue(forLabel: "--verbosity").flatMap(Int.init) {
     result.verbosity = verbosity
   }
   if args.contains("--verbose") || args.contains("-v") {
@@ -478,9 +507,7 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
 
   // Filtering
   func filterValues(forArgumentsWithLabel label: String) -> [String] {
-    args.indices.lazy
-      .filter { args[$0] == label && $0 < args.endIndex }
-      .map { args[args.index(after: $0)] }
+    args.indices.compactMap { args.argumentValue(forLabel: label, at: $0) }
   }
   let filter = filterValues(forArgumentsWithLabel: "--filter")
   if !filter.isEmpty {
@@ -492,11 +519,11 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
   }
 
   // Set up the iteration policy for the test run.
-  if let repetitionsIndex = args.firstIndex(of: "--repetitions"), !isLastArgument(at: repetitionsIndex) {
-    result.repetitions = Int(args[args.index(after: repetitionsIndex)])
+  if let repetitions = args.argumentValue(forLabel: "--repetitions").flatMap(Int.init) {
+    result.repetitions = repetitions
   }
-  if let repeatUntilIndex = args.firstIndex(of: "--repeat-until"), !isLastArgument(at: repeatUntilIndex) {
-    result.repeatUntil = args[args.index(after: repeatUntilIndex)]
+  if let repeatUntil = args.argumentValue(forLabel: "--repeat-until") {
+    result.repeatUntil = repeatUntil
   }
 
   return result

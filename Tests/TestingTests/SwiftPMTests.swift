@@ -145,6 +145,13 @@ struct SwiftPMTests {
     #expect(planTests.contains(test2))
   }
 
+  @Test("--filter or --skip argument as last argument")
+  @available(_regexAPI, *)
+  func filterOrSkipAsLast() async throws {
+    _ = try configurationForEntryPoint(withArguments: ["PATH", "--filter"])
+    _ = try configurationForEntryPoint(withArguments: ["PATH", "--skip"])
+  }
+
   @Test(".hidden trait", .tags(.traitRelated))
   func hidden() async throws {
     let configuration = try configurationForEntryPoint(withArguments: ["PATH"])
@@ -491,5 +498,26 @@ struct SwiftPMTests {
   func verbosity() throws {
     let args = try parseCommandLineArguments(from: ["PATH", "--verbosity", "12345"])
     #expect(args.verbosity == 12345)
+  }
+
+  @Test("--foo=bar form")
+  func equalsSignForm() throws {
+    // We can split the string and parse the result correctly.
+    do {
+      let args = try parseCommandLineArguments(from: ["PATH", "--verbosity=12345"])
+      #expect(args.verbosity == 12345)
+    }
+
+    // We don't overrun the string and correctly handle empty values.
+    do {
+      let args = try parseCommandLineArguments(from: ["PATH", "--xunit-output="])
+      #expect(args.xunitOutput == "")
+    }
+
+    // We split at the first equals-sign.
+    do {
+      let args = try parseCommandLineArguments(from: ["PATH", "--xunit-output=abc=123"])
+      #expect(args.xunitOutput == "abc=123")
+    }
   }
 }

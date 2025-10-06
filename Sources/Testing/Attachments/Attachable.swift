@@ -8,14 +8,15 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
-/// A protocol describing a type that can be attached to a test report or
-/// written to disk when a test is run.
+private import _TestingInternals
+
+/// A protocol describing a type whose instances can be recorded and saved as
+/// part of a test run.
 ///
 /// To attach an attachable value to a test, pass it to ``Attachment/record(_:named:sourceLocation:)``.
 /// To further configure an attachable value before you attach it, use it to
 /// initialize an instance of ``Attachment`` and set its properties before
-/// passing it to ``Attachment/record(_:sourceLocation:)``. An attachable
-/// value can only be attached to a test once.
+/// passing it to ``Attachment/record(_:sourceLocation:)``.
 ///
 /// The testing library provides default conformances to this protocol for a
 /// variety of standard library types. Most user-defined types do not need to
@@ -36,8 +37,8 @@ public protocol Attachable: ~Copyable {
   /// an attachment.
   ///
   /// The testing library uses this property to determine if an attachment
-  /// should be held in memory or should be immediately persisted to storage.
-  /// Larger attachments are more likely to be persisted, but the algorithm the
+  /// should be held in memory or should be immediately saved. Larger
+  /// attachments are more likely to be saved immediately, but the algorithm the
   /// testing library uses is an implementation detail and is subject to change.
   ///
   /// The value of this property is approximately equal to the number of bytes
@@ -66,13 +67,12 @@ public protocol Attachable: ~Copyable {
   /// - Throws: Whatever is thrown by `body`, or any error that prevented the
   ///   creation of the buffer.
   ///
-  /// The testing library uses this function when writing an attachment to a
-  /// test report or to a file on disk. The format of the buffer is
-  /// implementation-defined, but should be "idiomatic" for this type: for
-  /// example, if this type represents an image, it would be appropriate for
-  /// the buffer to contain an image in PNG format, JPEG format, etc., but it
-  /// would not be idiomatic for the buffer to contain a textual description of
-  /// the image.
+  /// The testing library uses this function when saving an attachment. The
+  /// format of the buffer is implementation-defined, but should be "idiomatic"
+  /// for this type: for example, if this type represents an image, it would be
+  /// appropriate for the buffer to contain an image in PNG format, JPEG format,
+  /// etc., but it would not be idiomatic for the buffer to contain a textual
+  /// description of the image.
   ///
   /// @Metadata {
   ///   @Available(Swift, introduced: 6.2)
@@ -91,9 +91,8 @@ public protocol Attachable: ~Copyable {
   /// - Returns: The preferred name for `attachment`.
   ///
   /// The testing library uses this function to determine the best name to use
-  /// when adding `attachment` to a test report or persisting it to storage. The
-  /// default implementation of this function returns `suggestedName` without
-  /// any changes.
+  /// when saving `attachment`. The default implementation of this function
+  /// returns `suggestedName` without any changes.
   ///
   /// @Metadata {
   ///   @Available(Swift, introduced: 6.2)

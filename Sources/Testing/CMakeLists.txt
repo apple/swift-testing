@@ -100,6 +100,7 @@ add_library(Testing
   Test+Discovery.swift
   Test+Discovery+Legacy.swift
   Test+Macro.swift
+  Traits/AttachmentSavingTrait.swift
   Traits/Bug.swift
   Traits/Comment.swift
   Traits/Comment+Macro.swift

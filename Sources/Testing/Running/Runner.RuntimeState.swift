@@ -47,9 +47,19 @@ extension Runner {
       return
     }
 
-    configuration.eventHandler = { [eventHandler = configuration.eventHandler] event, context in
+    configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
+#if !SWT_NO_FILE_IO
+      var event = copy event
+      if case .valueAttached = event.kind {
+        guard let configuration = context.configuration,
+              configuration.handleValueAttachedEvent(&event, in: context) else {
+          // The attachment could not be handled, so suppress this event.
+          return
+        }
+      }
+#endif
       RuntimeState.$current.withValue(existingRuntimeState) {
-        eventHandler(event, context)
+        oldEventHandler(event, context)
       }
     }
   }

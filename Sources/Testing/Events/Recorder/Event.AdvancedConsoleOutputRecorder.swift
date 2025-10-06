@@ -142,8 +142,8 @@ extension Event {
     /// The write function for this recorder.
     let write: @Sendable (String) -> Void
     
-    /// The fallback console recorder for standard output.
-    private let _fallbackRecorder: Event.ConsoleOutputRecorder
+    /// The base console output options.
+    private let _baseOptions: Event.ConsoleOutputRecorder.Options
     
     /// Context storage for test information and results.
     private let _context: Locked<_Context>
@@ -159,7 +159,7 @@ extension Event {
     init(options: Options = Options(), writingUsing write: @escaping @Sendable (String) -> Void) {
       self.options = options
       self.write = write
-      self._fallbackRecorder = Event.ConsoleOutputRecorder(options: options.base, writingUsing: write)
+      self._baseOptions = options.base
       self._context = Locked(rawValue: _Context())
       self._humanReadableRecorder = Event.HumanReadableOutputRecorder()
     }
@@ -258,7 +258,7 @@ extension Event.AdvancedConsoleOutputRecorder {
     // The hierarchical summary will be shown at the end
     switch eventKind {
     case .runStarted:
-      let symbol = Event.Symbol.default.stringValue(options: _fallbackRecorder.options)
+      let symbol = Event.Symbol.default.stringValue(options: _baseOptions)
       write("\(symbol) Test run started.\n")
       
     case .runEnded:

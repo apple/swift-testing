@@ -69,26 +69,19 @@ public struct Test: Sendable {
   public nonisolated(unsafe) var xcTestCompatibleSelector: __XCTestCompatibleSelector?
 
   /// An enumeration describing the evaluation state of a test's cases.
-  ///
-  /// This use of `@unchecked Sendable` and of `AnySequence` in this type's
-  /// cases is necessary because it is not currently possible to express
-  /// `Sequence<Test.Case> & Sendable` as an existential (`any`)
-  /// ([96960993](rdar://96960993)). It is also not possible to have a value of
-  /// an underlying generic sequence type without specifying its generic
-  /// parameters.
-  fileprivate enum TestCasesState: @unchecked Sendable {
+  fileprivate enum TestCasesState: Sendable {
     /// The test's cases have not yet been evaluated.
     ///
     /// - Parameters:
     ///   - function: The function to call to evaluate the test's cases. The
     ///     result is a sequence of test cases.
-    case unevaluated(_ function: @Sendable () async throws -> AnySequence<Test.Case>)
+    case unevaluated(_ function: @Sendable () async throws -> any Sequence<Test.Case> & Sendable)
 
     /// The test's cases have been evaluated.
     ///
     /// - Parameters:
     ///   - testCases: The test's cases.
-    case evaluated(_ testCases: AnySequence<Test.Case>)
+    case evaluated(_ testCases: any Sequence<Test.Case> & Sendable)
 
     /// An error was thrown when the testing library attempted to evaluate the
     /// test's cases.
@@ -124,7 +117,7 @@ public struct Test: Sendable {
         // attempt to run it, and thus never access this property.
         preconditionFailure("Attempting to access test cases with invalid state. Please file a bug report at https://github.com/swiftlang/swift-testing/issues/new and include this information: \(String(reflecting: testCasesState))")
       }
-      return testCases
+      return AnySequence(testCases)
     }
   }
 
@@ -139,7 +132,7 @@ public struct Test: Sendable {
   var uncheckedTestCases: (some Sequence<Test.Case>)? {
     testCasesState.flatMap { testCasesState in
       if case let .evaluated(testCases) = testCasesState {
-        return testCases
+        return AnySequence(testCases)
       }
       return nil
     }
@@ -239,7 +232,7 @@ public struct Test: Sendable {
     self.sourceLocation = sourceLocation
     self.containingTypeInfo = containingTypeInfo
     self.xcTestCompatibleSelector = xcTestCompatibleSelector
-    self.testCasesState = .unevaluated { .init(try await testCases()) }
+    self.testCasesState = .unevaluated { try await testCases() }
     self.parameters = parameters
   }
 
@@ -260,7 +253,7 @@ public struct Test: Sendable {
     self.sourceLocation = sourceLocation
     self.containingTypeInfo = containingTypeInfo
     self.xcTestCompatibleSelector = xcTestCompatibleSelector
-    self.testCasesState = .evaluated(.init(testCases))
+    self.testCasesState = .evaluated(testCases)
     self.parameters = parameters
   }
 }

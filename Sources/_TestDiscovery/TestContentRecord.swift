@@ -85,7 +85,7 @@ public struct TestContentRecord<T> where T: DiscoverableAsTestContent {
   public private(set) nonisolated(unsafe) var imageAddress: UnsafeRawPointer?
 
   /// A type defining storage for the underlying test content record.
-  private enum _RecordStorage: @unchecked Sendable {
+  private enum _RecordStorage {
     /// The test content record is stored by address.
     case atAddress(UnsafePointer<_TestContentRecord>)
 
@@ -94,7 +94,7 @@ public struct TestContentRecord<T> where T: DiscoverableAsTestContent {
   }
 
   /// Storage for `_record`.
-  private var _recordStorage: _RecordStorage
+  private nonisolated(unsafe) var _recordStorage: _RecordStorage
 
   /// The underlying test content record.
   private var _record: _TestContentRecord {

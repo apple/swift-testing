@@ -61,16 +61,17 @@ extension WithAttributesSyntax {
         }.first
 
       var lastPlatformName: TokenSyntax? = nil
-      var asteriskEncountered = false
+      var wildcardEncountered = false
+      let hasWildcard = entries.contains(where: \.isWildcard)
       return entries.compactMap { entry in
         switch entry {
         case let .availabilityVersionRestriction(restriction) where whenKeyword == .introduced:
-          return Availability(attribute: attribute, platformName: restriction.platform, version: restriction.version, message: message)
+          return Availability(attribute: attribute, platformName: restriction.platform, version: restriction.version, mayNeedTrailingWildcard: hasWildcard, message: message)
         case let .token(token):
           if case .identifier = token.tokenKind {
             lastPlatformName = token
-          } else if case let .binaryOperator(op) = token.tokenKind, op == "*" {
-            asteriskEncountered = true
+          } else if entry.isWildcard {
+            wildcardEncountered = true
             // It is syntactically valid to specify a platform name without a
             // version in an availability declaration, and it's used to resolve
             // a custom availability definition specified via the
@@ -81,7 +82,7 @@ extension WithAttributesSyntax {
               return Availability(attribute: attribute, platformName: lastPlatformName, version: nil, message: message)
             }
           } else if case let .keyword(keyword) = token.tokenKind, keyword == whenKeyword {
-            if asteriskEncountered {
+            if wildcardEncountered {
               // Match the "always this availability" construct, i.e.
               // `@available(*, deprecated)` and `@available(*, unavailable)`.
               return Availability(attribute: attribute, platformName: lastPlatformName, version: nil, message: message)
@@ -142,5 +143,15 @@ extension AttributeSyntax {
       .tokens(viewMode: .fixedUp)
       .map(\.textWithoutBackticks)
       .joined()
+  }
+}
+
+extension AvailabilityArgumentSyntax.Argument {
+  var isWildcard: Bool {
+    if case let .token(token) = self,
+       case let .binaryOperator(op) = token.tokenKind, op == "*" {
+      return true
+    }
+    return false
   }
 }

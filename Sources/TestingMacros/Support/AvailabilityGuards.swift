@@ -24,6 +24,10 @@ struct Availability {
   /// The platform version, such as 1.2.3, if any.
   var version: VersionTupleSyntax?
 
+  /// Whether or not this availability attribute may need a trailing wildcard
+  /// (`*`) when it is expanded into `@available()` or `#available()`.
+  var mayNeedTrailingWildcard = true
+
   /// The `message` argument to the attribute, if any.
   var message: SimpleStringLiteralExprSyntax?
 
@@ -70,13 +74,14 @@ private func _createAvailabilityTraitExpr(
     "(\(literal: components.major), \(literal: components.minor), \(literal: components.patch))"
   } ?? "nil"
   let message = availability.message.map(\.trimmed).map(ExprSyntax.init) ?? "nil"
+  let trailingWildcard = availability.mayNeedTrailingWildcard ? ", *" : ""
   let sourceLocationExpr = createSourceLocationExpr(of: availability.attribute, context: context)
 
   switch (whenKeyword, availability.isSwift) {
   case (.introduced, false):
     return """
     .__available(\(literal: availability.platformName!.textWithoutBackticks), introduced: \(version), message: \(message), sourceLocation: \(sourceLocationExpr)) {
-      if #available(\(availability.platformVersion!), *) {
+      if #available(\(availability.platformVersion!)\(raw: trailingWildcard)) {
         return true
       }
       return false
@@ -207,8 +212,8 @@ func createSyntaxNode(
   do {
     let availableExprs: [ExprSyntax] = decl.availability(when: .introduced).lazy
       .filter { !$0.isSwift }
-      .compactMap(\.platformVersion)
-      .map { "#available(\($0), *)" }
+      .compactMap { ($0.platformVersion, $0.mayNeedTrailingWildcard ? ", *" : "") }
+      .map { "#available(\($0.0)\(raw: $0.1))" }
     if !availableExprs.isEmpty {
       let conditionList = ConditionElementListSyntax {
         for availableExpr in availableExprs {

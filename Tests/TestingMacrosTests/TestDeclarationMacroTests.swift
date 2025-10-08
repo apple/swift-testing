@@ -415,7 +415,12 @@ struct TestDeclarationMacroTests {
         [
           #"#if os(moofOS)"#,
           #".__available("moofOS", obsoleted: nil, message: "Moof!", "#,
-        ]
+        ],
+      #"@available(customAvailabilityDomain) @Test func f() {}"#:
+        [
+          #".__available("customAvailabilityDomain", introduced: nil, "#,
+          #"guard #available (customAvailabilityDomain) else"#,
+        ],
     ]
   )
   func availabilityAttributeCapture(input: String, expectedOutputs: [String]) throws {

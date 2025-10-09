@@ -13,6 +13,9 @@ See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 Swift Testing is a package with expressive and intuitive APIs that make testing
 your Swift code a breeze.
 
+[![CI status badge for main branch using main toolchain](https://github.com/swiftlang/swift-testing/actions/workflows/main_using_main.yml/badge.svg?branch=main&event=push)](https://github.com/swiftlang/swift-testing/actions/workflows/main_using_main.yml)
+[![CI status badge for main branch using 6.2 toolchain](https://github.com/swiftlang/swift-testing/actions/workflows/main_using_release.yml/badge.svg?branch=main&event=push)](https://github.com/swiftlang/swift-testing/actions/workflows/main_using_release.yml)
+
 ## Feature overview
 
 ### Clear, expressive API
@@ -103,18 +106,14 @@ Swift.
 The table below describes the current level of support that Swift Testing has
 for various platforms:
 
-| **Platform** | **CI Status (6.2)** | **CI Status (main)** | **Support Status** |
-|---|:-:|:-:|---|
-| **macOS** | [![Build Status](https://ci.swift.org/buildStatus/icon?job=swift-testing-main-swift-6.2-macos)](https://ci.swift.org/job/swift-testing-main-swift-6.2-macos/) | [![Build Status](https://ci.swift.org/buildStatus/icon?job=swift-testing-main-swift-main-macos)](https://ci.swift.org/view/Swift%20Packages/job/swift-testing-main-swift-main-macos/) | Supported |
-| **iOS** | | | Supported |
-| **watchOS** | | | Supported |
-| **tvOS** | | | Supported |
-| **visionOS** | | | Supported |
-| **Ubuntu 22.04** | [![Build Status](https://ci.swift.org/buildStatus/icon?job=swift-testing-main-swift-6.2-linux)](https://ci.swift.org/job/swift-testing-main-swift-6.2-linux/) | [![Build Status](https://ci.swift.org/buildStatus/icon?job=swift-testing-main-swift-main-linux)](https://ci.swift.org/view/Swift%20Packages/job/swift-testing-main-swift-main-linux/) | Supported |
-| **FreeBSD** | | | Experimental |
-| **OpenBSD** | | | Experimental |
-| **Windows** | [![Build Status](https://ci-external.swift.org/buildStatus/icon?job=swift-testing-main-swift-6.2-windows)](https://ci-external.swift.org/view/all/job/swift-testing-main-swift-6.2-windows/) | [![Build Status](https://ci-external.swift.org/buildStatus/icon?job=swift-testing-main-swift-main-windows)](https://ci-external.swift.org/job/swift-testing-main-swift-main-windows/) | Supported |
-| **Wasm** | | | Experimental |
+| **Platform** | **Support Status** |
+|-|-|
+| Apple platforms | Supported |
+| Linux | Supported |
+| Windows | Supported |
+| FreeBSD, OpenBSD | Experimental |
+| Wasm | Experimental |
+| Android | Experimental |
 
 ### Works with XCTest
 

@@ -32,7 +32,6 @@ public import WinSDK
 /// You do not generally need to add your own conformances to this protocol. If
 /// you have an image in another format that needs to be attached to a test,
 /// first convert it to an instance of one of the types above.
-@_spi(Experimental)
 public protocol _AttachableByAddressAsIWICBitmapSource {
   /// Create a WIC bitmap source representing an instance of this type at the
   /// given address.
@@ -112,7 +111,10 @@ public protocol _AttachableByAddressAsIWICBitmapSource {
 /// You do not generally need to add your own conformances to this protocol. If
 /// you have an image in another format that needs to be attached to a test,
 /// first convert it to an instance of one of the types above.
-@_spi(Experimental)
+///
+/// @Metadata {
+///   @Available(Swift, introduced: 6.3)
+/// }
 public protocol AttachableAsIWICBitmapSource: _AttachableAsImage, SendableMetatype {
   /// Create a WIC bitmap source representing an instance of this type.
   ///
@@ -120,6 +122,10 @@ public protocol AttachableAsIWICBitmapSource: _AttachableAsImage, SendableMetaty
   ///   The caller is responsible for releasing this image when done with it.
   ///
   /// - Throws: Any error that prevented the creation of the WIC bitmap source.
+  ///
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   func copyAttachableIWICBitmapSource() throws -> UnsafeMutablePointer<IWICBitmapSource>
 
   /// Create a WIC bitmap representing an instance of this type.

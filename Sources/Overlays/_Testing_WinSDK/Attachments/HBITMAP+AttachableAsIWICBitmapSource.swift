@@ -12,7 +12,6 @@
 private import Testing
 public import WinSDK
 
-@_spi(Experimental)
 extension HBITMAP__: _AttachableByAddressAsIWICBitmapSource {
   public static func _copyAttachableIWICBitmapSource(
     from imageAddress: UnsafeMutablePointer<Self>,

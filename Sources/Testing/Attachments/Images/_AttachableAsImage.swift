@@ -27,6 +27,7 @@
 ///   that we don't need to underscore its name.
 /// }
 #if SWT_NO_IMAGE_ATTACHMENTS
+@_unavailableInEmbedded
 @available(*, unavailable, message: "Image attachments are not available on this platform.")
 #endif
 @available(_uttypesAPI, *)

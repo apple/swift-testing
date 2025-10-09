@@ -23,15 +23,14 @@
 /// - On Apple platforms, you can use [`CGImageDestinationCopyTypeIdentifiers()`](https://developer.apple.com/documentation/imageio/cgimagedestinationcopytypeidentifiers())
 ///   from the [Image I/O framework](https://developer.apple.com/documentation/imageio)
 ///   to determine which formats are supported.
-/// @Comment {
 /// - On Windows, you can use [`IWICImagingFactory.CreateComponentEnumerator()`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nf-wincodec-iwicimagingfactory-createcomponentenumerator)
 ///   to enumerate the available image encoders.
-/// }
 ///
 /// @Metadata {
 ///   @Available(Swift, introduced: 6.3)
 /// }
 #if SWT_NO_IMAGE_ATTACHMENTS
+@_unavailableInEmbedded
 @available(*, unavailable, message: "Image attachments are not available on this platform.")
 #endif
 @available(_uttypesAPI, *)
@@ -81,6 +80,7 @@ public struct AttachableImageFormat: Sendable {
 // MARK: -
 
 #if SWT_NO_IMAGE_ATTACHMENTS
+@_unavailableInEmbedded
 @available(*, unavailable, message: "Image attachments are not available on this platform.")
 #endif
 @available(_uttypesAPI, *)

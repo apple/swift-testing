@@ -12,8 +12,13 @@
 private import Testing
 public import WinSDK
 
-@_spi(Experimental)
+/// @Metadata {
+///   @Available(Swift, introduced: 6.3)
+/// }
 extension UnsafeMutablePointer: _AttachableAsImage, AttachableAsIWICBitmapSource where Pointee: _AttachableByAddressAsIWICBitmapSource {
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   public func copyAttachableIWICBitmapSource() throws -> UnsafeMutablePointer<IWICBitmapSource> {
     let factory = try IWICImagingFactory.create()
     defer {

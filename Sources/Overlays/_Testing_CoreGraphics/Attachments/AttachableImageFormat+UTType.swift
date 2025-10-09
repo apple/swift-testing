@@ -107,11 +107,7 @@ extension AttachableImageFormat {
     )
     self.init(kind: .systemValue(contentType), encodingQuality: encodingQuality)
   }
-}
 
-@available(_uttypesAPI, *)
-@_spi(Experimental) // STOP: not part of ST-0014
-extension AttachableImageFormat {
   /// Construct an instance of this type with the given path extension and
   /// encoding quality.
   ///
@@ -132,6 +128,10 @@ extension AttachableImageFormat {
   ///   must conform to [`UTType.image`](https://developer.apple.com/documentation/uniformtypeidentifiers/uttype-swift.struct/image).
   /// - On Windows, there must be a corresponding subclass of [`IWICBitmapEncoder`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapencoder)
   ///   registered with Windows Imaging Component.
+  ///
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   public init?(pathExtension: String, encodingQuality: Float = 1.0) {
     let pathExtension = pathExtension.drop { $0 == "." }
 

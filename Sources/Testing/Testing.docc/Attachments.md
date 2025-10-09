@@ -34,9 +34,10 @@ protocol to create your own attachable types.
 
 ### Attaching images to tests
 
-- ``AttachableImageFormat``
 <!-- TODO: set up DocC content for overlays if possible
 - ``AttachableAsCGImage``
+- ``AttachableAsIWICBitmapSource``
+-->
+- ``AttachableImageFormat``
 - ``Attachment/init(_:named:as:sourceLocation:)``
 - ``Attachment/record(_:named:as:sourceLocation:)``
--->

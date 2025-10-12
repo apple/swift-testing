@@ -1,5 +1,8 @@
 name: main branch, main toolchain
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:

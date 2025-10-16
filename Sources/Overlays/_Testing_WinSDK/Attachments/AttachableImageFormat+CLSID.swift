@@ -277,13 +277,14 @@ extension AttachableImageFormat {
   @_spi(_)
 #endif
   public init(encoderCLSID: CLSID, encodingQuality: Float = 1.0) {
-    if encoderCLSID == CLSID_WICPngEncoder {
-      self = .png
+    let kind: Kind = if encoderCLSID == CLSID_WICPngEncoder {
+      .png
     } else if encoderCLSID == CLSID_WICJpegEncoder {
-      self = .jpeg
+      .jpeg
     } else {
-      self.init(kind: .systemValue(encoderCLSID), encodingQuality: encodingQuality)
+      .systemValue(encoderCLSID)
     }
+    self.init(kind: kind, encodingQuality: encodingQuality)
   }
 
   /// Construct an instance of this type with the given path extension and

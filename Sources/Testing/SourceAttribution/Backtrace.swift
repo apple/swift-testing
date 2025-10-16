@@ -77,7 +77,9 @@ public struct Backtrace: Sendable {
       }
 #elseif os(Android)
 #if !SWT_NO_DYNAMIC_LINKING
-      initializedCount = .init(clamping: _backtrace?(addresses.baseAddress!, .init(clamping: addresses.count)))
+      if let _backtrace {
+        initializedCount = .init(clamping: _backtrace(addresses.baseAddress!, .init(clamping: addresses.count)))
+      }
 #endif
 #elseif os(Linux) || os(FreeBSD) || os(OpenBSD)
       initializedCount = .init(clamping: backtrace(addresses.baseAddress!, .init(clamping: addresses.count)))

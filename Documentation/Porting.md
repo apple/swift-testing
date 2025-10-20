@@ -172,8 +172,10 @@ to load that information:
 +    }
 +    let sb = SectionBounds(
 +      imageAddress: UnsafeRawPointer(bitPattern: UInt(refNum)),
-+      start: handle.pointee!,
-+      size: GetHandleSize(handle)
++      buffer: UnsafeRawBufferPointer(
++        start: handle.pointee,
++        count: GetHandleSize(handle)
++      )
 +    )
 +    result.append(sb)
 +  } while noErr == GetNextResourceFile(refNum, &refNum))

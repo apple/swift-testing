@@ -193,21 +193,17 @@ public struct AnyAttachable: AttachableWrapper, Sendable, Copyable {
 
 // MARK: - Describing an attachment
 
-extension Attachment where AttachableValue: ~Copyable {
-  @_documentation(visibility: private)
-  public var description: String {
-    let typeInfo = TypeInfo(describing: AttachableValue.self)
-    return #""\#(preferredName)": instance of '\#(typeInfo.unqualifiedName)'"#
-  }
-}
-
-extension Attachment: CustomStringConvertible {
+extension Attachment: CustomStringConvertible where AttachableValue: ~Copyable {
   /// @Metadata {
   ///   @Available(Swift, introduced: 6.2)
   ///   @Available(Xcode, introduced: 26.0)
   /// }
   public var description: String {
-    #""\#(preferredName)": \#(String(describingForTest: attachableValue))"#
+    if #available(_castingWithNonCopyableGenerics, *), let attachableValue = boxCopyableValue(attachableValue) {
+      return #""\#(preferredName)": \#(String(describingForTest: attachableValue))"#
+    }
+    let typeInfo = TypeInfo(describing: AttachableValue.self)
+    return #""\#(preferredName)": instance of '\#(typeInfo.unqualifiedName)'"#
   }
 }
 

@@ -76,6 +76,7 @@ add_library(Testing
   Support/Additions/ArrayAdditions.swift
   Support/Additions/CollectionDifferenceAdditions.swift
   Support/Additions/CommandLineAdditions.swift
+  Support/Additions/CopyableAdditions.swift
   Support/Additions/NumericAdditions.swift
   Support/Additions/ResultAdditions.swift
   Support/Additions/TaskAdditions.swift

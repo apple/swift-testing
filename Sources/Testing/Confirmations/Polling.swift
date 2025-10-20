@@ -10,7 +10,7 @@
 
 /// Default values for polling confirmations.
 @available(_clockAPI, *)
-internal let defaultPollingConfiguration = (
+private let _defaultPollingConfiguration = (
   pollingDuration: Duration.seconds(1),
   pollingInterval: Duration.milliseconds(1)
 )
@@ -33,24 +33,23 @@ public enum PollingStopCondition: Sendable, Equatable, Codable {
   case stopsPassing
 }
 
-/// A type describing why polling failed
-@_spi(Experimental)
-public enum PollingFailureReason: Sendable, Codable {
-  /// The polling failed because it was cancelled using `Task.cancel`.
-  case cancelled
-
-  /// The polling failed because the stop condition failed.
-  case stopConditionFailed(PollingStopCondition)
-}
-
 /// A type describing an error thrown when polling fails.
 @_spi(Experimental)
 public struct PollingFailedError: Error, Sendable, Codable {
+  /// A type describing why polling failed
+  public enum Reason: Sendable, Codable {
+    /// The polling failed because it was cancelled using `Task.cancel`.
+    case cancelled
+
+    /// The polling failed because the stop condition failed.
+    case stopConditionFailed(PollingStopCondition)
+  }
+
   /// A user-specified comment describing this confirmation
   public var comment: Comment?
 
   /// Why polling failed, either cancelled, or because the stop condition failed.
-  public var reason: PollingFailureReason
+  public var reason: Reason
 
   /// A ``SourceContext`` indicating where and how this confirmation was called
   @_spi(ForToolsIntegrationOnly)
@@ -66,7 +65,7 @@ public struct PollingFailedError: Error, Sendable, Codable {
   ///     confirmation was called.
   init(
     comment: Comment? = nil,
-    reason: PollingFailureReason,
+    reason: Reason,
     sourceContext: SourceContext,
   ) {
     self.comment = comment
@@ -229,7 +228,7 @@ public func confirmation<R>(
 ///   - providedValue: The value provided by the test author when calling
 ///     `confirmPassesEventually` or `confirmAlwaysPasses`.
 ///   - default: The harded coded default value, as defined in
-///     `defaultPollingConfiguration`.
+///     `_defaultPollingConfiguration`.
 ///   - keyPath: The keyPath mapping from `TraitKind` to the value type.
 ///
 /// - Returns: The value to use.
@@ -293,13 +292,13 @@ extension PollingStopCondition {
 
   /// Determine the polling duration to use for the given provided value.
   /// Based on ``getValueFromTrait``, this falls back using
-  /// ``defaultPollingConfiguration.pollingInterval`` and
+  /// ``_defaultPollingConfiguration.pollingInterval`` and
   /// ``PollingUntilFirstPassConfigurationTrait``.
   @available(_clockAPI, *)
   fileprivate func duration(with provided: Duration?) -> Duration {
     getValueFromTrait(
       providedValue: provided,
-      default: defaultPollingConfiguration.pollingDuration,
+      default: _defaultPollingConfiguration.pollingDuration,
       \PollingConfirmationConfigurationTrait.duration,
       where: { $0.stopCondition == self }
     )
@@ -307,13 +306,13 @@ extension PollingStopCondition {
 
   /// Determine the polling interval to use for the given provided value.
   /// Based on ``getValueFromTrait``, this falls back using
-  /// ``defaultPollingConfiguration.pollingInterval`` and
+  /// ``_defaultPollingConfiguration.pollingInterval`` and
   /// ``PollingUntilFirstPassConfigurationTrait``.
   @available(_clockAPI, *)
   fileprivate func interval(with provided: Duration?) -> Duration {
     getValueFromTrait(
       providedValue: provided,
-      default: defaultPollingConfiguration.pollingInterval,
+      default: _defaultPollingConfiguration.pollingInterval,
       \PollingConfirmationConfigurationTrait.interval,
       where: { $0.stopCondition == self }
     )
@@ -390,7 +389,7 @@ private struct Poller {
     // if Int(exactly:) returns nil, then that generally means the value is too
     // large. In which case, we should fall back to Int.max.
 
-    let failureReason: PollingFailureReason
+    let failureReason: PollingFailedError.Reason
     switch await poll(iterations: iterations, expression: body) {
     case let .succeeded(value):
       return value

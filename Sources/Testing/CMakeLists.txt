@@ -29,6 +29,8 @@ add_library(Testing
   Attachments/Attachable.swift
   Attachments/AttachableWrapper.swift
   Attachments/Attachment.swift
+  Confirmations/Confirmation.swift
+  Confirmations/Polling.swift
   Events/Clock.swift
   Events/Event.swift
   Events/Recorder/Event.AdvancedConsoleOutputRecorder.swift
@@ -47,7 +49,6 @@ add_library(Testing
   Expectations/Expectation.swift
   Expectations/Expectation+Macro.swift
   Expectations/ExpectationChecking+Macro.swift
-  Issues/Confirmation.swift
   Issues/ErrorSnapshot.swift
   Issues/Issue.swift
   Issues/Issue+Recording.swift
@@ -110,6 +111,7 @@ add_library(Testing
   Traits/HiddenTrait.swift
   Traits/IssueHandlingTrait.swift
   Traits/ParallelizationTrait.swift
+  Traits/PollingConfigurationTrait.swift
   Traits/Tags/Tag.Color.swift
   Traits/Tags/Tag.Color+Loading.swift
   Traits/Tags/Tag.List.swift

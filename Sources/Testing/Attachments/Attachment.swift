@@ -193,6 +193,7 @@ public struct AnyAttachable: AttachableWrapper, Sendable, Copyable {
 
 // MARK: - Describing an attachment
 
+@_preInverseGenerics
 extension Attachment: CustomStringConvertible where AttachableValue: ~Copyable {
   /// @Metadata {
   ///   @Available(Swift, introduced: 6.2)

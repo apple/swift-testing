@@ -10,14 +10,12 @@
 
 @testable @_spi(Experimental) @_spi(ForToolsIntegrationOnly) import Testing
 
-@Suite("Polling Confirmation Tests")
-struct PollingConfirmationTests {
-  @Suite("with PollingStopCondition.firstPass")
-  struct StopConditionFirstPass {
+struct `Polling Confirmation Tests` {
+  struct `with PollingStopCondition.firstPass` {
     let stop = PollingStopCondition.firstPass
 
     @available(_clockAPI, *)
-    @Test("Simple passing expressions") func trivialHappyPath() async throws {
+    @Test func `simple passing expressions`() async throws {
       try await confirmation(until: stop) { true }
 
       let value = try await confirmation(until: stop) { 1 }
@@ -26,7 +24,7 @@ struct PollingConfirmationTests {
     }
 
     @available(_clockAPI, *)
-    @Test("Simple failing expressions") func trivialSadPath() async throws {
+    @Test func `simple failing expressions`() async throws {
       var issues = await runTest {
         try await confirmation(until: stop) { false }
       }
@@ -44,8 +42,16 @@ struct PollingConfirmationTests {
     }
 
     @available(_clockAPI, *)
-    @Test("When the value changes from false to true during execution")
-    func changingFromFail() async throws {
+    @Test
+    func `returning false in a closure returning Optional<Bool> is considered a pass`() async throws {
+      try await confirmation(until: stop) { () -> Bool? in
+        return false
+      }
+    }
+
+    @available(_clockAPI, *)
+    @Test
+    func `When the value changes from false to true during execution`() async throws {
       let incrementor = Incrementor()
 
       try await confirmation(until: stop) {
@@ -60,8 +66,7 @@ struct PollingConfirmationTests {
     }
 
     @available(_clockAPI, *)
-    @Test("Thrown errors are treated as returning false")
-    func errorsReported() async throws {
+    @Test func `Thrown errors are treated as returning false`() async throws {
       let issues = await runTest {
         try await confirmation(until: stop) {
           throw PollingTestSampleError.ohNo
@@ -71,8 +76,8 @@ struct PollingConfirmationTests {
     }
 
     @available(_clockAPI, *)
-    @Test("Calculates how many times to poll based on the duration & interval")
-    func defaultPollingCount() async {
+    @Test
+    func `Calculates how many times to poll based on the duration & interval`() async {
       let incrementor = Incrementor()
       _ = await runTest {
         // this test will intentionally fail.
@@ -84,18 +89,17 @@ struct PollingConfirmationTests {
     }
 
     @Suite(
-      "Configuration traits",
       .pollingConfirmationDefaults(
         until: .firstPass,
         within: .milliseconds(100)
       )
     )
-    struct WithConfigurationTraits {
+    struct `Configuration traits` {
       let stop = PollingStopCondition.firstPass
 
       @available(_clockAPI, *)
-      @Test("When no test or callsite configuration provided, uses the suite configuration")
-      func testUsesSuiteConfiguration() async {
+      @Test
+      func `When no test or callsite configuration provided, uses the suite configuration`() async {
         let incrementor = Incrementor()
         var test = Test {
           try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
@@ -104,20 +108,19 @@ struct PollingConfirmationTests {
         }
         test.traits = Test.current?.traits ?? []
         await runTest(test: test)
-        let count = await incrementor.count
-        #expect(count == 100)
+        #expect(await incrementor.count == 100)
       }
 
       @available(_clockAPI, *)
       @Test(
-        "Ignore trait configurations that don't match the stop condition",
         .pollingConfirmationDefaults(
           until: .stopsPassing,
           within: .milliseconds(
             500
           )
         )
-      ) func testIgnoresTraitsWithNonmatchingStopConditions() async {
+      )
+      func `Ignore trait configurations that don't match the stop condition`() async {
         let incrementor = Incrementor()
         var test = Test {
           try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
@@ -126,19 +129,17 @@ struct PollingConfirmationTests {
         }
         test.traits = Test.current?.traits ?? []
         await runTest(test: test)
-        let count = await incrementor.count
-        #expect(count == 100)
+        #expect(await incrementor.count == 100)
       }
 
       @available(_clockAPI, *)
       @Test(
-        "When test configuration provided, uses the test configuration",
         .pollingConfirmationDefaults(
           until: .firstPass,
           within: .milliseconds(10)
         )
       )
-      func testUsesTestConfigurationOverSuiteConfiguration() async {
+      func `When test configuration provided, uses the test configuration`() async {
         let incrementor = Incrementor()
         var test = Test {
           // this test will intentionally fail.
@@ -153,13 +154,12 @@ struct PollingConfirmationTests {
 
       @available(_clockAPI, *)
       @Test(
-        "When callsite configuration provided, uses that",
         .pollingConfirmationDefaults(
           until: .firstPass,
           within: .milliseconds(10)
         )
       )
-      func testUsesCallsiteConfiguration() async {
+      func `When callsite configuration provided, uses that`() async {
         let incrementor = Incrementor()
         var test = Test {
           // this test will intentionally fail.
@@ -176,13 +176,28 @@ struct PollingConfirmationTests {
         #expect(await incrementor.count == 50)
       }
 
+      @available(_clockAPI, *)
+      @Test func `Allows duration to be equal to interval`() async throws {
+        let incrementor = Incrementor()
+        try await confirmation(
+          until: stop,
+          within: .milliseconds(100),
+          pollingEvery: .milliseconds(100)
+        ) {
+          _ = await incrementor.increment()
+          return true
+        }
+
+        #expect(await incrementor.count == 1)
+      }
+
 #if !SWT_NO_EXIT_TESTS
       @available(_clockAPI, *)
-      @Test("Requires duration be greater than interval")
-      func testRequiresDurationGreaterThanInterval() async {
+      @Test
+      func `Requires duration be greater than or equal to interval`() async {
         await #expect(processExitsWith: .failure) {
           try await confirmation(
-            until: .stopsPassing,
+            until: .firstPass,
             within: .seconds(1),
             pollingEvery: .milliseconds(1100)
           ) { true }
@@ -190,30 +205,17 @@ struct PollingConfirmationTests {
       }
 
       @available(_clockAPI, *)
-      @Test("Requires duration be greater than 0")
-      func testRequiresDurationGreaterThan0() async {
+      @Test func `Requires interval be greater than 0`() async {
         await #expect(processExitsWith: .failure) {
           try await confirmation(
-            until: .stopsPassing,
-            within: .seconds(0)
-          ) { true }
-        }
-      }
-
-      @available(_clockAPI, *)
-      @Test("Requires interval be greater than 0")
-      func testRequiresIntervalGreaterThan0() async {
-        await #expect(processExitsWith: .failure) {
-          try await confirmation(
-            until: .stopsPassing,
+            until: .firstPass,
             pollingEvery: .seconds(0)
           ) { true }
         }
       }
 
       @available(_clockAPI, *)
-      @Test("Handles extremely large polling iterations")
-      func handlesLargePollingIterations() async throws {
+      @Test func `Handles extremely large polling iterations`() async throws {
         await #expect(processExitsWith: .success) {
           try await confirmation(
             until: .firstPass,
@@ -226,11 +228,10 @@ struct PollingConfirmationTests {
     }
   }
 
-  @Suite("with PollingStopCondition.stopsPassing")
-  struct StopConditionStopsPassing {
+  struct `with PollingStopCondition.stopsPassing` {
     let stop = PollingStopCondition.stopsPassing
     @available(_clockAPI, *)
-    @Test("Simple passing expressions") func trivialHappyPath() async throws {
+    @Test func `Simple passing expressions`() async throws {
       try await confirmation(until: stop) { true }
       let value = try await confirmation(until: stop) { 1 }
 
@@ -238,7 +239,7 @@ struct PollingConfirmationTests {
     }
 
     @available(_clockAPI, *)
-    @Test("Simple failing expressions") func trivialSadPath() async {
+    @Test func `Simple failing expressions`() async {
       var issues = await runTest {
         try await confirmation(until: stop) { false }
       }
@@ -256,8 +257,15 @@ struct PollingConfirmationTests {
     }
 
     @available(_clockAPI, *)
-    @Test("if the closure starts off as true, but becomes false")
-    func changingFromFail() async {
+    @Test
+    func `returning false in a closure returning Optional<Bool> is considered a pass`() async throws {
+      try await confirmation(until: stop) { () -> Bool? in
+        return false
+      }
+    }
+
+    @available(_clockAPI, *)
+    @Test func `if the closure starts off as true, but becomes false`() async {
       let incrementor = Incrementor()
       let issues = await runTest {
         try await confirmation(until: stop) {
@@ -271,8 +279,7 @@ struct PollingConfirmationTests {
     }
 
     @available(_clockAPI, *)
-    @Test("if the closure continues to pass")
-    func continuousCalling() async throws {
+    @Test func `if the closure continues to pass`() async throws {
       let incrementor = Incrementor()
 
       try await confirmation(until: stop) {
@@ -284,8 +291,7 @@ struct PollingConfirmationTests {
     }
 
     @available(_clockAPI, *)
-    @Test("Thrown errors will automatically exit & fail")
-    func errorsReported() async {
+    @Test func `Thrown errors will automatically exit & fail`() async {
       let issues = await runTest {
         try await confirmation(until: stop) {
           throw PollingTestSampleError.ohNo
@@ -295,8 +301,8 @@ struct PollingConfirmationTests {
     }
 
     @available(_clockAPI, *)
-    @Test("Calculates how many times to poll based on the duration & interval")
-    func defaultPollingCount() async throws {
+    @Test
+    func `Calculates how many times to poll based on the duration & interval`() async throws {
       let incrementor = Incrementor()
       try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
         await incrementor.increment() != 0
@@ -305,20 +311,17 @@ struct PollingConfirmationTests {
     }
 
     @Suite(
-      "Configuration traits",
       .pollingConfirmationDefaults(
         until: .stopsPassing,
         within: .milliseconds(100)
       )
     )
-    struct WithConfigurationTraits {
+    struct `Configuration traits` {
       let stop = PollingStopCondition.stopsPassing
 
       @available(_clockAPI, *)
-      @Test(
-        "When no test/callsite configuration, it uses the suite configuration"
-      )
-      func testUsesSuiteConfiguration() async throws {
+      @Test
+      func `"When no test/callsite configuration, it uses the suite configuration"`() async throws {
         let incrementor = Incrementor()
         try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
           await incrementor.increment() != 0
@@ -329,14 +332,14 @@ struct PollingConfirmationTests {
 
       @available(_clockAPI, *)
       @Test(
-        "Ignore trait configurations that don't match the stop condition",
         .pollingConfirmationDefaults(
           until: .firstPass,
           within: .milliseconds(
             500
           )
         )
-      ) func testIgnoresTraitsWithNonmatchingStopConditions() async throws {
+      )
+      func `Ignore trait configurations that don't match the stop condition`() async throws {
         let incrementor = Incrementor()
         try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
           await incrementor.increment() != 0
@@ -347,13 +350,12 @@ struct PollingConfirmationTests {
 
       @available(_clockAPI, *)
       @Test(
-        "When test configuration provided, uses the test configuration",
         .pollingConfirmationDefaults(
           until: .stopsPassing,
           within: .milliseconds(10)
         )
       )
-      func testUsesTestConfigurationOverSuiteConfiguration() async throws  {
+      func `When test configuration provided, uses the test configuration`() async throws  {
         let incrementor = Incrementor()
         try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
           await incrementor.increment() != 0
@@ -364,13 +366,12 @@ struct PollingConfirmationTests {
 
       @available(_clockAPI, *)
       @Test(
-        "When callsite configuration provided, uses that",
         .pollingConfirmationDefaults(
           until: .stopsPassing,
           within: .milliseconds(10)
         )
       )
-      func testUsesCallsiteConfiguration() async throws {
+      func `When callsite configuration provided, uses that`() async throws {
         let incrementor = Incrementor()
         try await confirmation(
           until: stop,
@@ -382,13 +383,28 @@ struct PollingConfirmationTests {
         #expect(await incrementor.count == 50)
       }
 
+      @available(_clockAPI, *)
+      @Test func `Allows duration to be equal to interval`() async throws {
+        let incrementor = Incrementor()
+        try await confirmation(
+          until: stop,
+          within: .milliseconds(100),
+          pollingEvery: .milliseconds(100)
+        ) {
+          _ = await incrementor.increment()
+          return true
+        }
+
+        #expect(await incrementor.count == 1)
+      }
+
 #if !SWT_NO_EXIT_TESTS
       @available(_clockAPI, *)
-      @Test("Requires duration be greater than interval")
-      func testRequiresDurationGreaterThanInterval() async {
+      @Test
+      func `Requires duration be greater than or equal to interval`() async {
         await #expect(processExitsWith: .failure) {
           try await confirmation(
-            until: .firstPass,
+            until: .stopsPassing,
             within: .seconds(1),
             pollingEvery: .milliseconds(1100)
           ) { true }
@@ -396,22 +412,20 @@ struct PollingConfirmationTests {
       }
 
       @available(_clockAPI, *)
-      @Test("Requires duration be greater than 0")
-      func testRequiresDurationGreaterThan0() async {
+      @Test func `Requires duration be greater than 0`() async {
         await #expect(processExitsWith: .failure) {
           try await confirmation(
-            until: .firstPass,
+            until: .stopsPassing,
             within: .seconds(0)
           ) { true }
         }
       }
 
       @available(_clockAPI, *)
-      @Test("Requires interval be greater than 0")
-      func testRequiresIntervalGreaterThan0() async {
+      @Test func `Requires interval be greater than 0`() async {
         await #expect(processExitsWith: .failure) {
           try await confirmation(
-            until: .firstPass,
+            until: .stopsPassing,
             pollingEvery: .seconds(0)
           ) { true }
         }
@@ -420,15 +434,14 @@ struct PollingConfirmationTests {
     }
   }
 
-  @Suite("Duration Tests", .disabled("time-sensitive"))
-  struct DurationTests {
-    @Suite("with PollingStopCondition.firstPass")
-    struct StopConditionFirstPass {
+  @Suite(.disabled("time-sensitive"))
+  struct `Duration Tests` {
+    struct `with PollingStopCondition.firstPass` {
       let stop = PollingStopCondition.firstPass
       let delta = Duration.milliseconds(100)
 
       @available(_clockAPI, *)
-      @Test("Simple passing expressions") func trivialHappyPath() async throws {
+      @Test func `Simple passing expressions`() async throws {
         let duration = try await Test.Clock().measure {
           try await confirmation(until: stop) { true }
         }
@@ -436,7 +449,7 @@ struct PollingConfirmationTests {
       }
 
       @available(_clockAPI, *)
-      @Test("Simple failing expressions") func trivialSadPath() async {
+      @Test func `Simple failing expressions`() async {
         let duration = await Test.Clock().measure {
           let issues = await runTest {
             try await confirmation(until: stop) { false }
@@ -447,8 +460,8 @@ struct PollingConfirmationTests {
       }
 
       @available(_clockAPI, *)
-      @Test("When the value changes from false to true during execution")
-      func changingFromFail() async throws {
+      @Test
+      func `When the value changes from false to true during execution`() async throws {
         let incrementor = Incrementor()
 
         let duration = try await Test.Clock().measure {
@@ -466,8 +479,7 @@ struct PollingConfirmationTests {
       }
 
       @available(_clockAPI, *)
-      @Test("Doesn't wait after the last iteration")
-      func lastIteration() async {
+      @Test func `Doesn't wait after the last iteration`() async {
         let duration = await Test.Clock().measure {
           let issues = await runTest {
             try await confirmation(
@@ -487,13 +499,12 @@ struct PollingConfirmationTests {
       }
     }
 
-    @Suite("with PollingStopCondition.stopsPassing")
-    struct StopConditionStopsPassing {
+    struct `with PollingStopCondition.stopsPassing` {
       let stop = PollingStopCondition.stopsPassing
       let delta = Duration.milliseconds(100)
 
       @available(_clockAPI, *)
-      @Test("Simple passing expressions") func trivialHappyPath() async throws {
+      @Test func `Simple passing expressions`() async throws {
         let duration = try await Test.Clock().measure {
           try await confirmation(until: stop) { true }
         }
@@ -501,7 +512,7 @@ struct PollingConfirmationTests {
       }
 
       @available(_clockAPI, *)
-      @Test("Simple failing expressions") func trivialSadPath() async {
+      @Test func `Simple failing expressions`() async {
         let duration = await Test.Clock().measure {
           _ = await runTest {
             try await confirmation(until: stop) { false }
@@ -511,8 +522,8 @@ struct PollingConfirmationTests {
       }
 
       @available(_clockAPI, *)
-      @Test("Doesn't wait after the last iteration")
-      func lastIteration() async throws {
+      @Test
+      func `Doesn't wait after the last iteration`() async throws {
         let duration = try await Test.Clock().measure {
           try await confirmation(
             until: stop,

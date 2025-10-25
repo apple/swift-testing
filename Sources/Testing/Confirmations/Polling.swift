@@ -19,16 +19,16 @@ private let _defaultPollingConfiguration = (
 /// This also determines what happens if the duration elapses during polling.
 @_spi(Experimental)
 public enum PollingStopCondition: Sendable, Equatable, Codable {
-  /// Evaluates the expression until the first time it returns true.
-  /// If it does not pass once by the time the timeout is reached, then a
+  /// Evaluates the expression until the first time it passes
+  /// If it does not pass once by the time the duration is reached, then a
   /// failure will be reported.
   case firstPass
 
-  /// Evaluates the expression until the first time it returns false.
-  /// If the expression returns false, then a failure will be reported.
-  /// If the expression only returns true before the timeout is reached, then
+  /// Evaluates the expression until the first time it returns fails.
+  /// If the expression fails, then a failure will be reported.
+  /// If the expression only passes before the duration is reached, then
   /// no failure will be reported.
-  /// If the expression does not finish evaluating before the timeout is
+  /// If the expression does not finish evaluating before the duration is
   /// reached, then a failure will be reported.
   case stopsPassing
 }
@@ -93,14 +93,15 @@ extension PollingFailedError: CustomIssueRepresentable {
 ///   - comment: A user-specified comment describing this confirmation.
 ///   - stopCondition: When to stop polling.
 ///   - duration: The expected length of time to continue polling for.
-///     This value may not correspond to the wall-clock time that polling lasts
-///     for, especially on highly-loaded systems with a lot of tests running.
+///     This value does not incorporate the time to run `body`, and may not
+///     correspond to the wall-clock time that polling lasts for, especially on
+///     highly-loaded systems with a lot of tests running.
 ///     If nil, this uses whatever value is specified under the last
 ///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
 ///     with a matching stopCondition.
 ///     If no such trait has been added, then polling will be attempted for
 ///     about 1 second before recording an issue.
-///     `duration` must be greater than 0.
+///     `duration` must be greater than or equal to `interval`.
 ///   - interval: The minimum amount of time to wait between polling attempts.
 ///     If nil, this uses whatever value is specified under the last
 ///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
@@ -110,7 +111,9 @@ extension PollingFailedError: CustomIssueRepresentable {
 ///     `interval` must be greater than 0.
 ///   - isolation: The actor to which `body` is isolated, if any.
 ///   - sourceLocation: The location in source where the confirmation was called.
-///   - body: The function to invoke.
+///   - body: The function to invoke. The expression is considered to pass if
+///     the `body` returns true. Similarly, the expression is considered to fail
+///     if `body` returns false.
 ///
 /// - Throws: A `PollingFailedError` if the `body` does not return true within
 ///   the polling duration.
@@ -155,14 +158,15 @@ public func confirmation(
 ///   - comment: A user-specified comment describing this confirmation.
 ///   - stopCondition: When to stop polling.
 ///   - duration: The expected length of time to continue polling for.
-///     This value may not correspond to the wall-clock time that polling lasts
-///     for, especially on highly-loaded systems with a lot of tests running.
+///     This value does not incorporate the time to run `body`, and may not
+///     correspond to the wall-clock time that polling lasts for, especially on
+///     highly-loaded systems with a lot of tests running.
 ///     If nil, this uses whatever value is specified under the last
 ///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
 ///     with a matching stopCondition.
 ///     If no such trait has been added, then polling will be attempted for
 ///     about 1 second before recording an issue.
-///     `duration` must be greater than 0.
+///     `duration` must be greater than or equal to `interval`.
 ///   - interval: The minimum amount of time to wait between polling attempts.
 ///     If nil, this uses whatever value is specified under the last
 ///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
@@ -172,7 +176,9 @@ public func confirmation(
 ///     `interval` must be greater than 0.
 ///   - isolation: The actor to which `body` is isolated, if any.
 ///   - sourceLocation: The location in source where the confirmation was called.
-///   - body: The function to invoke.
+///   - body: The function to invoke. The expression is considered to pass if
+///     the `body` returns a non-nil value. Similarly, the expression is
+///     considered to fail if `body` returns nil.
 ///
 /// - Throws: A `PollingFailedError` if the `body` does not return true within
 ///   the polling duration.
@@ -274,6 +280,8 @@ extension PollingStopCondition {
     case .firstPass:
       if let result {
         return .succeeded(result)
+      } else if wasLastPollingAttempt {
+        return .failed
       } else {
         return .continuePolling
       }
@@ -340,7 +348,7 @@ private struct Poller {
   /// Evaluate polling, throwing an error if polling fails.
   ///
   /// - Parameters:
-  ///   - isolation: The isolation to use.
+  ///   - isolation: The actor isolation to use.
   ///   - body: The expression to poll.
   ///
   /// - Throws: A ``PollingFailedError`` if polling doesn't pass.
@@ -366,7 +374,7 @@ private struct Poller {
   /// Evaluate polling, throwing an error if polling fails.
   ///
   /// - Parameters:
-  ///   - isolation: The isolation to use.
+  ///   - isolation: The actor isolation to use.
   ///   - body: The expression to poll.
   ///
   /// - Throws: A ``PollingFailedError`` if polling doesn't pass.
@@ -379,9 +387,8 @@ private struct Poller {
     isolation: isolated (any Actor)?,
     _ body: @escaping () async -> sending R?
   ) async throws -> R {
-    precondition(duration > Duration.zero)
     precondition(interval > Duration.zero)
-    precondition(duration > interval)
+    precondition(duration >= interval)
 
     let iterations = Int(exactly:
         max(duration.seconds() / interval.seconds(), 1).rounded()
@@ -390,7 +397,11 @@ private struct Poller {
     // large. In which case, we should fall back to Int.max.
 
     let failureReason: PollingFailedError.Reason
-    switch await poll(iterations: iterations, expression: body) {
+    switch await poll(
+      iterations: iterations,
+      isolation: isolation,
+      expression: body
+    ) {
     case let .succeeded(value):
       return value
     case .cancelled:
@@ -420,12 +431,13 @@ private struct Poller {
   ///
   /// - Parameters:
   ///   - iterations: The maximum amount of times to continue polling.
+  ///   - isolation: The actor isolation to use.
   ///   - expression: An expression to continuously evaluate.
   ///
   /// - Returns: The most recent value if the polling succeeded, else nil.
   private func poll<R>(
     iterations: Int,
-    isolation: isolated (any Actor)? = #isolation,
+    isolation: isolated (any Actor)?,
     expression: @escaping () async -> sending R?
   ) async -> PollingResult<R> {
     for iteration in 0..<iterations {
@@ -447,6 +459,9 @@ private struct Poller {
         return .cancelled
       }
     }
+    // This is somewhat redundant and only here to satisfy the compiler.
+    // `PollingStopCondition.process` will return either `.succeeded` or
+    // `.failed` on the last polling attempt.
     return .failed
   }
 }

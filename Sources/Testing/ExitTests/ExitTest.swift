@@ -392,6 +392,7 @@ extension ExitTest {
   ///
   /// - Warning: This function is used to implement the
   ///   `#expect(processExitsWith:)` macro. Do not use it directly.
+  @_disfavoredOverload
   @safe public static func __store<T>(
     _ id: (UInt64, UInt64, UInt64, UInt64),
     _ body: T,

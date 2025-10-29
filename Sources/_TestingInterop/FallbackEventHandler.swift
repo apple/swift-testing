@@ -9,13 +9,13 @@
 //
 
 #if !SWT_NO_INTEROP
-#if SWT_TARGET_OS_APPLE && !SWT_NO_OS_UNFAIR_LOCK
+#if SWT_TARGET_OS_APPLE && !SWT_NO_OS_UNFAIR_LOCK && !hasFeature(Embedded)
 private import _TestingInternals
 #else
 private import Synchronization
 #endif
 
-#if SWT_TARGET_OS_APPLE && !SWT_NO_OS_UNFAIR_LOCK
+#if SWT_TARGET_OS_APPLE && !SWT_NO_OS_UNFAIR_LOCK && !hasFeature(Embedded)
 /// The installed event handler.
 private nonisolated(unsafe) let _fallbackEventHandler = {
   let result = ManagedBuffer<FallbackEventHandler?, os_unfair_lock>.create(
@@ -26,8 +26,17 @@ private nonisolated(unsafe) let _fallbackEventHandler = {
   return result
 }()
 #else
+/// `Atomic`-compatible storage for ``FallbackEventHandler``.
+private final class _FallbackEventHandlerStorage: Sendable, RawRepresentable {
+  let rawValue: FallbackEventHandler
+
+  init(rawValue: FallbackEventHandler) {
+    self.rawValue = rawValue
+  }
+}
+
 /// The installed event handler.
-private nonisolated(unsafe) let _fallbackEventHandler = Atomic<UnsafeRawPointer?>(nil)
+private let _fallbackEventHandler = Atomic<Unmanaged<_FallbackEventHandlerStorage>?>(nil)
 #endif
 
 /// A type describing a fallback event handler that testing API can invoke as an
@@ -58,7 +67,7 @@ package typealias FallbackEventHandler = @Sendable @convention(c) (
 @_cdecl("_swift_testing_getFallbackEventHandler")
 @usableFromInline
 package func _swift_testing_getFallbackEventHandler() -> FallbackEventHandler? {
-#if SWT_TARGET_OS_APPLE && !SWT_NO_OS_UNFAIR_LOCK
+#if SWT_TARGET_OS_APPLE && !SWT_NO_OS_UNFAIR_LOCK && !hasFeature(Embedded)
   return _fallbackEventHandler.withUnsafeMutablePointers { fallbackEventHandler, lock in
     os_unfair_lock_lock(lock)
     defer {
@@ -67,8 +76,14 @@ package func _swift_testing_getFallbackEventHandler() -> FallbackEventHandler? {
     return fallbackEventHandler.pointee
   }
 #else
-  return _fallbackEventHandler.load(ordering: .sequentiallyConsistent).flatMap { fallbackEventHandler in
-    unsafeBitCast(fallbackEventHandler, to: FallbackEventHandler?.self)
+  // If we had a setter, this load would present a race condition because
+  // another thread could store a new value in between the load and the call to
+  // `takeUnretainedValue()`, resulting in a use-after-free on this thread. We
+  // would need a full lock in order to avoid that problem. However, because we
+  // instead have a one-time installation function, we can be sure that the
+  // loaded value (if non-nil) will never be replaced with another value.
+  return _fallbackEventHandler.load(ordering: .sequentiallyConsistent).map { fallbackEventHandler in
+    fallbackEventHandler.takeUnretainedValue().rawValue
   }
 #endif
 }
@@ -86,8 +101,10 @@ package func _swift_testing_getFallbackEventHandler() -> FallbackEventHandler? {
 @_cdecl("_swift_testing_installFallbackEventHandler")
 @usableFromInline
 package func _swift_testing_installFallbackEventHandler(_ handler: FallbackEventHandler) -> CBool {
-#if SWT_TARGET_OS_APPLE && !SWT_NO_OS_UNFAIR_LOCK
-  return _fallbackEventHandler.withUnsafeMutablePointers { fallbackEventHandler, lock in
+  var result = false
+
+#if SWT_TARGET_OS_APPLE && !SWT_NO_OS_UNFAIR_LOCK && !hasFeature(Embedded)
+  result = _fallbackEventHandler.withUnsafeMutablePointers { fallbackEventHandler, lock in
     os_unfair_lock_lock(lock)
     defer {
       os_unfair_lock_unlock(lock)
@@ -99,8 +116,16 @@ package func _swift_testing_installFallbackEventHandler(_ handler: FallbackEvent
     return true
   }
 #else
-  let handler = unsafeBitCast(handler, to: UnsafeRawPointer.self)
-  return _fallbackEventHandler.compareExchange(expected: nil, desired: handler, ordering: .sequentiallyConsistent).exchanged
+  let handler = Unmanaged.passRetained(_FallbackEventHandlerStorage(rawValue: handler))
+  defer {
+    if !result {
+      handler.release()
+    }
+  }
+
+  result = _fallbackEventHandler.compareExchange(expected: nil, desired: handler, ordering: .sequentiallyConsistent).exchanged
 #endif
+
+  return result
 }
 #endif

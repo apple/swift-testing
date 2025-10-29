@@ -105,6 +105,17 @@ let package = Package(
       )
     )
 
+#if DEBUG
+    // Build _TestingInterop for debugging/testing purposes only. It is
+    // important that clients do not link to this product/target.
+    result += [
+      .library(
+        name: "_TestingInterop_DO_NOT_USE",
+        targets: ["_TestingInterop_DO_NOT_USE"]
+      )
+    ]
+#endif
+
     return result
   }(),
 
@@ -208,6 +219,16 @@ let package = Package(
       exclude: ["CMakeLists.txt"],
       cxxSettings: .packageSettings,
       swiftSettings: .packageSettings + .enableLibraryEvolution()
+    ),
+    .target(
+      // Build _TestingInterop for debugging/testing purposes only. It is
+      // important that clients do not link to this product/target.
+      name: "_TestingInterop_DO_NOT_USE",
+      dependencies: ["_TestingInternals",],
+      path: "Sources/_TestingInterop",
+      exclude: ["CMakeLists.txt"],
+      cxxSettings: .packageSettings,
+      swiftSettings: .packageSettings
     ),
 
     // Cross-import overlays (not supported by Swift Package Manager)

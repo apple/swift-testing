@@ -198,6 +198,7 @@ private func _callBinaryOperator<T, U, R>(
 ///
 /// - Warning: This function is used to implement the `#expect()` and
 ///   `#require()` macros. Do not call it directly.
+@_disfavoredOverload
 public func __checkFunctionCall<T, each U>(
   _ lhs: T, calling functionCall: (T, repeat each U) throws -> Bool, _ arguments: repeat each U,
   expression: __Expression,
@@ -367,6 +368,7 @@ public func __checkInoutFunctionCall<T, /*each*/ U>(
 ///
 /// - Warning: This function is used to implement the `#expect()` and
 ///   `#require()` macros. Do not call it directly.
+@_disfavoredOverload
 public func __checkFunctionCall<T, each U, R>(
   _ lhs: T, calling functionCall: (T, repeat each U) throws -> R?, _ arguments: repeat each U,
   expression: __Expression,

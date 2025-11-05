@@ -15,11 +15,11 @@ public import _Testing_CoreGraphics
 /// @Metadata {
 ///   @Available(Swift, introduced: 6.3)
 /// }
-extension CIImage: AttachableAsCGImage {
+extension CIImage: AttachableAsImage, AttachableAsCGImage {
   /// @Metadata {
   ///   @Available(Swift, introduced: 6.3)
   /// }
-  public var attachableCGImage: CGImage {
+  package var attachableCGImage: CGImage {
     get throws {
       guard let result = CIContext().createCGImage(self, from: extent) else {
         throw ImageAttachmentError.couldNotCreateCGImage

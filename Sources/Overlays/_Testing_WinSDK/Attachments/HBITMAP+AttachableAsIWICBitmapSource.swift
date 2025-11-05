@@ -9,7 +9,6 @@
 //
 
 #if os(Windows)
-private import Testing
 public import WinSDK
 
 extension HBITMAP__: _AttachableByAddressAsIWICBitmapSource {

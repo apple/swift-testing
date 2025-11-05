@@ -9,7 +9,6 @@
 //
 
 #if os(Windows)
-private import Testing
 public import WinSDK
 
 /// - Important: The casts in this file to `IUnknown` are safe insofar as we use

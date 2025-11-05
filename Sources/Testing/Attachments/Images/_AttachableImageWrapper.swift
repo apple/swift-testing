@@ -23,30 +23,19 @@
 @available(*, unavailable, message: "Image attachments are not available on this platform.")
 #endif
 @available(_uttypesAPI, *)
-public final class _AttachableImageWrapper<Image>: Sendable where Image: _AttachableAsImage {
+public final class _AttachableImageWrapper<Image>: Sendable where Image: AttachableAsImage {
   /// The underlying image.
-  private nonisolated(unsafe) let _image: Image
+  public nonisolated(unsafe) let wrappedValue: Image
 
   /// The image format to use when encoding the represented image.
   package let imageFormat: AttachableImageFormat?
 
   init(image: Image, imageFormat: AttachableImageFormat?) {
-    self._image = image._copyAttachableValue()
+    self.wrappedValue = image._copyAttachableValue()
     self.imageFormat = imageFormat
   }
 
   deinit {
-    _image._deinitializeAttachableValue()
-  }
-}
-
-#if SWT_NO_IMAGE_ATTACHMENTS
-@_unavailableInEmbedded
-@available(*, unavailable, message: "Image attachments are not available on this platform.")
-#endif
-@available(_uttypesAPI, *)
-extension _AttachableImageWrapper {
-  public var wrappedValue: Image {
-    _image
+    wrappedValue._deinitializeAttachableValue()
   }
 }

@@ -572,7 +572,7 @@ extension AttachmentTests {
     @Test(arguments: [Float(0.0).nextUp, 0.25, 0.5, 0.75, 1.0], [.png as UTType?, .jpeg, .gif, .image, nil])
     func attachCGImage(quality: Float, type: UTType?) throws {
       let image = try Self.cgImage.get()
-      let format = type.map { AttachableImageFormat($0, encodingQuality: quality) }
+      let format = type.map { AttachableImageFormat(contentType: $0, encodingQuality: quality) }
       let attachment = Attachment(image, named: "diamond", as: format)
       #expect(attachment.attachableValue === image)
       try attachment.attachableValue.withUnsafeBytes(for: attachment) { buffer in
@@ -584,7 +584,7 @@ extension AttachmentTests {
     }
 
     @available(_uttypesAPI, *)
-    @Test(arguments: [AttachableImageFormat.png, .jpeg, .jpeg(withEncodingQuality: 0.5), .init(.tiff)])
+    @Test(arguments: [AttachableImageFormat.png, .jpeg, .jpeg(withEncodingQuality: 0.5), .init(contentType: .tiff)])
     func attachCGImage(format: AttachableImageFormat) throws {
       let image = try Self.cgImage.get()
       let attachment = Attachment(image, named: "diamond", as: format)
@@ -601,7 +601,7 @@ extension AttachmentTests {
     @available(_uttypesAPI, *)
     @Test func cannotAttachCGImageWithNonImageType() async {
       await #expect(processExitsWith: .failure) {
-        let format = AttachableImageFormat(.mp3)
+        let format = AttachableImageFormat(contentType: .mp3)
         let attachment = Attachment(try Self.cgImage.get(), named: "diamond", as: format)
         try attachment.attachableValue.withUnsafeBytes(for: attachment) { _ in }
       }
@@ -840,6 +840,58 @@ extension AttachmentTests {
     @Test func imageFormatFromPathExtension() {
       let format = AttachableImageFormat(pathExtension: "png")
       #expect(format != nil)
+      #expect(format == .png)
+
+      let badFormat = AttachableImageFormat(pathExtension: "no-such-image-format")
+      #expect(badFormat == nil)
+    }
+
+    @available(_uttypesAPI, *)
+    @Test func imageFormatEquatableConformance() {
+      let format1 = AttachableImageFormat.png
+      let format2 = AttachableImageFormat.jpeg
+#if canImport(CoreGraphics) && canImport(_Testing_CoreGraphics)
+      let format3 = AttachableImageFormat(contentType: .tiff)
+#elseif canImport(WinSDK) && canImport(_Testing_WinSDK)
+      let format3 = AttachableImageFormat(encoderCLSID: CLSID_WICTiffEncoder)
+#endif
+      #expect(format1 == format1)
+      #expect(format2 == format2)
+      #expect(format3 == format3)
+      #expect(format1 != format2)
+      #expect(format2 != format3)
+      #expect(format1 != format3)
+
+      #expect(format1.hashValue == format1.hashValue)
+      #expect(format2.hashValue == format2.hashValue)
+      #expect(format3.hashValue == format3.hashValue)
+      #expect(format1.hashValue != format2.hashValue)
+      #expect(format2.hashValue != format3.hashValue)
+      #expect(format1.hashValue != format3.hashValue)
+    }
+
+    @available(_uttypesAPI, *)
+    @Test func imageFormatStringification() {
+      let format: AttachableImageFormat = AttachableImageFormat.png
+#if canImport(CoreGraphics) && canImport(_Testing_CoreGraphics)
+      #expect(String(describing: format) == UTType.png.localizedDescription!)
+      #expect(String(reflecting: format) == "\(UTType.png.localizedDescription!) (\(UTType.png.identifier)) at quality 1.0")
+#elseif canImport(WinSDK) && canImport(_Testing_WinSDK)
+      #expect(String(describing: format) == "PNG format")
+      #expect(String(reflecting: format) == "PNG format (27949969-876a-41d7-9447-568f6a35a4dc) at quality 1.0")
+#endif
+    }
+
+    @available(_uttypesAPI, *)
+    @Test func imageFormatStringificationWithQuality() {
+      let format: AttachableImageFormat = AttachableImageFormat.jpeg(withEncodingQuality: 0.5)
+#if canImport(CoreGraphics) && canImport(_Testing_CoreGraphics)
+      #expect(String(describing: format) == "\(UTType.jpeg.localizedDescription!) at 50% quality")
+      #expect(String(reflecting: format) == "\(UTType.jpeg.localizedDescription!) (\(UTType.jpeg.identifier)) at quality 0.5")
+#elseif canImport(WinSDK) && canImport(_Testing_WinSDK)
+      #expect(String(describing: format) == "JPEG format at 50% quality")
+      #expect(String(reflecting: format) == "JPEG format (1a34f5c1-4a5a-46dc-b644-1f4567e7a676) at quality 0.5")
+#endif
     }
 #endif
   }

@@ -12,7 +12,7 @@
 /// when attaching an image to a test.
 ///
 /// When you attach an image to a test, you can pass an instance of this type to
-/// `Attachment.record(_:named:as:sourceLocation:)` so that the testing
+/// ``Attachment/record(_:named:as:sourceLocation:)`` so that the testing
 /// library knows the image format you'd like to use. If you don't pass an
 /// instance of this type, the testing library infers which format to use based
 /// on the attachment's preferred name.
@@ -53,7 +53,7 @@ public struct AttachableImageFormat: Sendable {
     ///
     /// On Apple platforms, `value` should be an instance of `UTType`. On
     /// Windows, it should be an instance of `CLSID`.
-    case systemValue(_ value: any Sendable)
+    case systemValue(_ value: any Sendable & Equatable & Hashable)
   }
 
   /// The kind of image format represented by this instance.
@@ -69,11 +69,74 @@ public struct AttachableImageFormat: Sendable {
   /// @Metadata {
   ///   @Available(Swift, introduced: 6.3)
   /// }
-  public internal(set) var encodingQuality: Float = 1.0
+  public private(set) var encodingQuality: Float = 1.0
 
   package init(kind: Kind, encodingQuality: Float) {
     self.kind = kind
     self.encodingQuality = min(max(0.0, encodingQuality), 1.0)
+  }
+}
+
+// MARK: - Equatable, Hashable
+
+#if SWT_NO_IMAGE_ATTACHMENTS
+@_unavailableInEmbedded
+@available(*, unavailable, message: "Image attachments are not available on this platform.")
+#endif
+@available(_uttypesAPI, *)
+extension AttachableImageFormat: Equatable, Hashable {}
+
+#if SWT_NO_IMAGE_ATTACHMENTS
+@_unavailableInEmbedded
+@available(*, unavailable, message: "Image attachments are not available on this platform.")
+#endif
+@available(_uttypesAPI, *)
+extension AttachableImageFormat.Kind: Equatable, Hashable {
+  public static func ==(lhs: Self, rhs: Self) -> Bool {
+    switch (lhs, rhs) {
+    case (.png, .png), (.jpeg, .jpeg):
+      return true
+    case let (.systemValue(lhs), .systemValue(rhs)):
+      func open<T>(_ lhs: T) -> Bool where T: Equatable {
+        lhs == (rhs as? T)
+      }
+      return open(lhs)
+    default:
+      return false
+    }
+  }
+
+  public func hash(into hasher: inout Hasher) {
+    switch self {
+    case .png:
+      hasher.combine("png")
+    case .jpeg:
+      hasher.combine("jpeg")
+    case let .systemValue(systemValue):
+      hasher.combine(systemValue)
+    }
+  }
+}
+
+// MARK: - CustomStringConvertible, CustomDebugStringConvertible
+
+#if SWT_NO_IMAGE_ATTACHMENTS
+@_unavailableInEmbedded
+@available(*, unavailable, message: "Image attachments are not available on this platform.")
+#endif
+@available(_uttypesAPI, *)
+extension AttachableImageFormat: CustomStringConvertible, CustomDebugStringConvertible {
+  public var description: String {
+    let kindDescription = String(describing: kind)
+    if encodingQuality < 1.0 {
+      return "\(kindDescription) at \(Int(encodingQuality * 100.0))% quality"
+    }
+    return kindDescription
+  }
+
+  public var debugDescription: String {
+    let kindDescription = String(reflecting: kind)
+    return "\(kindDescription) at quality \(encodingQuality)"
   }
 }
 

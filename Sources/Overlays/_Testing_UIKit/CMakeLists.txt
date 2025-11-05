@@ -8,7 +8,7 @@
 
 if(APPLE)
   add_library(_Testing_UIKit
-    Attachments/UIImage+AttachableAsCGImage.swift
+    Attachments/UIImage+AttachableAsImage.swift
     ReexportTesting.swift)
 
   target_link_libraries(_Testing_UIKit PUBLIC

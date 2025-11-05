@@ -9,115 +9,43 @@
 //
 
 #if os(Windows)
-public import Testing
 private import WinSDK
 
-extension _AttachableImageWrapper: Attachable, AttachableWrapper where Image: AttachableAsIWICBitmapSource {
+extension _AttachableImageWrapper: Attachable, AttachableWrapper where Image: AttachableAsImage {
+  /// Get the image format to use when encoding an image.
+  ///
+  /// - Parameters:
+  ///   - preferredName: The preferred name of the image for which a type is
+  ///     needed.
+  ///
+  /// - Returns: An instance of ``AttachableImageFormat`` referring to a
+  ///   concrete image type.
+  ///
+  /// This function is not part of the public interface of the testing library.
+  private func _imageFormat(forPreferredName preferredName: String) -> AttachableImageFormat {
+    if let imageFormat {
+      // The developer explicitly specified a type.
+      return imageFormat
+    }
+
+    if let clsid = AttachableImageFormat.computeEncoderCLSID(forPreferredName: preferredName) {
+      return AttachableImageFormat(encoderCLSID: clsid)
+    }
+
+    // We couldn't derive a concrete type from the path extension, so pick
+    // between PNG and JPEG based on the encoding quality.
+    let encodingQuality = imageFormat?.encodingQuality ?? 1.0
+    return encodingQuality < 1.0 ? .jpeg : .png
+  }
+
   public func withUnsafeBytes<R>(for attachment: borrowing Attachment<_AttachableImageWrapper>, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R {
-    // Create an in-memory stream to write the image data to. Note that Windows
-    // documentation recommends SHCreateMemStream() instead, but that function
-    // does not provide a mechanism to access the underlying memory directly.
-    var stream: UnsafeMutablePointer<IStream>?
-    let rCreateStream = CreateStreamOnHGlobal(nil, true, &stream)
-    guard S_OK == rCreateStream, let stream else {
-      throw ImageAttachmentError.comObjectCreationFailed(IStream.self, rCreateStream)
-    }
-    defer {
-      _ = stream.pointee.lpVtbl.pointee.Release(stream)
-    }
-
-    // Get an imaging factory to create the WIC bitmap and encoder.
-    let factory = try IWICImagingFactory.create()
-    defer {
-      _ = factory.pointee.lpVtbl.pointee.Release(factory)
-    }
-
-    // Create the bitmap and downcast it to an IWICBitmapSource for later use.
-    let bitmap = try wrappedValue._copyAttachableIWICBitmapSource(using: factory)
-    defer {
-      _ = bitmap.pointee.lpVtbl.pointee.Release(bitmap)
-    }
-
-    // Create the encoder.
-    let encoder = try withUnsafePointer(to: IID_IWICBitmapEncoder) { [preferredName = attachment.preferredName] IID_IWICBitmapEncoder in
-      var encoderCLSID = AttachableImageFormat.computeEncoderCLSID(for: imageFormat, withPreferredName: preferredName)
-      var encoder: UnsafeMutableRawPointer?
-      let rCreate = CoCreateInstance(
-        &encoderCLSID,
-        nil,
-        DWORD(CLSCTX_INPROC_SERVER.rawValue),
-        IID_IWICBitmapEncoder,
-        &encoder
-      )
-      guard rCreate == S_OK, let encoder = encoder?.assumingMemoryBound(to: IWICBitmapEncoder.self) else {
-        throw ImageAttachmentError.comObjectCreationFailed(IWICBitmapEncoder.self, rCreate)
-      }
-      return encoder
-    }
-    defer {
-      _ = encoder.pointee.lpVtbl.pointee.Release(encoder)
-    }
-    _ = encoder.pointee.lpVtbl.pointee.Initialize(encoder, stream, WICBitmapEncoderNoCache)
-
-    // Create the frame into which the bitmap will be composited.
-    var frame: UnsafeMutablePointer<IWICBitmapFrameEncode>?
-    var propertyBag: UnsafeMutablePointer<IPropertyBag2>?
-    let rCreateFrame = encoder.pointee.lpVtbl.pointee.CreateNewFrame(encoder, &frame, &propertyBag)
-    guard rCreateFrame == S_OK, let frame, let propertyBag else {
-      throw ImageAttachmentError.comObjectCreationFailed(IWICBitmapFrameEncode.self, rCreateFrame)
-    }
-    defer {
-      _ = frame.pointee.lpVtbl.pointee.Release(frame)
-      _ = propertyBag.pointee.lpVtbl.pointee.Release(propertyBag)
-    }
-
-    // Set properties. The only property we currently set is image quality.
-    if let encodingQuality = imageFormat?.encodingQuality {
-      try propertyBag.write(encodingQuality, named: "ImageQuality")
-    }
-    _ = frame.pointee.lpVtbl.pointee.Initialize(frame, propertyBag)
-
-    // Write the image!
-    let rWrite = frame.pointee.lpVtbl.pointee.WriteSource(frame, bitmap, nil)
-    guard rWrite == S_OK else {
-      throw ImageAttachmentError.imageWritingFailed(rWrite)
-    }
-
-    // Commit changes through the various layers.
-    var rCommit = frame.pointee.lpVtbl.pointee.Commit(frame)
-    guard rCommit == S_OK else {
-      throw ImageAttachmentError.imageWritingFailed(rCommit)
-    }
-    rCommit = encoder.pointee.lpVtbl.pointee.Commit(encoder)
-    guard rCommit == S_OK else {
-      throw ImageAttachmentError.imageWritingFailed(rCommit)
-    }
-    rCommit = stream.pointee.lpVtbl.pointee.Commit(stream, DWORD(STGC_DEFAULT.rawValue))
-    guard rCommit == S_OK else {
-      throw ImageAttachmentError.imageWritingFailed(rCommit)
-    }
-
-    // Extract the serialized image and pass it back to the caller. We hold the
-    // HGLOBAL locked while calling `body`, but nothing else should have a
-    // reference to it.
-    var global: HGLOBAL?
-    let rGetGlobal = GetHGlobalFromStream(stream, &global)
-    guard S_OK == rGetGlobal else {
-      throw ImageAttachmentError.globalFromStreamFailed(rGetGlobal)
-    }
-    guard let baseAddress = GlobalLock(global) else {
-      throw Win32Error(rawValue: GetLastError())
-    }
-    defer {
-      GlobalUnlock(global)
-    }
-    let byteCount = GlobalSize(global)
-    return try body(UnsafeRawBufferPointer(start: baseAddress, count: Int(byteCount)))
+    let imageFormat = _imageFormat(forPreferredName: attachment.preferredName)
+    return try wrappedValue.withUnsafeBytes(as: imageFormat, body)
   }
 
   public borrowing func preferredName(for attachment: borrowing Attachment<_AttachableImageWrapper>, basedOn suggestedName: String) -> String {
-    let clsid = AttachableImageFormat.computeEncoderCLSID(for: imageFormat, withPreferredName: suggestedName)
-    return AttachableImageFormat.appendPathExtension(for: clsid, to: suggestedName)
+    let imageFormat = _imageFormat(forPreferredName: suggestedName)
+    return AttachableImageFormat.appendPathExtension(for: imageFormat.encoderCLSID, to: suggestedName)
   }
 }
 #endif

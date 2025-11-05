@@ -8,7 +8,7 @@
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   add_library(_Testing_AppKit
-    Attachments/NSImage+AttachableAsCGImage.swift
+    Attachments/NSImage+AttachableAsImage.swift
     ReexportTesting.swift)
 
   target_link_libraries(_Testing_AppKit PUBLIC

@@ -13,25 +13,11 @@ private import Testing
 public import WinSDK
 
 /// A protocol describing images that can be converted to instances of
-/// ``Testing/Attachment``.
+/// [`Attachment`](https://developer.apple.com/documentation/testing/attachment)
+/// and which can be represented as instances of [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource)
+/// by address.
 ///
-/// Instances of types conforming to this protocol do not themselves conform to
-/// ``Testing/Attachable``. Instead, the testing library provides additional
-/// initializers on ``Testing/Attachment`` that take instances of such types and
-/// handle converting them to image data when needed.
-///
-/// You can attach instances of the following system-provided image types to a
-/// test:
-///
-/// | Platform | Supported Types |
-/// |-|-|
-/// | macOS | [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage), [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage), [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage) |
-/// | iOS, watchOS, tvOS, and visionOS | [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage), [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage), [`UIImage`](https://developer.apple.com/documentation/uikit/uiimage) |
-/// | Windows | [`HBITMAP`](https://learn.microsoft.com/en-us/windows/win32/gdi/bitmaps), [`HICON`](https://learn.microsoft.com/en-us/windows/win32/menurc/icons), [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource) (including its subclasses declared by Windows Imaging Component) |
-///
-/// You do not generally need to add your own conformances to this protocol. If
-/// you have an image in another format that needs to be attached to a test,
-/// first convert it to an instance of one of the types above.
+/// This protocol is not part of the public interface of the testing library.
 public protocol _AttachableByAddressAsIWICBitmapSource {
   /// Create a WIC bitmap source representing an instance of this type at the
   /// given address.
@@ -92,42 +78,12 @@ public protocol _AttachableByAddressAsIWICBitmapSource {
 }
 
 /// A protocol describing images that can be converted to instances of
-/// [`Attachment`](https://developer.apple.com/documentation/testing/attachment).
+/// [`Attachment`](https://developer.apple.com/documentation/testing/attachment)
+/// and which can be represented as instances of [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource).
 ///
-/// Instances of types conforming to this protocol do not themselves conform to
-/// [`Attachable`](https://developer.apple.com/documentation/testing/attachable).
-/// Instead, the testing library provides additional initializers on [`Attachment`](https://developer.apple.com/documentation/testing/attachment)
-/// that take instances of such types and handle converting them to image data when needed.
-///
-/// You can attach instances of the following system-provided image types to a
-/// test:
-///
-/// | Platform | Supported Types |
-/// |-|-|
-/// | macOS | [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage), [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage), [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage) |
-/// | iOS, watchOS, tvOS, and visionOS | [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage), [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage), [`UIImage`](https://developer.apple.com/documentation/uikit/uiimage) |
-/// | Windows | [`HBITMAP`](https://learn.microsoft.com/en-us/windows/win32/gdi/bitmaps), [`HICON`](https://learn.microsoft.com/en-us/windows/win32/menurc/icons), [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource) (including its subclasses declared by Windows Imaging Component) |
-///
-/// You do not generally need to add your own conformances to this protocol. If
-/// you have an image in another format that needs to be attached to a test,
-/// first convert it to an instance of one of the types above.
-///
-/// @Metadata {
-///   @Available(Swift, introduced: 6.3)
-/// }
-public protocol AttachableAsIWICBitmapSource: _AttachableAsImage, SendableMetatype {
-  /// Create a WIC bitmap source representing an instance of this type.
-  ///
-  /// - Returns: A pointer to a new WIC bitmap source representing this image.
-  ///   The caller is responsible for releasing this image when done with it.
-  ///
-  /// - Throws: Any error that prevented the creation of the WIC bitmap source.
-  ///
-  /// @Metadata {
-  ///   @Available(Swift, introduced: 6.3)
-  /// }
-  func copyAttachableIWICBitmapSource() throws -> UnsafeMutablePointer<IWICBitmapSource>
-
+/// This protocol is not part of the public interface of the testing library. It
+/// encapsulates Windows-specific logic for image attachments.
+package protocol AttachableAsIWICBitmapSource: AttachableAsImage {
   /// Create a WIC bitmap representing an instance of this type.
   ///
   /// - Parameters:
@@ -138,26 +94,115 @@ public protocol AttachableAsIWICBitmapSource: _AttachableAsImage, SendableMetaty
   ///   caller is responsible for releasing this image when done with it.
   ///
   /// - Throws: Any error that prevented the creation of the WIC bitmap.
-  ///
-  /// The default implementation of this function ignores `factory` and calls
-  /// ``copyAttachableIWICBitmapSource()``. If your implementation of
-  /// ``copyAttachableIWICBitmapSource()`` needs to create a WIC imaging factory
-  /// in order to return a result, it is more efficient to implement this
-  /// function too so that the testing library can pass the WIC imaging factory
-  /// it creates.
-  ///
-  /// This function is not part of the public interface of the testing library.
-  /// It may be removed in a future update.
-  func _copyAttachableIWICBitmapSource(
+  func copyAttachableIWICBitmapSource(
     using factory: UnsafeMutablePointer<IWICImagingFactory>
   ) throws -> UnsafeMutablePointer<IWICBitmapSource>
 }
 
 extension AttachableAsIWICBitmapSource {
-  public func _copyAttachableIWICBitmapSource(
-    using factory: UnsafeMutablePointer<IWICImagingFactory>
-  ) throws -> UnsafeMutablePointer<IWICBitmapSource> {
-    try copyAttachableIWICBitmapSource()
+  public func withUnsafeBytes<R>(as imageFormat: AttachableImageFormat, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R {
+    // Create an in-memory stream to write the image data to. Note that Windows
+    // documentation recommends SHCreateMemStream() instead, but that function
+    // does not provide a mechanism to access the underlying memory directly.
+    var stream: UnsafeMutablePointer<IStream>?
+    let rCreateStream = CreateStreamOnHGlobal(nil, true, &stream)
+    guard S_OK == rCreateStream, let stream else {
+      throw ImageAttachmentError.comObjectCreationFailed(IStream.self, rCreateStream)
+    }
+    defer {
+      _ = stream.pointee.lpVtbl.pointee.Release(stream)
+    }
+
+    // Get an imaging factory to create the WIC bitmap and encoder.
+    let factory = try IWICImagingFactory.create()
+    defer {
+      _ = factory.pointee.lpVtbl.pointee.Release(factory)
+    }
+
+    // Create the bitmap and downcast it to an IWICBitmapSource for later use.
+    let bitmap = try copyAttachableIWICBitmapSource(using: factory)
+    defer {
+      _ = bitmap.pointee.lpVtbl.pointee.Release(bitmap)
+    }
+
+    // Create the encoder.
+    let encoder = try withUnsafePointer(to: IID_IWICBitmapEncoder) { IID_IWICBitmapEncoder in
+      var encoderCLSID = imageFormat.encoderCLSID
+      var encoder: UnsafeMutableRawPointer?
+      let rCreate = CoCreateInstance(
+        &encoderCLSID,
+        nil,
+        DWORD(CLSCTX_INPROC_SERVER.rawValue),
+        IID_IWICBitmapEncoder,
+        &encoder
+      )
+      guard rCreate == S_OK, let encoder = encoder?.assumingMemoryBound(to: IWICBitmapEncoder.self) else {
+        throw ImageAttachmentError.comObjectCreationFailed(IWICBitmapEncoder.self, rCreate)
+      }
+      return encoder
+    }
+    defer {
+      _ = encoder.pointee.lpVtbl.pointee.Release(encoder)
+    }
+    _ = encoder.pointee.lpVtbl.pointee.Initialize(encoder, stream, WICBitmapEncoderNoCache)
+
+    // Create the frame into which the bitmap will be composited.
+    var frame: UnsafeMutablePointer<IWICBitmapFrameEncode>?
+    var propertyBag: UnsafeMutablePointer<IPropertyBag2>?
+    let rCreateFrame = encoder.pointee.lpVtbl.pointee.CreateNewFrame(encoder, &frame, &propertyBag)
+    guard rCreateFrame == S_OK, let frame, let propertyBag else {
+      throw ImageAttachmentError.comObjectCreationFailed(IWICBitmapFrameEncode.self, rCreateFrame)
+    }
+    defer {
+      _ = frame.pointee.lpVtbl.pointee.Release(frame)
+      _ = propertyBag.pointee.lpVtbl.pointee.Release(propertyBag)
+    }
+
+    // Set properties. The only property we currently set is image quality.
+    do {
+      try propertyBag.write(imageFormat.encodingQuality, named: "ImageQuality")
+    } catch ImageAttachmentError.propertyBagWritingFailed(_, HRESULT(bitPattern: 0x80004005)) {
+      // E_FAIL: This property is not supported for the current encoder/format.
+      // Eat this error silently as it's not useful to the test author.
+    }
+    _ = frame.pointee.lpVtbl.pointee.Initialize(frame, propertyBag)
+
+    // Write the image!
+    let rWrite = frame.pointee.lpVtbl.pointee.WriteSource(frame, bitmap, nil)
+    guard rWrite == S_OK else {
+      throw ImageAttachmentError.imageWritingFailed(rWrite)
+    }
+
+    // Commit changes through the various layers.
+    var rCommit = frame.pointee.lpVtbl.pointee.Commit(frame)
+    guard rCommit == S_OK else {
+      throw ImageAttachmentError.imageWritingFailed(rCommit)
+    }
+    rCommit = encoder.pointee.lpVtbl.pointee.Commit(encoder)
+    guard rCommit == S_OK else {
+      throw ImageAttachmentError.imageWritingFailed(rCommit)
+    }
+    rCommit = stream.pointee.lpVtbl.pointee.Commit(stream, DWORD(STGC_DEFAULT.rawValue))
+    guard rCommit == S_OK else {
+      throw ImageAttachmentError.imageWritingFailed(rCommit)
+    }
+
+    // Extract the serialized image and pass it back to the caller. We hold the
+    // HGLOBAL locked while calling `body`, but nothing else should have a
+    // reference to it.
+    var global: HGLOBAL?
+    let rGetGlobal = GetHGlobalFromStream(stream, &global)
+    guard S_OK == rGetGlobal else {
+      throw ImageAttachmentError.globalFromStreamFailed(rGetGlobal)
+    }
+    guard let baseAddress = GlobalLock(global) else {
+      throw Win32Error(rawValue: GetLastError())
+    }
+    defer {
+      GlobalUnlock(global)
+    }
+    let byteCount = GlobalSize(global)
+    return try body(UnsafeRawBufferPointer(start: baseAddress, count: Int(byteCount)))
   }
 }
 #endif

@@ -12,7 +12,7 @@
 public import UIKit
 public import _Testing_CoreGraphics
 
-private import ImageIO
+package import ImageIO
 #if canImport(UIKitCore_Private)
 private import UIKitCore_Private
 #endif
@@ -20,11 +20,11 @@ private import UIKitCore_Private
 /// @Metadata {
 ///   @Available(Swift, introduced: 6.3)
 /// }
-extension UIImage: AttachableAsCGImage {
+extension UIImage: AttachableAsImage, AttachableAsCGImage {
   /// @Metadata {
   ///   @Available(Swift, introduced: 6.3)
   /// }
-  public var attachableCGImage: CGImage {
+  package var attachableCGImage: CGImage {
     get throws {
 #if canImport(UIKitCore_Private)
       // _UIImageGetCGImageRepresentation() is an internal UIKit function that
@@ -49,8 +49,8 @@ extension UIImage: AttachableAsCGImage {
     }
   }
 
-  public var _attachmentOrientation: UInt32 {
-    let result: CGImagePropertyOrientation = switch imageOrientation {
+  package var attachmentOrientation: CGImagePropertyOrientation {
+    switch imageOrientation {
     case .up: .up
     case .down: .down
     case .left: .left
@@ -61,10 +61,9 @@ extension UIImage: AttachableAsCGImage {
     case .rightMirrored: .rightMirrored
     @unknown default: .up
     }
-    return result.rawValue
   }
 
-  public var _attachmentScaleFactor: CGFloat {
+  package var attachmentScaleFactor: CGFloat {
     scale
   }
 }

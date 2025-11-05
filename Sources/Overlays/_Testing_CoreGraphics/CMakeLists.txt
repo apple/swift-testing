@@ -8,10 +8,10 @@
 
 if(APPLE)
   add_library(_Testing_CoreGraphics
-    Attachments/_AttachableImageWrapper+AttachableWrapper.swift
     Attachments/AttachableAsCGImage.swift
+    Attachments/_AttachableImageWrapper+AttachableWrapper.swift
     Attachments/AttachableImageFormat+UTType.swift
-    Attachments/CGImage+AttachableAsCGImage.swift
+    Attachments/CGImage+AttachableAsImage.swift
     ReexportTesting.swift)
 
   target_link_libraries(_Testing_CoreGraphics PUBLIC

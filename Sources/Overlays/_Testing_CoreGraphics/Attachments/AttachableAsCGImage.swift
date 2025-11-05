@@ -9,42 +9,21 @@
 //
 
 #if SWT_TARGET_OS_APPLE && canImport(CoreGraphics)
-public import CoreGraphics
-private import ImageIO
+package import CoreGraphics
+package import ImageIO
+private import UniformTypeIdentifiers
 
 /// A protocol describing images that can be converted to instances of
-/// [`Attachment`](https://developer.apple.com/documentation/testing/attachment).
+/// [`Attachment`](https://developer.apple.com/documentation/testing/attachment)
+/// and which can be represented as instances of [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage).
 ///
-/// Instances of types conforming to this protocol do not themselves conform to
-/// [`Attachable`](https://developer.apple.com/documentation/testing/attachable).
-/// Instead, the testing library provides additional initializers on [`Attachment`](https://developer.apple.com/documentation/testing/attachment)
-/// that take instances of such types and handle converting them to image data when needed.
-///
-/// You can attach instances of the following system-provided image types to a
-/// test:
-///
-/// | Platform | Supported Types |
-/// |-|-|
-/// | macOS | [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage), [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage), [`NSImage`](https://developer.apple.com/documentation/appkit/nsimage) |
-/// | iOS, watchOS, tvOS, and visionOS | [`CGImage`](https://developer.apple.com/documentation/coregraphics/cgimage), [`CIImage`](https://developer.apple.com/documentation/coreimage/ciimage), [`UIImage`](https://developer.apple.com/documentation/uikit/uiimage) |
-/// | Windows | [`HBITMAP`](https://learn.microsoft.com/en-us/windows/win32/gdi/bitmaps), [`HICON`](https://learn.microsoft.com/en-us/windows/win32/menurc/icons), [`IWICBitmapSource`](https://learn.microsoft.com/en-us/windows/win32/api/wincodec/nn-wincodec-iwicbitmapsource) (including its subclasses declared by Windows Imaging Component) |
-///
-/// You do not generally need to add your own conformances to this protocol. If
-/// you have an image in another format that needs to be attached to a test,
-/// first convert it to an instance of one of the types above.
-///
-/// @Metadata {
-///   @Available(Swift, introduced: 6.3)
-/// }
+/// This protocol is not part of the public interface of the testing library. It
+/// encapsulates Apple-specific logic for image attachments.
 @available(_uttypesAPI, *)
-public protocol AttachableAsCGImage: _AttachableAsImage, SendableMetatype {
+package protocol AttachableAsCGImage: AttachableAsImage {
   /// An instance of `CGImage` representing this image.
   ///
   /// - Throws: Any error that prevents the creation of an image.
-  ///
-  /// @Metadata {
-  ///   @Available(Swift, introduced: 6.3)
-  /// }
   var attachableCGImage: CGImage { get throws }
 
   /// The orientation of the image.
@@ -53,9 +32,9 @@ public protocol AttachableAsCGImage: _AttachableAsImage, SendableMetatype {
   /// `CGImagePropertyOrientation`. The default value of this property is
   /// `.up`.
   ///
-  /// This property is not part of the public interface of the testing
-  /// library. It may be removed in a future update.
-  var _attachmentOrientation: UInt32 { get }
+  /// This property is not part of the public interface of the testing library.
+  /// It may be removed in a future update.
+  var attachmentOrientation: CGImagePropertyOrientation { get }
 
   /// The scale factor of the image.
   ///
@@ -63,28 +42,54 @@ public protocol AttachableAsCGImage: _AttachableAsImage, SendableMetatype {
   /// originates from a Retina Display screenshot or similar. The default value
   /// of this property is `1.0`.
   ///
-  /// This property is not part of the public interface of the testing
-  /// library. It may be removed in a future update.
-  var _attachmentScaleFactor: CGFloat { get }
+  /// This property is not part of the public interface of the testing library.
+  /// It may be removed in a future update.
+  var attachmentScaleFactor: CGFloat { get }
 }
 
 @available(_uttypesAPI, *)
 extension AttachableAsCGImage {
-  public var _attachmentOrientation: UInt32 {
-    CGImagePropertyOrientation.up.rawValue
+  package var attachmentOrientation: CGImagePropertyOrientation {
+    .up
   }
 
-  public var _attachmentScaleFactor: CGFloat {
+  package var attachmentScaleFactor: CGFloat {
     1.0
   }
 
-  public func _deinitializeAttachableValue() {}
-}
+  public func withUnsafeBytes<R>(as imageFormat: AttachableImageFormat, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R {
+    let data = NSMutableData()
 
-@available(_uttypesAPI, *)
-extension AttachableAsCGImage where Self: Sendable {
-  public func _copyAttachableValue() -> Self {
-    self
+    // Convert the image to a CGImage.
+    let attachableCGImage = try attachableCGImage
+
+    // Create the image destination.
+    guard let dest = CGImageDestinationCreateWithData(data as CFMutableData, imageFormat.contentType.identifier as CFString, 1, nil) else {
+      throw ImageAttachmentError.couldNotCreateImageDestination
+    }
+
+    // Configure the properties of the image conversion operation.
+    let orientation = attachmentOrientation
+    let scaleFactor = attachmentScaleFactor
+    let properties: [CFString: Any] = [
+      kCGImageDestinationLossyCompressionQuality: CGFloat(imageFormat.encodingQuality),
+      kCGImagePropertyOrientation: orientation,
+      kCGImagePropertyDPIWidth: 72.0 * scaleFactor,
+      kCGImagePropertyDPIHeight: 72.0 * scaleFactor,
+    ]
+
+    // Perform the image conversion.
+    CGImageDestinationAddImage(dest, attachableCGImage, properties as CFDictionary)
+    guard CGImageDestinationFinalize(dest) else {
+      throw ImageAttachmentError.couldNotConvertImage
+    }
+
+    // Pass the bits of the image out to the body. Note that we have an
+    // NSMutableData here so we have to use slightly different API than we would
+    // with an instance of Data.
+    return try withExtendedLifetime(data) {
+      try body(UnsafeRawBufferPointer(start: data.bytes, count: data.length))
+    }
   }
 }
 #endif

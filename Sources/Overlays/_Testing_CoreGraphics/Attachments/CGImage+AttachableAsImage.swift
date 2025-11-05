@@ -14,11 +14,11 @@ public import CoreGraphics
 /// @Metadata {
 ///   @Available(Swift, introduced: 6.3)
 /// }
-extension CGImage: AttachableAsCGImage {
+extension CGImage: AttachableAsImage, AttachableAsCGImage {
   /// @Metadata {
   ///   @Available(Swift, introduced: 6.3)
   /// }
-  public var attachableCGImage: CGImage {
+  package var attachableCGImage: CGImage {
     self
   }
 }

@@ -100,14 +100,17 @@ extension Attachment {
 
 // MARK: -
 
-@_spi(Experimental) // STOP: not part of ST-0014
 #if SWT_NO_IMAGE_ATTACHMENTS
 @_unavailableInEmbedded
 @available(*, unavailable, message: "Image attachments are not available on this platform.")
 #endif
 @available(_uttypesAPI, *)
-extension Attachment where AttachableValue: AttachableWrapper, AttachableValue.Wrapped: _AttachableAsImage {
-  /// The image format to use when encoding the represented image.
+extension Attachment where AttachableValue: AttachableWrapper, AttachableValue.Wrapped: AttachableAsImage {
+  /// The image format to use when encoding the represented image, if specified.
+  ///
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   @_disfavoredOverload public var imageFormat: AttachableImageFormat? {
     // FIXME: no way to express `where AttachableValue == _AttachableImageWrapper<???>` on a property (see rdar://47559973)
     (attachableValue as? _AttachableImageWrapper<AttachableValue.Wrapped>)?.imageFormat

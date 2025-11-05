@@ -168,8 +168,10 @@ struct UnsuccessfulConfirmationTests {
 // MARK: -
 
 /// Needed since we don't have generic test functions, so we need a concrete
-/// argument type for `confirmedOutOfRange(_:)`, but we can't write
-/// `any RangeExpression<Int> & Sendable`. ([96960993](rdar://96960993))
+/// argument type for `confirmedOutOfRange(_:)`. Although we can now write
+/// `any RangeExpression<Int> & Sequence<Int> & Sendable` as of Swift 6.2
+/// (per [swiftlang/swift#76705](https://github.com/swiftlang/swift/pull/76705)),
+/// attempting to form an array of such values crashes at runtime. ([163980446](rdar://163980446))
 protocol ExpectedCount: RangeExpression, Sequence, Sendable where Bound == Int, Element == Int {}
 extension ClosedRange<Int>: ExpectedCount {}
 extension PartialRangeFrom<Int>: ExpectedCount {}

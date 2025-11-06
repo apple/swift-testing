@@ -1,7 +1,7 @@
 //
 // This source file is part of the Swift.org open source project
 //
-// Copyright (c) 2024 Apple Inc. and the Swift project authors
+// Copyright (c) 2025 Apple Inc. and the Swift project authors
 // Licensed under Apache License v2.0 with Runtime Library Exception
 //
 // See https://swift.org/LICENSE.txt for license information
@@ -13,7 +13,8 @@
 #include <atomic>
 
 #if defined(__OpenBSD__)
-static std::atomic<const char *> earlyCWD { nullptr };
+/// Storage for ``swt_getEarlyCWD()``.
+static constinit std::atomic<const char *> earlyCWD { nullptr };
 
 /// At process start (before `main()` is called), capture the current working
 /// directory.
@@ -22,7 +23,7 @@ static std::atomic<const char *> earlyCWD { nullptr };
 /// possible) resolve the executable path when the first argument is a relative
 /// path (which can occur when manually invoking the test executable.)
 __attribute__((__constructor__(101), __used__))
-static void swt_captureEarlyCWD(void) {
+static void captureEarlyCWD(void) {
   static char buffer[PATH_MAX * 2];
   if (getcwd(buffer, sizeof(buffer))) {
     earlyCWD.store(buffer);

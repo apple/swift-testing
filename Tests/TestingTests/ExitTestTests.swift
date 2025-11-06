@@ -625,6 +625,14 @@ private import _TestingInternals
     }
   }
 #endif
+
+#if os(OpenBSD)
+  @Test("Changing the CWD doesn't break exit tests")
+  func changeCWD() async throws {
+    try #require(0 == chdir("/"))
+    await #expect(processExitsWith: .success) {}
+  }
+#endif
 }
 
 // MARK: - Fixtures

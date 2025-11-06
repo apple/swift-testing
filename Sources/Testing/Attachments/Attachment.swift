@@ -501,6 +501,26 @@ extension Attachment where AttachableValue: ~Copyable {
   }
 }
 
+extension Runner {
+  /// Modify this runner's configured event handler so that it handles "value
+  /// attached" events and saves attachments where necessary.
+  mutating func configureAttachmentHandling() {
+    configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
+#if !SWT_NO_FILE_IO
+      var event = copy event
+      if case .valueAttached = event.kind {
+        guard let configuration = context.configuration,
+              configuration.handleValueAttachedEvent(&event, in: context) else {
+          // The attachment could not be handled, so suppress this event.
+          return
+        }
+      }
+      oldEventHandler(event, context)
+#endif
+    }
+  }
+}
+
 extension Configuration {
   /// Handle the given "value attached" event.
   ///
@@ -517,7 +537,7 @@ extension Configuration {
   /// not need to call it elsewhere. It automatically saves the attachment
   /// associated with `event` and modifies `event` to include the path where the
   /// attachment was saved.
-  func handleValueAttachedEvent(_ event: inout Event, in eventContext: borrowing Event.Context) -> Bool {
+  fileprivate func handleValueAttachedEvent(_ event: inout Event, in eventContext: borrowing Event.Context) -> Bool {
     guard let attachmentsPath else {
       // If there is no path to which attachments should be written, there's
       // nothing to do here. The event handler may still want to handle it.

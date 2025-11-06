@@ -53,24 +53,6 @@ SWT_EXTERN void swt_getTestingLibraryCommit(const char *_Nullable *_Nonnull outH
 ///   testing library, or `nullptr` if that information is not available.
 SWT_EXTERN const char *_Nullable swt_getTargetTriple(void);
 
-#if defined(__wasi__)
-/// Get the version of the C standard library and runtime used by WASI, if
-/// available.
-///
-/// This function is provided because `WASI_SDK_VERSION` may or may not be
-/// defined and may or may not be a complex macro.
-///
-/// For more information about the `WASI_SDK_VERSION` macro, see
-/// [wasi-libc-#490](https://github.com/WebAssembly/wasi-libc/issues/490).
-static const char *_Nullable swt_getWASIVersion(void) {
-#if defined(WASI_SDK_VERSION)
-  return WASI_SDK_VERSION;
-#else
-  return 0;
-#endif
-}
-#endif
-
 SWT_ASSUME_NONNULL_END
 
 #endif

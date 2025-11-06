@@ -89,9 +89,8 @@ let operatingSystemVersion: String = {
     }
   }
 #elseif os(WASI)
-  if let version = swt_getWASIVersion().flatMap(String.init(validatingCString:)) {
-    return version
-  }
+  // WASI does not have an API to get the current WASI or Wasm version.
+  // wasi-libc does have uname(3), but it's stubbed out.
 #else
 #warning("Platform-specific implementation missing: OS version unavailable")
 #endif

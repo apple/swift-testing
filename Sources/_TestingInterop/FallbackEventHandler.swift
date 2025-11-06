@@ -36,7 +36,7 @@ private final class _FallbackEventHandlerStorage: Sendable, RawRepresentable {
 }
 
 /// The installed event handler.
-private let _fallbackEventHandler = Atomic<Unmanaged<_FallbackEventHandlerStorage>?>(nil)
+private let _fallbackEventHandler = AtomicLazyReference<_FallbackEventHandlerStorage>()
 #endif
 
 /// A type describing a fallback event handler that testing API can invoke as an
@@ -82,9 +82,7 @@ package func _swift_testing_getFallbackEventHandler() -> FallbackEventHandler? {
   // would need a full lock in order to avoid that problem. However, because we
   // instead have a one-time installation function, we can be sure that the
   // loaded value (if non-nil) will never be replaced with another value.
-  return _fallbackEventHandler.load(ordering: .sequentiallyConsistent).map { fallbackEventHandler in
-    fallbackEventHandler.takeUnretainedValue().rawValue
-  }
+  return _fallbackEventHandler.load()?.rawValue
 #endif
 }
 
@@ -116,14 +114,9 @@ package func _swift_testing_installFallbackEventHandler(_ handler: FallbackEvent
     return true
   }
 #else
-  let handler = Unmanaged.passRetained(_FallbackEventHandlerStorage(rawValue: handler))
-  defer {
-    if !result {
-      handler.release()
-    }
-  }
-
-  result = _fallbackEventHandler.compareExchange(expected: nil, desired: handler, ordering: .sequentiallyConsistent).exchanged
+  let handler = _FallbackEventHandlerStorage(rawValue: handler)
+  let stored = _fallbackEventHandler.storeIfNil(handler)
+  result = (handler === stored)
 #endif
 
   return result

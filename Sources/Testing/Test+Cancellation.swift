@@ -87,10 +87,19 @@ extension TestCancellable {
   /// the current task, test, or test case is cancelled, it records a
   /// corresponding cancellation event.
   func withCancellationHandling<R>(_ body: () async throws -> R) async rethrows -> R {
+    let taskReference = _TaskReference()
     var currentTaskReferences = _currentTaskReferences
-    currentTaskReferences[ObjectIdentifier(Self.self)] = _TaskReference()
+    currentTaskReferences[ObjectIdentifier(Self.self)] = taskReference
     return try await $_currentTaskReferences.withValue(currentTaskReferences) {
-      try await withTaskCancellationHandler {
+      // Before returning, explicitly clear the stored task. This minimizes
+      // the potential race condition that can occur if test code creates an
+      // unstructured task and calls `Test.cancel()` in it after the test body
+      // has finished.
+      defer {
+        _ = taskReference.takeUnsafeCurrentTask()
+      }
+
+      return try await withTaskCancellationHandler {
         try await body()
       } onCancel: {
         // The current task was cancelled, so cancel the test case or test

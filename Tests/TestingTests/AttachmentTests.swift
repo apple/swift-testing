@@ -62,6 +62,14 @@ struct AttachmentTests {
   }
 #endif
 
+  @Test func preferredNameOfStringAttachment() {
+    let attachment1 = Attachment("", named: "abc123")
+    #expect(attachment1.preferredName == "abc123.txt")
+
+    let attachment2 = Attachment("", named: "abc123.html")
+    #expect(attachment2.preferredName == "abc123.html")
+  }
+
 #if !SWT_NO_FILE_IO
   func compare(_ attachableValue: borrowing MySendableAttachable, toContentsOfFileAtPath filePath: String) throws {
     let file = try FileHandle(forReadingAtPath: filePath)

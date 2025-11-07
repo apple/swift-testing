@@ -130,27 +130,27 @@ extension `AttachmentSavingTrait tests` {
   @Suite(.hidden, currentAttachmentSavingTrait)
   struct FixtureSuite {
     @Test(.hidden) func `Records an attachment (passing)`() {
-      Attachment.record("", named: "PASSING TEST")
+      Attachment.record([], named: "PASSING TEST")
     }
 
     @Test(.hidden) func `Records an attachment (warning)`() {
-      Attachment.record("", named: "PASSING TEST")
+      Attachment.record([], named: "PASSING TEST")
       Issue.record("", severity: .warning)
     }
 
     @Test(.hidden) func `Records an attachment (failing)`() {
-      Attachment.record("", named: "FAILING TEST")
+      Attachment.record([], named: "FAILING TEST")
       Issue.record("")
     }
 
     @Test(.hidden, arguments: 0 ..< 5)
     func `Records an attachment (passing, parameterized)`(i: Int) async {
-      Attachment.record("\(i)", named: "PASSING TEST")
+      Attachment.record([UInt8(i)], named: "PASSING TEST")
     }
 
     @Test(.hidden, arguments: 0 ..< 7) // intentionally different count
     func `Records an attachment (failing, parameterized)`(i: Int) async {
-      Attachment.record("\(i)", named: "FAILING TEST")
+      Attachment.record([UInt8(i)], named: "FAILING TEST")
       Issue.record("\(i)")
     }
   }

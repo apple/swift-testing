@@ -506,7 +506,6 @@ extension Runner {
   /// attached" events and saves attachments where necessary.
   mutating func configureAttachmentHandling() {
     configuration.eventHandler = { [oldEventHandler = configuration.eventHandler] event, context in
-#if !SWT_NO_FILE_IO
       var event = copy event
       if case .valueAttached = event.kind {
         guard let configuration = context.configuration,
@@ -516,7 +515,6 @@ extension Runner {
         }
       }
       oldEventHandler(event, context)
-#endif
     }
   }
 }

@@ -597,6 +597,33 @@ extension AttachmentTests {
       }
     }
 
+    @available(_uttypesAPI, *)
+    @Test func attachCGImageWithCustomUTType() throws {
+      let contentType = try #require(UTType(tag: "derived-from-jpeg", tagClass: .filenameExtension, conformingTo: .jpeg))
+      let format = AttachableImageFormat(contentType: contentType)
+      let image = try Self.cgImage.get()
+      let attachment = Attachment(image, named: "diamond", as: format)
+      #expect(attachment.attachableValue === image)
+      try attachment.attachableValue.withUnsafeBytes(for: attachment) { buffer in
+        #expect(buffer.count > 32)
+      }
+      if let ext = format.contentType.preferredFilenameExtension {
+        #expect(attachment.preferredName == ("diamond" as NSString).appendingPathExtension(ext))
+      }
+    }
+
+    @available(_uttypesAPI, *)
+    @Test func attachCGImageWithUnsupportedImageType() throws {
+      let contentType = try #require(UTType(tag: "unsupported-image-format", tagClass: .filenameExtension, conformingTo: .image))
+      let format = AttachableImageFormat(contentType: contentType)
+      let image = try Self.cgImage.get()
+      let attachment = Attachment(image, named: "diamond", as: format)
+      #expect(attachment.attachableValue === image)
+      #expect(throws: ImageAttachmentError.self) {
+        try attachment.attachableValue.withUnsafeBytes(for: attachment) { _ in }
+      }
+    }
+
 #if !SWT_NO_EXIT_TESTS
     @available(_uttypesAPI, *)
     @Test func cannotAttachCGImageWithNonImageType() async {

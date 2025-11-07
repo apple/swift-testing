@@ -12,6 +12,9 @@
 package import CoreGraphics
 package import ImageIO
 private import UniformTypeIdentifiers
+#if canImport(UniformTypeIdentifiers_Private)
+@_spi(Private) private import UniformTypeIdentifiers
+#endif
 
 /// A protocol describing images that can be converted to instances of
 /// [`Attachment`](https://developer.apple.com/documentation/testing/attachment)
@@ -47,6 +50,20 @@ package protocol AttachableAsCGImage: AttachableAsImage {
   var attachmentScaleFactor: CGFloat { get }
 }
 
+/// All type identifiers supported by Image I/O.
+@available(_uttypesAPI, *)
+private let _supportedTypeIdentifiers = Set(CGImageDestinationCopyTypeIdentifiers() as? [String] ?? [])
+
+/// All content types supported by Image I/O.
+@available(_uttypesAPI, *)
+private let _supportedContentTypes = {
+#if canImport(UniformTypeIdentifiers_Private)
+  UTType._types(identifiers: _supportedTypeIdentifiers).values
+#else
+  _supportedTypeIdentifiers.compactMap(UTType.init(_:))
+#endif
+}()
+
 @available(_uttypesAPI, *)
 extension AttachableAsCGImage {
   package var attachmentOrientation: CGImagePropertyOrientation {
@@ -63,8 +80,21 @@ extension AttachableAsCGImage {
     // Convert the image to a CGImage.
     let attachableCGImage = try attachableCGImage
 
+    // Determine the base content type to use. We do a naïve case-sensitive
+    // string comparison on the identifier first as it's faster than querying
+    // the corresponding UTType instances (because it doesn't need to touch the
+    // Launch Services database). The common cases where the developer passes
+    // no image format or passes .png/.jpeg are covered by the fast path.
+    var contentType = imageFormat.contentType
+    if !_supportedTypeIdentifiers.contains(contentType.identifier) {
+      guard let baseType = _supportedContentTypes.first(where: contentType.conforms(to:)) else {
+        throw ImageAttachmentError.unsupportedImageFormat(contentType.identifier)
+      }
+      contentType = baseType
+    }
+
     // Create the image destination.
-    guard let dest = CGImageDestinationCreateWithData(data as CFMutableData, imageFormat.contentType.identifier as CFString, 1, nil) else {
+    guard let dest = CGImageDestinationCreateWithData(data as CFMutableData, contentType.identifier as CFString, 1, nil) else {
       throw ImageAttachmentError.couldNotCreateImageDestination
     }
 

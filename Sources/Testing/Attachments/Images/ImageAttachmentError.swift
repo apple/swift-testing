@@ -25,6 +25,9 @@ package enum ImageAttachmentError: Error {
 
   /// The image could not be converted.
   case couldNotConvertImage
+
+  /// The specified content type is not supported by Image I/O.
+  case unsupportedImageFormat(_ typeIdentifier: String)
 #elseif os(Windows)
   /// A call to `QueryInterface()` failed.
   case queryInterfaceFailed(Any.Type, CLong)
@@ -57,6 +60,8 @@ extension ImageAttachmentError: CustomStringConvertible {
       "Could not create the Core Graphics image destination to encode this image."
     case .couldNotConvertImage:
       "Could not convert the image to the specified format."
+    case let .unsupportedImageFormat(typeIdentifier):
+      "Could not convert the image to the format '\(typeIdentifier)' because the system does not support it."
     }
 #elseif os(Windows)
     switch self {

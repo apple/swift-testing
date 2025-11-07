@@ -16,15 +16,15 @@
 
 SWT_ASSUME_NONNULL_BEGIN
 
-#if defined(__OpenBSD__)
 /// Get the current working directory as it was set shortly after the process
 /// started and before `main()` has been called.
 ///
 /// This function is necessary on OpenBSD so that we can (as correctly as
 /// possible) resolve the executable path when the first argument is a relative
 /// path (which can occur when manually invoking the test executable.)
+///
+/// On all other platforms, this function always returns `nullptr`.
 SWT_EXTERN const char *_Nullable swt_getEarlyCWD(void);
-#endif
 
 SWT_ASSUME_NONNULL_END
 

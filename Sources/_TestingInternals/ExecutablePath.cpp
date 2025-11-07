@@ -29,8 +29,12 @@ static void captureEarlyCWD(void) {
     earlyCWD.store(buffer);
   }
 }
+#endif
 
 const char *swt_getEarlyCWD(void) {
+#if defined(__OpenBSD__)
   return earlyCWD.load();
-}
+#else
+  return nullptr;
 #endif
+}

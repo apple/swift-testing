@@ -24,9 +24,8 @@ static constinit std::atomic<const char *> earlyCWD { nullptr };
 /// path (which can occur when manually invoking the test executable.)
 __attribute__((__constructor__(101), __used__))
 static void captureEarlyCWD(void) {
-  static char buffer[PATH_MAX * 2];
-  if (getcwd(buffer, sizeof(buffer))) {
-    earlyCWD.store(buffer);
+  if (auto cwd = getcwd(nil, 0)) {
+    earlyCWD.store(cwd);
   }
 }
 #endif

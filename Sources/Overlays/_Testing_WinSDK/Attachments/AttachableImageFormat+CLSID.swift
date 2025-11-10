@@ -11,6 +11,9 @@
 #if os(Windows)
 public import WinSDK
 
+/// @Metadata {
+///   @Available(Swift, introduced: 6.3)
+/// }
 extension AttachableImageFormat {
   private static let _encoderPathExtensionsByCLSID = Result {
     var result = [CLSID.Wrapper: [String]]()

@@ -11,6 +11,9 @@
 #if os(Windows)
 private import WinSDK
 
+/// @Metadata {
+///   @Available(Swift, introduced: 6.3)
+/// }
 extension _AttachableImageWrapper: Attachable, AttachableWrapper where Image: AttachableAsImage {
   /// Get the image format to use when encoding an image.
   ///
@@ -38,11 +41,17 @@ extension _AttachableImageWrapper: Attachable, AttachableWrapper where Image: At
     return encodingQuality < 1.0 ? .jpeg : .png
   }
 
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   public func withUnsafeBytes<R>(for attachment: borrowing Attachment<_AttachableImageWrapper>, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R {
     let imageFormat = _imageFormat(forPreferredName: attachment.preferredName)
     return try wrappedValue.withUnsafeBytes(as: imageFormat, body)
   }
 
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   public borrowing func preferredName(for attachment: borrowing Attachment<_AttachableImageWrapper>, basedOn suggestedName: String) -> String {
     let imageFormat = _imageFormat(forPreferredName: suggestedName)
     return AttachableImageFormat.appendPathExtension(for: imageFormat.encoderCLSID, to: suggestedName)

@@ -8,6 +8,9 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
+/// @Metadata {
+///   @Available(Swift, introduced: 6.3)
+/// }
 #if SWT_NO_IMAGE_ATTACHMENTS
 @_unavailableInEmbedded
 @available(*, unavailable, message: "Image attachments are not available on this platform.")

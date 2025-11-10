@@ -11,6 +11,9 @@
 #if SWT_TARGET_OS_APPLE && canImport(CoreGraphics)
 public import UniformTypeIdentifiers
 
+/// @Metadata {
+///   @Available(Swift, introduced: 6.3)
+/// }
 @available(_uttypesAPI, *)
 extension AttachableImageFormat {
   /// The content type corresponding to this image format.

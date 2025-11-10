@@ -79,6 +79,9 @@ public struct AttachableImageFormat: Sendable {
 
 // MARK: - Equatable, Hashable
 
+/// @Metadata {
+///   @Available(Swift, introduced: 6.3)
+/// }
 #if SWT_NO_IMAGE_ATTACHMENTS
 @_unavailableInEmbedded
 @available(*, unavailable, message: "Image attachments are not available on this platform.")
@@ -120,12 +123,18 @@ extension AttachableImageFormat.Kind: Equatable, Hashable {
 
 // MARK: - CustomStringConvertible, CustomDebugStringConvertible
 
+/// @Metadata {
+///   @Available(Swift, introduced: 6.3)
+/// }
 #if SWT_NO_IMAGE_ATTACHMENTS
 @_unavailableInEmbedded
 @available(*, unavailable, message: "Image attachments are not available on this platform.")
 #endif
 @available(_uttypesAPI, *)
 extension AttachableImageFormat: CustomStringConvertible, CustomDebugStringConvertible {
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   public var description: String {
     let kindDescription = String(describing: kind)
     if encodingQuality < 1.0 {
@@ -134,6 +143,9 @@ extension AttachableImageFormat: CustomStringConvertible, CustomDebugStringConve
     return kindDescription
   }
 
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   public var debugDescription: String {
     let kindDescription = String(reflecting: kind)
     return "\(kindDescription) at quality \(encodingQuality)"
@@ -142,6 +154,9 @@ extension AttachableImageFormat: CustomStringConvertible, CustomDebugStringConve
 
 // MARK: -
 
+/// @Metadata {
+///   @Available(Swift, introduced: 6.3)
+/// }
 #if SWT_NO_IMAGE_ATTACHMENTS
 @_unavailableInEmbedded
 @available(*, unavailable, message: "Image attachments are not available on this platform.")

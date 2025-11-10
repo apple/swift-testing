@@ -81,6 +81,10 @@ public protocol AttachableAsImage {
   /// The testing library uses this function when saving an image as an
   /// attachment. The implementation should use `imageFormat` to determine what
   /// encoder to use.
+  ///
+  /// @Metadata {
+  ///   @Available(Swift, introduced: 6.3)
+  /// }
   borrowing func withUnsafeBytes<R>(as imageFormat: AttachableImageFormat, _ body: (UnsafeRawBufferPointer) throws -> R) throws -> R
 
   /// Make a copy of this instance to pass to an attachment.

@@ -94,12 +94,20 @@ public struct Issue: Sendable {
     ///
     /// An issue with warning severity does not cause the test it's associated
     /// with to be marked as a failure, but is noted in the results.
+    ///
+    /// @Metadata {
+    ///   @Available(Swift, introduced: 6.3)
+    /// }
     case warning
 
     /// The severity level for an issue which represents an error in a test.
     ///
     /// An issue with error severity causes the test it's associated with to be
     /// marked as a failure.
+    ///
+    /// @Metadata {
+    ///   @Available(Swift, introduced: 6.3)
+    /// }
     case error
   }
 

@@ -77,7 +77,7 @@ let operatingSystemVersion: String = {
       // Include Service Pack details if available.
       if versionInfo.szCSDVersion.0 != 0 {
         withUnsafeBytes(of: versionInfo.szCSDVersion) { szCSDVersion in
-          szCSDVersion.withMemoryRebound(to: wchar_t.self) { szCSDVersion in
+          szCSDVersion.withMemoryRebound(to: CWideChar.self) { szCSDVersion in
             if let szCSDVersion = String.decodeCString(szCSDVersion.baseAddress!, as: UTF16.self)?.result {
               result += " (\(szCSDVersion))"
             }

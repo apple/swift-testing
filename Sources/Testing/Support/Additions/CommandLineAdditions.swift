@@ -90,7 +90,7 @@ extension CommandLine {
       var bufferCount = Int(MAX_PATH)
 #endif
       while result == nil {
-        try withUnsafeTemporaryAllocation(of: wchar_t.self, capacity: bufferCount) { buffer in
+        try withUnsafeTemporaryAllocation(of: CWideChar.self, capacity: bufferCount) { buffer in
           SetLastError(DWORD(ERROR_SUCCESS))
           _ = GetModuleFileNameW(nil, buffer.baseAddress!, DWORD(buffer.count))
           switch GetLastError() {

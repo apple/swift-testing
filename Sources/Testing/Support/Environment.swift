@@ -175,7 +175,7 @@ package enum Environment {
 #elseif os(Windows)
     name.withCString(encodedAs: UTF16.self) { name in
       func getVariable(maxCount: Int) -> String? {
-        withUnsafeTemporaryAllocation(of: wchar_t.self, capacity: maxCount) { buffer in
+        withUnsafeTemporaryAllocation(of: CWideChar.self, capacity: maxCount) { buffer in
           SetLastError(DWORD(ERROR_SUCCESS))
           let count = GetEnvironmentVariableW(name, buffer.baseAddress!, DWORD(buffer.count))
           if count == 0 {

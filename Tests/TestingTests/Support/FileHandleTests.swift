@@ -271,7 +271,7 @@ func temporaryDirectory() throws -> String {
 #elseif os(Android)
   Environment.variable(named: "TMPDIR") ?? "/data/local/tmp"
 #elseif os(Windows)
-  try withUnsafeTemporaryAllocation(of: wchar_t.self, capacity: Int(MAX_PATH + 1)) { buffer in
+  try withUnsafeTemporaryAllocation(of: CWideChar.self, capacity: Int(MAX_PATH + 1)) { buffer in
     // NOTE: GetTempPath2W() was introduced in Windows 10 Build 20348.
     if 0 == GetTempPathW(DWORD(buffer.count), buffer.baseAddress) {
       throw Win32Error(rawValue: GetLastError())

@@ -192,7 +192,7 @@ private func withTestingLibraryImageAddress<R>(_ body: (ImageAddress?) throws ->
   // ELF-based platforms.
 #elseif os(Windows)
   let flags = DWORD(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS)
-  try addressInTestingLibrary.withMemoryRebound(to: wchar_t.self, capacity: MemoryLayout<UnsafeRawPointer>.stride / MemoryLayout<wchar_t>.stride) { addressInTestingLibrary in
+  try addressInTestingLibrary.withMemoryRebound(to: CWideChar.self, capacity: MemoryLayout<UnsafeRawPointer>.stride / MemoryLayout<CWideChar>.stride) { addressInTestingLibrary in
     try #require(GetModuleHandleExW(flags, addressInTestingLibrary, &testingLibraryAddress))
   }
   defer {

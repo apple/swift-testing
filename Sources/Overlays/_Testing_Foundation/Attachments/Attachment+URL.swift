@@ -121,14 +121,14 @@ private let _archiverPath: String? = {
     return nil
   }
 
-  return withUnsafeTemporaryAllocation(of: wchar_t.self, capacity: Int(bufferCount)) { buffer -> String? in
+  return withUnsafeTemporaryAllocation(of: CWideChar.self, capacity: Int(bufferCount)) { buffer -> String? in
     let bufferCount = GetSystemDirectoryW(buffer.baseAddress!, UINT(buffer.count))
     guard bufferCount > 0 && bufferCount < buffer.count else {
       return nil
     }
 
     return _archiverName.withCString(encodedAs: UTF16.self) { archiverName -> String? in
-      var result: UnsafeMutablePointer<wchar_t>?
+      var result: UnsafeMutablePointer<CWideChar>?
 
       let flags = ULONG(PATHCCH_ALLOW_LONG_PATHS.rawValue)
       guard S_OK == PathAllocCombine(buffer.baseAddress!, archiverName, flags, &result) else {

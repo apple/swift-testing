@@ -210,6 +210,9 @@ public struct __CommandLineArguments_v0: Sendable {
   /// The value of the `--parallel` or `--no-parallel` argument.
   public var parallel: Bool?
 
+  /// The maximum number of test tasks to run in parallel.
+  public var experimentalMaximumParallelizationWidth: Int?
+
   /// The value of the `--symbolicate-backtraces` argument.
   public var symbolicateBacktraces: String?
 
@@ -336,6 +339,7 @@ extension __CommandLineArguments_v0: Codable {
   enum CodingKeys: String, CodingKey {
     case listTests
     case parallel
+    case experimentalMaximumParallelizationWidth
     case symbolicateBacktraces
     case verbose
     case veryVerbose
@@ -485,6 +489,10 @@ func parseCommandLineArguments(from args: [String]) throws -> __CommandLineArgum
   if args.contains("--no-parallel") {
     result.parallel = false
   }
+  if let maximumParallelizationWidth = args.argumentValue(forLabel: "--experimental-maximum-parallelization-width").flatMap(Int.init) {
+    // TODO: decide if we want to repurpose --num-workers for this use case?
+    result.experimentalMaximumParallelizationWidth = maximumParallelizationWidth
+  }
 
   // Whether or not to symbolicate backtraces in the event stream.
   if let symbolicateBacktraces = args.argumentValue(forLabel: "--symbolicate-backtraces") {
@@ -545,7 +553,22 @@ public func configurationForEntryPoint(from args: __CommandLineArguments_v0) thr
   var configuration = Configuration()
 
   // Parallelization (on by default)
-  configuration.isParallelizationEnabled = args.parallel ?? true
+  if let parallel = args.parallel, !parallel {
+    configuration.isParallelizationEnabled = parallel
+  } else {
+    var maximumParallelizationWidth = args.experimentalMaximumParallelizationWidth
+    if maximumParallelizationWidth == nil && Test.current == nil {
+      // Don't check the environment variable when a current test is set (which
+      // presumably means we're running our own unit tests).
+      maximumParallelizationWidth = Environment.variable(named: "SWT_EXPERIMENTAL_MAXIMUM_PARALLELIZATION_WIDTH").flatMap(Int.init)
+    }
+    if let maximumParallelizationWidth {
+      if maximumParallelizationWidth < 1 {
+        throw _EntryPointError.invalidArgument("--experimental-maximum-parallelization-width", value: String(describing: maximumParallelizationWidth))
+      }
+      configuration.maximumParallelizationWidth = maximumParallelizationWidth
+    }
+  }
 
   // Whether or not to symbolicate backtraces in the event stream.
   if let symbolicateBacktraces = args.symbolicateBacktraces {

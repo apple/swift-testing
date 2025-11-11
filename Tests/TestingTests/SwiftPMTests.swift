@@ -59,6 +59,25 @@ struct SwiftPMTests {
     #expect(!configuration.isParallelizationEnabled)
   }
 
+  @Test("--experimental-maximum-parallelization-width argument")
+  func maximumParallelizationWidth() throws {
+    var configuration = try configurationForEntryPoint(withArguments: ["PATH", "--experimental-maximum-parallelization-width", "12345"])
+    #expect(configuration.isParallelizationEnabled)
+    #expect(configuration.maximumParallelizationWidth == 12345)
+
+    configuration = try configurationForEntryPoint(withArguments: ["PATH", "--experimental-maximum-parallelization-width", "1"])
+    #expect(!configuration.isParallelizationEnabled)
+    #expect(configuration.maximumParallelizationWidth == 1)
+
+    configuration = try configurationForEntryPoint(withArguments: ["PATH", "--experimental-maximum-parallelization-width", "\(Int.max)"])
+    #expect(configuration.isParallelizationEnabled)
+    #expect(configuration.maximumParallelizationWidth == .max)
+
+    #expect(throws: (any Error).self) {
+      _ = try configurationForEntryPoint(withArguments: ["PATH", "--experimental-maximum-parallelization-width", "0"])
+    }
+  }
+
   @Test("--symbolicate-backtraces argument",
     arguments: [
       (String?.none, Backtrace.SymbolicationMode?.none),

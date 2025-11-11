@@ -8,6 +8,8 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
+private import _TestingInternals
+
 /// A type containing settings for preparing and running tests.
 @_spi(ForToolsIntegrationOnly)
 public struct Configuration: Sendable {
@@ -18,7 +20,33 @@ public struct Configuration: Sendable {
   // MARK: - Parallelization
 
   /// Whether or not to parallelize the execution of tests and test cases.
-  public var isParallelizationEnabled: Bool = true
+  ///
+  /// - Note: Setting the value of this property implicitly sets the value of
+  ///   the experimental ``maximumParallelizationWidth`` property.
+  public var isParallelizationEnabled: Bool {
+    get {
+      maximumParallelizationWidth > 1
+    }
+    set {
+      maximumParallelizationWidth = newValue ? defaultParallelizationWidth : 1
+    }
+  }
+
+  /// The maximum width of parallelization.
+  ///
+  /// The value of this property determines how many tests (or rather, test
+  /// cases) will run in parallel.
+  ///
+  /// @Comment {
+  ///   The default value of this property is equal to twice the number of CPU
+  ///   cores reported by the operating system, or `Int.max` if that value is
+  ///   not available.
+  /// }
+  ///
+  /// - Note: Setting the value of this property implicitly sets the value of
+  ///   the ``isParallelizationEnabled`` property.
+  @_spi(Experimental)
+  public var maximumParallelizationWidth: Int = defaultParallelizationWidth
 
   /// How to symbolicate backtraces captured during a test run.
   ///

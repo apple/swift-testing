@@ -90,6 +90,7 @@ add_library(Testing
   Support/Graph.swift
   Support/JSON.swift
   Support/Locked.swift
+  Support/Serializer.swift
   Support/VersionNumber.swift
   Support/Versions.swift
   Discovery+Macro.swift

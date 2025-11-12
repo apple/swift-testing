@@ -25,9 +25,8 @@ protocol TestCancellable: Sendable {
 
 // MARK: - Tracking the current task
 
-/// A structure describing a reference to a task that is associated with some
-/// ``TestCancellable`` value.
-private struct _TaskReference: Sendable {
+/// A structure that is able to cancel a task.
+private struct _TaskCanceller: Sendable {
   /// The unsafe underlying reference to the associated task.
   private nonisolated(unsafe) var _unsafeCurrentTask = Locked<UnsafeCurrentTask?>()
 
@@ -45,25 +44,46 @@ private struct _TaskReference: Sendable {
     _unsafeCurrentTask = withUnsafeCurrentTask { Locked(rawValue: $0) }
   }
 
-  /// Take this instance's reference to its associated task.
-  ///
-  /// - Returns: An `UnsafeCurrentTask` instance, or `nil` if it was already
-  ///   taken or if it was never available.
-  ///
-  /// This function consumes the reference to the task. After the first call,
-  /// subsequent calls on the same instance return `nil`.
-  func takeUnsafeCurrentTask() -> UnsafeCurrentTask? {
+  /// Clear this instance's reference to its associated task without first
+  /// cancelling it.
+  func clear() {
     _unsafeCurrentTask.withLock { unsafeCurrentTask in
-      let result = unsafeCurrentTask
       unsafeCurrentTask = nil
-      return result
     }
+  }
+
+  /// Cancel this instance's associated task and clear the reference to it.
+  ///
+  /// - Returns: Whether or not this instance's task was cancelled.
+  ///
+  /// After the first call to this function _starts_, subsequent calls on the
+  /// same instance return `false`. In other words, if another thread calls this
+  /// function before it has returned (or the same thread calls it recursively),
+  /// it returns `false` without cancelling the task a second time.
+  func cancel(with skipInfo: SkipInfo) -> Bool {
+    // trylock means a recursive call to this function won't ruin our day, nor
+    // should interleaving locks.
+    _unsafeCurrentTask.withLockIfAvailable { unsafeCurrentTask in
+      defer {
+        unsafeCurrentTask = nil
+      }
+      if let unsafeCurrentTask {
+        // The task is still valid, so we'll cancel it.
+        $_currentSkipInfo.withValue(skipInfo) {
+          unsafeCurrentTask.cancel()
+        }
+        return true
+      }
+
+      // The task has already been cancelled and/or cleared.
+      return false
+    } ?? false
   }
 }
 
-/// A dictionary of tracked tasks, keyed by types that conform to
+/// A dictionary of cancellable tasks keyed by types that conform to
 /// ``TestCancellable``.
-@TaskLocal private var _currentTaskReferences = [ObjectIdentifier: _TaskReference]()
+@TaskLocal private var _currentTaskCancellers = [ObjectIdentifier: _TaskCanceller]()
 
 /// The instance of ``SkipInfo`` to propagate to children of the current task.
 ///
@@ -87,16 +107,15 @@ extension TestCancellable {
   /// the current task, test, or test case is cancelled, it records a
   /// corresponding cancellation event.
   func withCancellationHandling<R>(_ body: () async throws -> R) async rethrows -> R {
-    let taskReference = _TaskReference()
-    var currentTaskReferences = _currentTaskReferences
-    currentTaskReferences[ObjectIdentifier(Self.self)] = taskReference
-    return try await $_currentTaskReferences.withValue(currentTaskReferences) {
-      // Before returning, explicitly clear the stored task. This minimizes
-      // the potential race condition that can occur if test code creates an
-      // unstructured task and calls `Test.cancel()` in it after the test body
-      // has finished.
+    let taskCanceller = _TaskCanceller()
+    var currentTaskCancellers = _currentTaskCancellers
+    currentTaskCancellers[ObjectIdentifier(Self.self)] = taskCanceller
+    return try await $_currentTaskCancellers.withValue(currentTaskCancellers) {
+      // Before returning, explicitly clear the stored task so that an
+      // unstructured task that inherits the task local isn't able to
+      // accidentally cancel the task after it has been deallocated.
       defer {
-        _ = taskReference.takeUnsafeCurrentTask()
+        taskCanceller.clear()
       }
 
       return try await withTaskCancellationHandler {
@@ -121,18 +140,16 @@ extension TestCancellable {
 ///   - testAndTestCase: The test and test case to use when posting an event.
 ///   - skipInfo: Information about the cancellation event.
 private func _cancel<T>(_ cancellableValue: T?, for testAndTestCase: (Test?, Test.Case?), skipInfo: SkipInfo) where T: TestCancellable {
-  if cancellableValue != nil {
-    // If the current test case is still running, take its task property (which
-    // signals to subsequent callers that it has been cancelled.)
-    let task = _currentTaskReferences[ObjectIdentifier(T.self)]?.takeUnsafeCurrentTask()
-
-    // If we just cancelled the current test case's task, post a corresponding
-    // event with the relevant skip info.
-    if let task {
-      $_currentSkipInfo.withValue(skipInfo) {
-        task.cancel()
-      }
+  if cancellableValue != nil, let taskCanceller = _currentTaskCancellers[ObjectIdentifier(T.self)] {
+    // Try to cancel the task associated with `T`, if any. If we succeed, post a
+    // corresponding event with the relevant skip info. If we fail, we still
+    // attempt to cancel the current *task* in order to honor our API contract.
+    if taskCanceller.cancel(with: skipInfo) {
       Event.post(T.makeCancelledEventKind(with: skipInfo), for: testAndTestCase)
+    } else {
+      withUnsafeCurrentTask { task in
+        task?.cancel()
+      }
     }
   } else {
     // The current task isn't associated with a test/case, so just cancel the

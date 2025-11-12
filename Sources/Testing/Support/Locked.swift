@@ -26,6 +26,14 @@ struct Locked<T> {
   /// A type providing storage for the underlying lock and wrapped value.
 #if SWT_TARGET_OS_APPLE && canImport(os)
   private typealias _Storage = ManagedBuffer<T, os_unfair_lock_s>
+#elseif !SWT_FIXED_85448 && (os(Linux) || os(Android))
+  private final class _Storage: ManagedBuffer<T, pthread_mutex_t> {
+    deinit {
+      withUnsafeMutablePointerToElements { lock in
+        _ = pthread_mutex_destroy(lock)
+      }
+    }
+  }
 #else
   private final class _Storage {
     let mutex: Mutex<T>
@@ -48,6 +56,11 @@ extension Locked: RawRepresentable {
     _storage = .create(minimumCapacity: 1, makingHeaderWith: { _ in rawValue })
     _storage.withUnsafeMutablePointerToElements { lock in
       lock.initialize(to: .init())
+    }
+#elseif !SWT_FIXED_85448 && (os(Linux) || os(Android))
+    _storage = _Storage.create(minimumCapacity: 1, makingHeaderWith: { _ in rawValue }) as! _Storage
+    _storage.withUnsafeMutablePointerToElements { lock in
+      _ = pthread_mutex_init(lock, nil)
     }
 #else
     nonisolated(unsafe) let rawValue = rawValue
@@ -77,20 +90,72 @@ extension Locked {
   /// synchronous caller. Wherever possible, use actor isolation or other Swift
   /// concurrency tools.
   func withLock<R>(_ body: (inout T) throws -> sending R) rethrows -> sending R where R: ~Copyable {
+    nonisolated(unsafe) let result: R
 #if SWT_TARGET_OS_APPLE && canImport(os)
-    nonisolated(unsafe) let result = try _storage.withUnsafeMutablePointers { rawValue, lock in
+    result = try _storage.withUnsafeMutablePointers { rawValue, lock in
       os_unfair_lock_lock(lock)
       defer {
         os_unfair_lock_unlock(lock)
       }
       return try body(&rawValue.pointee)
     }
-    return result
+#elseif !SWT_FIXED_85448 && (os(Linux) || os(Android))
+     result = try _storage.withUnsafeMutablePointers { rawValue, lock in
+      pthread_mutex_lock(lock)
+      defer {
+        pthread_mutex_unlock(lock)
+      }
+      return try body(&rawValue.pointee)
+    }
 #else
-    try _storage.mutex.withLock { rawValue in
+    result = try _storage.mutex.withLock { rawValue in
       try body(&rawValue)
     }
 #endif
+    return result
+  }
+
+  /// Try to acquire the lock and invoke a function while it is held.
+  ///
+  /// - Parameters:
+  ///   - body: A closure to invoke while the lock is held.
+  ///
+  /// - Returns: Whatever is returned by `body`, or `nil` if the lock could not
+  ///   be acquired.
+  ///
+  /// - Throws: Whatever is thrown by `body`.
+  ///
+  /// This function can be used to synchronize access to shared data from a
+  /// synchronous caller. Wherever possible, use actor isolation or other Swift
+  /// concurrency tools.
+  func withLockIfAvailable<R>(_ body: (inout T) throws -> sending R) rethrows -> sending R? where R: ~Copyable {
+    nonisolated(unsafe) let result: R?
+#if SWT_TARGET_OS_APPLE && canImport(os)
+    result = try _storage.withUnsafeMutablePointers { rawValue, lock in
+      guard os_unfair_lock_trylock(lock) else {
+        return nil
+      }
+      defer {
+        os_unfair_lock_unlock(lock)
+      }
+      return try body(&rawValue.pointee)
+    }
+#elseif !SWT_FIXED_85448 && (os(Linux) || os(Android))
+    result = try _storage.withUnsafeMutablePointers { rawValue, lock in
+      guard 0 == pthread_mutex_trylock(lock) else {
+        return nil
+      }
+      defer {
+        pthread_mutex_unlock(lock)
+      }
+      return try body(&rawValue.pointee)
+    }
+#else
+    result = try _storage.mutex.withLockIfAvailable { rawValue in
+      return try body(&rawValue)
+    }
+#endif
+    return result
   }
 }
 

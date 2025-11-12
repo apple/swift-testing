@@ -10,9 +10,10 @@
 
 private import _TestingInternals
 
+#if !SWT_NO_UNSTRUCTURED_TASKS
 /// The number of CPU cores on the current system, or `nil` if that
 /// information is not available.
-var cpuCoreCount: Int? {
+private var _cpuCoreCount: Int? {
 #if SWT_TARGET_OS_APPLE || os(Linux) || os(FreeBSD) || os(OpenBSD) || os(Android)
   return Int(sysconf(Int32(_SC_NPROCESSORS_CONF)))
 #elseif os(Windows)
@@ -26,10 +27,11 @@ var cpuCoreCount: Int? {
   return nil
 #endif
 }
+#endif
 
 /// The default parallelization width when parallelized testing is enabled.
 var defaultParallelizationWidth: Int {
-  // cpuCoreCount.map { max(1, $0) * 2 } ?? .max
+  // _cpuCoreCount.map { max(1, $0) * 2 } ?? .max
   .max
 }
 
@@ -45,11 +47,13 @@ final actor Serializer {
   /// The maximum number of work items that may run concurrently.
   nonisolated let maximumWidth: Int
 
+#if !SWT_NO_UNSTRUCTURED_TASKS
   /// The number of scheduled work items, including any currently running.
   private var _currentWidth = 0
 
   /// Continuations for any scheduled work items that haven't started yet.
   private var _continuations = [CheckedContinuation<Void, Never>]()
+#endif
 
   init(maximumWidth: Int = 1) {
     precondition(maximumWidth >= 1, "Invalid serializer width \(maximumWidth).")
@@ -65,6 +69,7 @@ final actor Serializer {
   ///
   /// - Throws: Whatever is thrown by `workItem`.
   func run<R>(_ workItem: @isolated(any) @Sendable () async throws -> R) async rethrows -> R where R: Sendable {
+#if !SWT_NO_UNSTRUCTURED_TASKS
     _currentWidth += 1
     defer {
       // Resume the next scheduled closure.
@@ -86,6 +91,7 @@ final actor Serializer {
         _continuations.append(continuation)
       }
     }
+#endif
 
     return try await workItem()
   }

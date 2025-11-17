@@ -106,14 +106,23 @@ Swift.
 The table below describes the current level of support that Swift Testing has
 for various platforms:
 
-| **Platform** | **Support Status** |
-|-|-|
-| Apple platforms | Supported |
-| Linux | Supported |
-| Windows | Supported |
-| FreeBSD, OpenBSD | Experimental |
-| Wasm | Experimental |
-| Android | Experimental |
+| **Platform**     | **Support Status** | **Qualification[^1]**  |
+| ---------------- | ------------------ | ---------------------- |
+| Apple platforms  | Supported          | Automated              |
+| Linux            | Supported          | Automated              |
+| Windows          | Supported          | Automated              |
+| Wasm             | Experimental       | Automated (Build Only) |
+| Android          | Experimental       | Automated (Build Only) |
+| FreeBSD, OpenBSD | Experimental       | Manual                 |
+
+[^1]:
+    Most platforms have "Automated" qualification, where continuous integration
+    automatically verifies that the project builds and passes all tests. This
+    ensures that any changes meet our highest quality standards, so it is our
+    goal for all supported platforms.
+
+    Presently, some platforms rely on manual test ("Automated (Build Only)"
+    qualification) or manual build and test ("Manual" qualification).
 
 ### Works with XCTest
 
@@ -127,7 +136,7 @@ Detailed documentation for Swift Testing can be found on the
 [Swift Package Index](https://swiftpackageindex.com/swiftlang/swift-testing/main/documentation/testing).
 There, you can delve into comprehensive guides, tutorials, and API references to
 make the most out of this package. Swift Testing is included with the Swift 6
-toolchain and Xcode 16.  You do not need to add it as a package dependency to
+toolchain and Xcode 16. You do not need to add it as a package dependency to
 your Swift package or Xcode project.
 
 > [!IMPORTANT]
@@ -136,5 +145,5 @@ your Swift package or Xcode project.
 > repository requires a recent **main-branch development snapshot** toolchain.
 
 Other documentation resources for this project can be found in the
-[README](https://github.com/swiftlang/swift-testing/blob/main/Documentation/README.md) 
+[README](https://github.com/swiftlang/swift-testing/blob/main/Documentation/README.md)
 of the `Documentation/` subdirectory.

@@ -104,7 +104,8 @@ public struct Attachment<AttachableValue> where AttachableValue: Attachable & ~C
   ///
   /// The value of this property is used when recording issues associated with
   /// the attachment.
-  var sourceLocation: SourceLocation
+  @_spi(ForToolsIntegrationOnly)
+  public internal(set) var sourceLocation: SourceLocation
 }
 
 extension Attachment: Sendable where AttachableValue: Sendable {}

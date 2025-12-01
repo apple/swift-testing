@@ -1,0 +1,29 @@
+# In the first period after creating a new release branch, we often want to
+# continue including all changes from `main` into the release branch. This
+# workflow automatically creates a PR to merge main into the release branch on a
+# set schedule, and it can also be invoked manually.
+#
+# Later in the release cycle we generally stop this practice to avoid landing
+# risky changes. To disable the workflow when ready, follow the steps described
+# in https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/disabling-and-enabling-a-workflow
+
+name: Create PR to merge main into release branch
+
+permissions:
+  contents: read
+on:
+  schedule:
+    - cron: '0 9 * * MON'
+  workflow_dispatch:
+jobs:
+  create_merge_pr:
+    name: Create PR to merge main into release branch
+    uses: swiftlang/github-workflows/.github/workflows/create_automerge_pr.yml@main
+    with:
+      head_branch: main
+      base_branch: release/6.3
+    permissions:
+      contents: write
+      pull-requests: write
+    # Ensure that we don't run this on a schedule in a fork
+    if: (github.event_name == 'schedule' && github.repository == 'swiftlang/swift-testing') || (github.event_name != 'schedule')

@@ -44,9 +44,10 @@ public struct Issue: Sendable {
     ///   - reason: The ``PollingFailedError.Reason`` behind why the polling
     ///     confirmation failed.
     ///
-    /// This issue can occur when calling ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-455gr``
-    /// or
-    /// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-5tnlk``
+    /// This issue can occur when calling
+    /// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)->_``
+    /// and
+    /// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)->()``
     /// whenever the polling fails, as described in ``PollingStopCondition``.
     @_spi(Experimental)
     case pollingConfirmationFailed(reason: PollingFailedError.Reason)

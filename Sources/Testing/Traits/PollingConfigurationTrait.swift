@@ -9,9 +9,9 @@
 //
 
 /// A trait to provide a default polling configuration to all usages of
-/// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-455gr``
+/// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)->_``
 /// and
-/// ``confirmation(_:until:within:pollingEvery:isolation:sourceLocation:_:)-5tnlk``
+/// ``confirmation(_:until:within:pollingEvery:sourceLocation:_:)->()``
 /// within a test or suite using the specified stop condition.
 ///
 /// To add this trait to a test, use the ``Trait/pollingConfirmationDefaults``

@@ -109,7 +109,6 @@ extension PollingFailedError: CustomIssueRepresentable {
 ///     If no such trait has been added, then polling will wait at least
 ///     1 millisecond between polling attempts.
 ///     `interval` must be greater than 0.
-///   - isolation: The actor to which `body` is isolated, if any.
 ///   - sourceLocation: The location in source where the confirmation was called.
 ///   - body: The function to invoke. The expression is considered to pass if
 ///     the `body` returns true. Similarly, the expression is considered to fail
@@ -129,9 +128,8 @@ public func confirmation(
   until stopCondition: PollingStopCondition,
   within duration: Duration? = nil,
   pollingEvery interval: Duration? = nil,
-  isolation: isolated (any Actor)? = #isolation,
   sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: @escaping () async throws -> Bool
+  _ body: nonisolated(nonsending) @escaping () async throws -> Bool
 ) async throws {
   let poller = Poller(
     stopCondition: stopCondition,
@@ -143,7 +141,7 @@ public func confirmation(
       sourceLocation: sourceLocation
     )
   )
-  try await poller.evaluate(isolation: isolation) {
+  try await poller.evaluate() {
     do {
       return try await body()
     } catch {
@@ -174,7 +172,6 @@ public func confirmation(
 ///     If no such trait has been added, then polling will wait at least
 ///     1 millisecond between polling attempts.
 ///     `interval` must be greater than 0.
-///   - isolation: The actor to which `body` is isolated, if any.
 ///   - sourceLocation: The location in source where the confirmation was called.
 ///   - body: The function to invoke. The expression is considered to pass if
 ///     the `body` returns a non-nil value. Similarly, the expression is
@@ -197,9 +194,8 @@ public func confirmation<R>(
   until stopCondition: PollingStopCondition,
   within duration: Duration? = nil,
   pollingEvery interval: Duration? = nil,
-  isolation: isolated (any Actor)? = #isolation,
   sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: @escaping () async throws -> sending R?
+  _ body: nonisolated(nonsending) @escaping () async throws -> sending R?
 ) async throws -> R {
   let poller = Poller(
     stopCondition: stopCondition,
@@ -211,7 +207,7 @@ public func confirmation<R>(
       sourceLocation: sourceLocation
     )
   )
-  return try await poller.evaluateOptional(isolation: isolation) {
+  return try await poller.evaluateOptional() {
     do {
       return try await body()
     } catch {
@@ -242,7 +238,7 @@ private func getValueFromTrait<TraitKind, Value>(
   providedValue: Value?,
   default: Value,
   _ keyPath: KeyPath<TraitKind, Value?>,
-  where filter: @escaping (TraitKind) -> Bool
+  where filter: (TraitKind) -> Bool
 ) -> Value {
   if let providedValue { return providedValue }
   guard let test = Test.current else { return `default` }
@@ -348,7 +344,6 @@ private struct Poller {
   /// Evaluate polling, throwing an error if polling fails.
   ///
   /// - Parameters:
-  ///   - isolation: The actor isolation to use.
   ///   - body: The expression to poll.
   ///
   /// - Throws: A ``PollingFailedError`` if polling doesn't pass.
@@ -358,10 +353,9 @@ private struct Poller {
   /// - Side effects: If polling fails (see ``PollingStopCondition``), then
   ///   this will record an issue.
   @discardableResult func evaluate(
-    isolation: isolated (any Actor)?,
-    _ body: @escaping () async -> Bool
+    _ body: nonisolated(nonsending) @escaping () async -> Bool
   ) async throws -> Bool {
-    try await evaluateOptional(isolation: isolation) {
+    try await evaluateOptional() {
       if await body() {
         // return any non-nil value.
         return true
@@ -374,7 +368,6 @@ private struct Poller {
   /// Evaluate polling, throwing an error if polling fails.
   ///
   /// - Parameters:
-  ///   - isolation: The actor isolation to use.
   ///   - body: The expression to poll.
   ///
   /// - Throws: A ``PollingFailedError`` if polling doesn't pass.
@@ -384,8 +377,7 @@ private struct Poller {
   /// - Side effects: If polling fails (see ``PollingStopCondition``), then
   ///   this will record an issue.
   @discardableResult func evaluateOptional<R>(
-    isolation: isolated (any Actor)?,
-    _ body: @escaping () async -> sending R?
+    _ body: nonisolated(nonsending) @escaping () async -> sending R?
   ) async throws -> R {
     precondition(interval > Duration.zero)
     precondition(duration >= interval)
@@ -399,7 +391,6 @@ private struct Poller {
     let failureReason: PollingFailedError.Reason
     switch await poll(
       iterations: iterations,
-      isolation: isolation,
       expression: body
     ) {
     case let .succeeded(value):
@@ -431,14 +422,12 @@ private struct Poller {
   ///
   /// - Parameters:
   ///   - iterations: The maximum amount of times to continue polling.
-  ///   - isolation: The actor isolation to use.
   ///   - expression: An expression to continuously evaluate.
   ///
   /// - Returns: The most recent value if the polling succeeded, else nil.
   private func poll<R>(
     iterations: Int,
-    isolation: isolated (any Actor)?,
-    expression: @escaping () async -> sending R?
+    expression: nonisolated(nonsending) @escaping () async -> sending R?
   ) async -> PollingResult<R> {
     for iteration in 0..<iterations {
       switch stopCondition.process(

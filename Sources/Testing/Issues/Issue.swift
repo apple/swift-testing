@@ -578,6 +578,8 @@ extension Issue.Kind {
         self = .apiMisused
       } else if try container.decodeIfPresent(Bool.self, forKey: .system) != nil {
         self = .system
+      } else if try container.decodeIfPresent(Bool.self, forKey: .pollingConfirmationFailed) != nil {
+        self = .pollingConfirmationFailed
       } else {
         throw DecodingError.valueNotFound(
           Self.self,

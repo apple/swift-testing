@@ -42,6 +42,26 @@ struct `Polling Confirmation Tests` {
     }
 
     @available(_clockAPI, *)
+    @Test func `failing with comments`() async throws {
+      let issues = await runTest {
+        try await confirmation("a static message describing the overall confirmation", until: stop) {
+          PollResult(false, comment: "This comment indicates that something failed in a polling attempt")
+        }
+      }
+      let issue = try #require(issues.first)
+
+      if case let .pollingConfirmationFailed(reason) = issue.kind {
+        #expect(reason == PollingFailedError.Reason.stopConditionFailed(stop))
+      } else {
+        #expect(Bool(false), "Unexpected issue kind \(issue.kind)")
+      }
+      #expect(issue.comments == [
+        "a static message describing the overall confirmation",
+        "This comment indicates that something failed in a polling attempt"
+      ])
+    }
+
+    @available(_clockAPI, *)
     @Test
     func `returning false in a closure returning Optional<Bool> is considered a pass`() async throws {
       try await confirmation(until: stop) { () -> Bool? in
@@ -68,7 +88,7 @@ struct `Polling Confirmation Tests` {
     @available(_clockAPI, *)
     @Test func `Thrown errors are treated as returning false`() async throws {
       let issues = await runTest {
-        try await confirmation(until: stop) {
+        try await confirmation(until: stop) { () -> PollResult<Bool> in
           throw PollingTestSampleError.ohNo
         }
       }
@@ -183,7 +203,7 @@ struct `Polling Confirmation Tests` {
           until: stop,
           within: .milliseconds(100),
           pollingEvery: .milliseconds(100)
-        ) {
+        ) { () -> PollResult<Bool> in
           _ = await incrementor.increment()
           return true
         }
@@ -257,6 +277,26 @@ struct `Polling Confirmation Tests` {
     }
 
     @available(_clockAPI, *)
+    @Test func `failing with comments`() async throws {
+      let issues = await runTest {
+        try await confirmation("a static message describing the overall confirmation", until: stop) {
+          PollResult(false, comment: "This comment indicates that something failed in a polling attempt")
+        }
+      }
+      let issue = try #require(issues.first)
+
+      if case let .pollingConfirmationFailed(reason) = issue.kind {
+        #expect(reason == PollingFailedError.Reason.stopConditionFailed(stop))
+      } else {
+        #expect(Bool(false), "Unexpected issue kind \(issue.kind)")
+      }
+      #expect(issue.comments == [
+        "a static message describing the overall confirmation",
+        "This comment indicates that something failed in a polling attempt"
+      ])
+    }
+
+    @available(_clockAPI, *)
     @Test
     func `returning false in a closure returning Optional<Bool> is considered a pass`() async throws {
       try await confirmation(until: stop) { () -> Bool? in
@@ -282,7 +322,7 @@ struct `Polling Confirmation Tests` {
     @Test func `if the closure continues to pass`() async throws {
       let incrementor = Incrementor()
 
-      try await confirmation(until: stop) {
+      try await confirmation(until: stop) { () -> PollResult<Bool> in
         _ = await incrementor.increment()
         return true
       }
@@ -293,7 +333,7 @@ struct `Polling Confirmation Tests` {
     @available(_clockAPI, *)
     @Test func `Thrown errors will automatically exit & fail`() async {
       let issues = await runTest {
-        try await confirmation(until: stop) {
+        try await confirmation(until: stop) { () -> Bool in
           throw PollingTestSampleError.ohNo
         }
       }
@@ -390,7 +430,7 @@ struct `Polling Confirmation Tests` {
           until: stop,
           within: .milliseconds(100),
           pollingEvery: .milliseconds(100)
-        ) {
+        ) { () -> Bool in
           _ = await incrementor.increment()
           return true
         }

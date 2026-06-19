@@ -511,7 +511,10 @@ extension Issue.Kind {
       case .confirmationMiscounted:
           .unconditional
       case .pollingConfirmationFailed:
-          .pollingConfirmationFailed
+          // TODO: Change this to `.pollingConfirmationFailed`.
+          // This is a temporary workaround due to an xcode issue.
+          // This is here solely to help users try out polling confirmations.
+          .unconditional
       case let .errorCaught(error), let .valueAttachmentFailed(error):
           .errorCaught(ErrorSnapshot(snapshotting: error))
       case let .timeLimitExceeded(timeLimitComponents: timeLimitComponents):

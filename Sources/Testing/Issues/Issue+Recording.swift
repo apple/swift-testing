@@ -30,7 +30,7 @@ extension Issue {
 
     // If this issue matches via the known issue matcher, set a copy of it to be
     // known and record the copy instead.
-    if !isKnown, let context = KnownIssueScope.current?.matcher(self) {
+    if !isKnown, let context = IssueCapturingScope.current?.matcher(self) {
       var selfCopy = self
       selfCopy.knownIssueContext = context
       return selfCopy.record(configuration: configuration)

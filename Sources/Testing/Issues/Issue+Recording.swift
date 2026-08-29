@@ -18,7 +18,7 @@ extension Issue {
   ///
   /// - Returns: The issue that was recorded (`self` or a modified copy of it.)
   @discardableResult
-  func record(configuration: Configuration? = nil) -> Self {
+  func record(configuration: Configuration? = nil, sendEvent: Bool = true) -> Self {
     // If this issue is a caught error that has a custom issue representation,
     // perform that customization now.
     if case let .errorCaught(error) = kind {
@@ -30,13 +30,15 @@ extension Issue {
 
     // If this issue matches via the known issue matcher, set a copy of it to be
     // known and record the copy instead.
-    if !isKnown, let context = IssueCapturingScope.current?.matcher(self) {
+    if !isKnown, let capturingScope = IssueCapturingScope.current, let context = capturingScope.matcher(self) {
       var selfCopy = self
       selfCopy.knownIssueContext = context
-      return selfCopy.record(configuration: configuration)
+      return selfCopy.record(configuration: configuration, sendEvent: !capturingScope.captureSilently)
     }
 
-    Event.post(.issueRecorded(self), configuration: configuration)
+    if sendEvent {
+      Event.post(.issueRecorded(self), configuration: configuration)
+    }
 
     if !isKnown {
       // Since this is not a known issue, invoke the failure breakpoint.

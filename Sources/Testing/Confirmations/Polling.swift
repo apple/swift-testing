@@ -18,11 +18,26 @@ private let _defaultPollingConfiguration = (
 /// A type defining when to stop polling.
 /// This also determines what happens if the duration elapses during polling.
 @_spi(Experimental)
-public enum PollingStopCondition: Sendable, Equatable, Codable {
+public struct PollingStopCondition: Sendable, Equatable, Codable {
+  internal enum Kind: Sendable, Codable {
+    // Stop polling after the first time a polling attempt passes.
+    case firstPass
+    // Stop polling after the first time a polling attempt fails.
+    case stopsPassing
+  }
+
+  internal var kind: Kind
+
+  internal init(kind: Kind) {
+    self.kind = kind
+  }
+
   /// Evaluates the expression until the first time it passes
   /// If it does not pass once by the time the duration is reached, then a
   /// failure will be reported.
-  case firstPass
+  public static var firstPass: Self {
+    Self(kind: .firstPass)
+  }
 
   /// Evaluates the expression until the first time it returns fails.
   /// If the expression fails, then a failure will be reported.
@@ -30,76 +45,10 @@ public enum PollingStopCondition: Sendable, Equatable, Codable {
   /// no failure will be reported.
   /// If the expression does not finish evaluating before the duration is
   /// reached, then a failure will be reported.
-  case stopsPassing
-}
-
-/// The result of a polling body, with an attached comment.
-/// This allows test authors to include information about why a particular poll
-/// attempt failed (or didn't fail).
-@_spi(Experimental)
-public struct PollResult<T>: ExpressibleByNilLiteral {
-  internal var didPass: Bool { value != nil }
-
-  /// The value to (potentially) return to the caller of the polling
-  /// confirmation.
-  public let value: T?
-  /// A comment explaining what happened in this particular polling attempt.
-  /// These comments are only used when the polling confirmation fails
-  /// and only the comment from the last polling attempt is ever used.
-  public let comment: Comment?
-
-  /// Initialize an instance for an optional value
-  ///
-  /// - Parameters:
-  ///   - value: A user-provided value to (potentially) return to the caller of
-  ///     the polling confirmation.
-  ///     `nil` indicates that the polling attempt failed.
-  ///   - comment: A user-specified comment describing the result of this polling
-  ///     attempt.
-  ///     Defaults to `nil`.
-  public init(_ value: T?, comment: Comment? = nil) {
-    self.value = value
-    self.comment = comment
-  }
-
-  /// Initialize an instance for a boolean value
-  ///
-  /// - Parameters:
-  ///   - boolValue: Whether this polling attempt succeeded or failed.
-  ///   - comment: A user-specified comment describing the result of this polling
-  ///     attempt.
-  ///     Defaults to `nil`.
-  public init(_ boolValue: Bool, comment: Comment? = nil) where T == Bool {
-    self.value = boolValue ? true : nil
-    self.comment = comment
-  }
-
-  /// Initialize an instance for a `nil` literal.
-  /// This unconditionally indicates that this polling attempt failed.
-  /// No comment will be provided to the polling confirmation about this polling
-  /// attempt.
-  ///
-  /// - Parameters:
-  ///   - nilLiteral: unused.
-  public init(nilLiteral: ()) {
-    self.init(nil)
+  public static var stopsPassing: Self {
+    Self(kind: .stopsPassing)
   }
 }
-
-extension PollResult: ExpressibleByBooleanLiteral where T == Bool {
-  /// Initialize an instance for a boolean literal.
-  /// No comment will be provided to the polling confirmation about this polling
-  /// attempt.
-  ///
-  /// - Parameters:
-  ///   - booleanLiteral: Whether this polling attempt succeeded or failed.
-  public init(booleanLiteral value: Bool) where T == Bool {
-    self.value = value ? true : nil
-    self.comment = nil
-  }
-}
-
-extension PollResult: Sendable where T: Sendable {}
 
 /// A type describing an error thrown when polling fails.
 @_spi(Experimental)
@@ -153,133 +102,6 @@ extension PollingFailedError: CustomIssueRepresentable {
   }
 }
 
-/// Poll expression within the duration based on the given stop condition
-///
-/// - Parameters:
-///   - comment: A user-specified comment describing this confirmation.
-///   - stopCondition: When to stop polling.
-///   - duration: The expected length of time to continue polling for.
-///     This value does not incorporate the time to run `body`, and may not
-///     correspond to the wall-clock time that polling lasts for, especially on
-///     highly-loaded systems with a lot of tests running.
-///     If nil, this uses whatever value is specified under the last
-///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
-///     with a matching stopCondition.
-///     If no such trait has been added, then polling will be attempted for
-///     about 1 second before recording an issue.
-///     `duration` must be greater than or equal to `interval`.
-///   - interval: The minimum amount of time to wait between polling attempts.
-///     If nil, this uses whatever value is specified under the last
-///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
-///     with a matching stopCondition.
-///     If no such trait has been added, then polling will wait at least
-///     1 millisecond between polling attempts.
-///     `interval` must be greater than 0.
-///   - sourceLocation: The location in source where the confirmation was called.
-///   - body: The function to invoke. The expression is considered to pass if
-///     the `body` returns true. Similarly, the expression is considered to fail
-///     if `body` returns false.
-///
-/// - Throws: A ``PollingFailedError`` if the `body` does not return true within
-///   the polling duration.
-///
-/// Use polling confirmations to check that an event while a test is running in
-/// complex scenarios where other forms of confirmation are insufficient. For
-/// example, waiting on some state to change that cannot be easily confirmed
-/// through other forms of `confirmation`.
-@_spi(Experimental)
-@available(_clockAPI, *)
-public func confirmation(
-  _ comment: Comment? = nil,
-  until stopCondition: PollingStopCondition,
-  within duration: Duration? = nil,
-  pollingEvery interval: Duration? = nil,
-  sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: nonisolated(nonsending) @escaping () async throws -> Bool
-) async throws {
-  let poller = Poller(
-    stopCondition: stopCondition,
-    duration: stopCondition.duration(with: duration),
-    interval: stopCondition.interval(with: interval),
-    comment: comment,
-    sourceContext: SourceContext(
-      backtrace: .current(),
-      sourceLocation: sourceLocation
-    )
-  )
-  try await poller.evaluate() {
-    do {
-      return PollResult(try await body())
-    } catch {
-      return false
-    }
-  }
-}
-
-/// Poll expression within the duration based on the given stop condition
-///
-/// - Parameters:
-///   - comment: A user-specified comment describing this confirmation.
-///   - stopCondition: When to stop polling.
-///   - duration: The expected length of time to continue polling for.
-///     This value does not incorporate the time to run `body`, and may not
-///     correspond to the wall-clock time that polling lasts for, especially on
-///     highly-loaded systems with a lot of tests running.
-///     If nil, this uses whatever value is specified under the last
-///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
-///     with a matching stopCondition.
-///     If no such trait has been added, then polling will be attempted for
-///     about 1 second before recording an issue.
-///     `duration` must be greater than or equal to `interval`.
-///   - interval: The minimum amount of time to wait between polling attempts.
-///     If nil, this uses whatever value is specified under the last
-///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
-///     with a matching stopCondition.
-///     If no such trait has been added, then polling will wait at least
-///     1 millisecond between polling attempts.
-///     `interval` must be greater than 0.
-///   - sourceLocation: The location in source where the confirmation was called.
-///   - body: The function to invoke. The expression is considered to pass if
-///     the `body` returns a ``PollResult`` where `value` is true. Similarly, the
-///     expression is considered to fail if `body` returns a ``PollResult``
-///     where `value` is false.
-///
-/// - Throws: A ``PollingFailedError`` if the `body` does not return true within
-///   the polling duration.
-///
-/// Use polling confirmations to check that an event while a test is running in
-/// complex scenarios where other forms of confirmation are insufficient. For
-/// example, waiting on some state to change that cannot be easily confirmed
-/// through other forms of `confirmation`.
-@_spi(Experimental)
-@available(_clockAPI, *)
-public func confirmation(
-  _ comment: Comment? = nil,
-  until stopCondition: PollingStopCondition,
-  within duration: Duration? = nil,
-  pollingEvery interval: Duration? = nil,
-  sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: nonisolated(nonsending) @escaping () async throws -> PollResult<Bool>
-) async throws {
-  let poller = Poller(
-    stopCondition: stopCondition,
-    duration: stopCondition.duration(with: duration),
-    interval: stopCondition.interval(with: interval),
-    comment: comment,
-    sourceContext: SourceContext(
-      backtrace: .current(),
-      sourceLocation: sourceLocation
-    )
-  )
-  try await poller.evaluate() {
-    do {
-      return try await body()
-    } catch {
-      return false
-    }
-  }
-}
-
 /// Confirm that some expression eventually returns a non-nil value
 ///
 /// - Parameters:
@@ -304,80 +126,13 @@ public func confirmation(
 ///     `interval` must be greater than 0.
 ///   - sourceLocation: The location in source where the confirmation was called.
 ///   - body: The function to invoke. The expression is considered to pass if
-///     the `body` returns a non-nil value. Similarly, the expression is
-///     considered to fail if `body` returns nil.
+///     no expectation fails and no error is thrown. Similarly, the expression
+///     is considered to fail if expectation fails or an error is thrown.
 ///
-/// - Throws: A `PollingFailedError` if the `body` does not return true within
-///   the polling duration.
+/// - Throws: A `PollingFailedError` if the `body` does not pass during the
+///   polling duration.
 ///
-/// - Returns: The last non-nil value returned by `body`.
-///
-/// Use polling confirmations to check that an event while a test is running in
-/// complex scenarios where other forms of confirmation are insufficient. For
-/// example, waiting on some state to change that cannot be easily confirmed
-/// through other forms of `confirmation`.
-@_spi(Experimental)
-@available(_clockAPI, *)
-@discardableResult
-public func confirmation<R>(
-  _ comment: Comment? = nil,
-  until stopCondition: PollingStopCondition,
-  within duration: Duration? = nil,
-  pollingEvery interval: Duration? = nil,
-  sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: nonisolated(nonsending) @escaping () async throws -> sending R?
-) async throws -> R {
-  let poller = Poller(
-    stopCondition: stopCondition,
-    duration: stopCondition.duration(with: duration),
-    interval: stopCondition.interval(with: interval),
-    comment: comment,
-    sourceContext: SourceContext(
-      backtrace: .current(),
-      sourceLocation: sourceLocation
-    )
-  )
-  return try await poller.evaluateOptional() {
-    do {
-      return PollResult(try await body())
-    } catch {
-      return nil
-    }
-  }
-}
-
-/// Confirm that some expression eventually returns a non-nil value
-///
-/// - Parameters:
-///   - comment: A user-specified comment describing this confirmation.
-///   - stopCondition: When to stop polling.
-///   - duration: The expected length of time to continue polling for.
-///     This value does not incorporate the time to run `body`, and may not
-///     correspond to the wall-clock time that polling lasts for, especially on
-///     highly-loaded systems with a lot of tests running.
-///     If nil, this uses whatever value is specified under the last
-///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
-///     with a matching stopCondition.
-///     If no such trait has been added, then polling will be attempted for
-///     about 1 second before recording an issue.
-///     `duration` must be greater than or equal to `interval`.
-///   - interval: The minimum amount of time to wait between polling attempts.
-///     If nil, this uses whatever value is specified under the last
-///     ``PollingConfirmationConfigurationTrait`` added to the test or suite
-///     with a matching stopCondition.
-///     If no such trait has been added, then polling will wait at least
-///     1 millisecond between polling attempts.
-///     `interval` must be greater than 0.
-///   - sourceLocation: The location in source where the confirmation was called.
-///   - body: The function to invoke. The expression is considered to pass if
-///     the `body` returns a ``PollResult`` where `value` is non-nil. Similarly, the
-///     expression is considered to fail if `body` returns a ``PollResult``
-///     where `value` is nil.
-///
-/// - Throws: A `PollingFailedError` if the `body` does not return true within
-///   the polling duration.
-///
-/// - Returns: The last non-nil value returned by `body`.
+/// - Returns: The last value returned by `body`.
 ///
 /// Use polling confirmations to check that an event while a test is running in
 /// complex scenarios where other forms of confirmation are insufficient. For
@@ -392,7 +147,7 @@ public func confirmation<R>(
   within duration: Duration? = nil,
   pollingEvery interval: Duration? = nil,
   sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: nonisolated(nonsending) @escaping () async throws -> sending PollResult<R>
+  _ body: nonisolated(nonsending) @escaping () async throws -> sending R
 ) async throws -> R {
   let poller = Poller(
     stopCondition: stopCondition,
@@ -404,13 +159,7 @@ public func confirmation<R>(
       sourceLocation: sourceLocation
     )
   )
-  return try await poller.evaluateOptional() {
-    do {
-      return try await body()
-    } catch {
-      return nil
-    }
-  }
+  return try await poller.evaluate(body)
 }
 
 /// A helper function to de-duplicate the logic of grabbing configuration from
@@ -447,13 +196,13 @@ private func getValueFromTrait<TraitKind, Value>(
 
 extension PollingStopCondition {
   /// The result of processing polling.
-  enum PollingProcessResult<R> {
+  fileprivate enum PollingProcessResult {
     /// Continue to poll.
     case continuePolling
     /// Polling succeeded.
-    case succeeded(R)
+    case succeeded
     /// Polling failed.
-    case failed(Comment?)
+    case failed([Issue])
   }
   /// Process the result of a polled expression and decide whether to continue
   /// polling.
@@ -465,28 +214,28 @@ extension PollingStopCondition {
   ///
   /// - Returns: A process result. Whether to continue polling, stop because
   ///   polling failed, or stop because polling succeeded.
-  fileprivate func process<R>(
-    expressionResult result: PollResult<R>,
+  fileprivate func process(
+    issues: [Issue],
     wasLastPollingAttempt: Bool
-  ) -> PollingProcessResult<R> {
-    switch self {
+  ) -> PollingProcessResult {
+    switch self.kind {
     case .firstPass:
-      if let value = result.value {
-        return .succeeded(value)
+      if issues.isEmpty {
+        return .succeeded
       } else if wasLastPollingAttempt {
-        return .failed(result.comment)
+        return .failed(issues)
       } else {
         return .continuePolling
       }
     case .stopsPassing:
-      if let value = result.value {
+      if issues.isEmpty {
         if wasLastPollingAttempt {
-          return .succeeded(value)
+          return .succeeded
         } else {
           return .continuePolling
         }
       } else {
-        return .failed(result.comment)
+        return .failed(issues)
       }
     }
   }
@@ -545,31 +294,12 @@ private struct Poller {
   ///
   /// - Throws: A ``PollingFailedError`` if polling doesn't pass.
   ///
-  /// - Returns: Whether or not polling passed.
+  /// - Returns: The last value returned by `body`.
   ///
   /// - Side effects: If polling fails (see ``PollingStopCondition``), then
   ///   this will record an issue.
-  @discardableResult func evaluate(
-    _ body: nonisolated(nonsending) @escaping () async -> PollResult<Bool>
-  ) async throws -> Bool {
-    try await evaluateOptional() {
-      return await body()
-    }
-  }
-
-  /// Evaluate polling, throwing an error if polling fails.
-  ///
-  /// - Parameters:
-  ///   - body: The expression to poll.
-  ///
-  /// - Throws: A ``PollingFailedError`` if polling doesn't pass.
-  ///
-  /// - Returns: the last non-nil value returned by `body`.
-  ///
-  /// - Side effects: If polling fails (see ``PollingStopCondition``), then
-  ///   this will record an issue.
-  @discardableResult func evaluateOptional<R>(
-    _ body: nonisolated(nonsending) @escaping () async -> sending PollResult<R>
+  @discardableResult func evaluate<R>(
+    _ body: nonisolated(nonsending) @escaping () async throws -> sending R
   ) async throws -> R {
     precondition(interval > Duration.zero)
     precondition(duration >= interval)
@@ -580,7 +310,7 @@ private struct Poller {
     // if Int(exactly:) returns nil, then that generally means the value is too
     // large. In which case, we should fall back to Int.max.
 
-    var comments: [Comment] = [comment].compactMap { $0 }
+    let comments: [Comment] = [comment].compactMap { $0 }
 
     let failureReason: PollingFailedError.Reason
     switch await poll(
@@ -591,11 +321,9 @@ private struct Poller {
       return value
     case .cancelled:
       failureReason = .cancelled
-    case let .failed(comment):
+    case let .failed(issues):
       failureReason = .stopConditionFailed(stopCondition)
-      if let comment {
-        comments.append(comment)
-      }
+      issues.forEach { $0.record() }
     }
     throw PollingFailedError(
       comments: comments,
@@ -609,7 +337,7 @@ private struct Poller {
     /// Polling was cancelled using `Task.Cancel`. This is treated as a failure.
     case cancelled
     /// The stop condition failed.
-    case failed(Comment?)
+    case failed([Issue])
     /// The stop condition passed.
     case succeeded(R)
   }
@@ -624,18 +352,27 @@ private struct Poller {
   /// - Returns: The most recent value if the polling succeeded, else nil.
   private func poll<R>(
     iterations: Int,
-    expression: nonisolated(nonsending) @escaping () async -> sending PollResult<R>
+    expression: nonisolated(nonsending) @escaping () async throws -> sending R
   ) async -> Poller.PollAttemptResult<R> {
     for iteration in 0..<iterations {
+      let (value, issues): (R?, [Issue]) = await captureIssues(silently: true) {
+        do {
+          return try await expression()
+        } catch {
+          Issue.record(error)
+          return nil
+        }
+      }
+
       switch stopCondition.process(
-        expressionResult: await expression(),
+        issues: issues,
         wasLastPollingAttempt: iteration == (iterations - 1)
       ) {
       case .continuePolling: break
-      case let .succeeded(value):
-        return .succeeded(value)
-      case let .failed(comment):
-        return .failed(comment)
+      case .succeeded:
+        return .succeeded(value!)
+      case let .failed(issues):
+        return .failed(issues)
       }
       do {
         try await Task.sleep(for: interval)
@@ -648,7 +385,7 @@ private struct Poller {
     // This is somewhat redundant and only here to satisfy the compiler.
     // `PollingStopCondition.process` will return either `.succeeded` or
     // `.failed` on the last polling attempt.
-    return .failed(nil)
+    return .failed([])
   }
 }
 

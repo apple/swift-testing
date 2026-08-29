@@ -28,6 +28,8 @@ struct IssueCapturingScope: Sendable {
   /// The issues this scope has matched.
   let issues: Locked<[Issue]>
 
+  let captureSilently: Bool
+
   /// Create a new ``IssueCapturingScope`` by companing a new issue matcher
   /// with any already-active scope
   ///
@@ -38,9 +40,10 @@ struct IssueCapturingScope: Sendable {
   ///     to determine if the issue should be captured by this scope.
   ///   - context: The context to be associated with issues matched by
   ///     `issueMatcher`.
-  init(parent: IssueCapturingScope? = .current, issueMatcher: @escaping KnownIssueMatcher, context: Issue.KnownIssueContext) {
+  init(parent: IssueCapturingScope? = .current, captureSilently: Bool, issueMatcher: @escaping KnownIssueMatcher, context: Issue.KnownIssueContext) {
     let issues = Locked(rawValue: [Issue]())
     self.issues = issues
+    self.captureSilently = captureSilently
 
     matcher = { issue in
       let matchedContext = if issueMatcher(issue) {
@@ -86,17 +89,22 @@ struct IssueCapturingScope: Sendable {
 /// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
 ///
 /// - Note: `issueMatcher` may be invoked more than once for the same issue.
-func captureIssues(
+func captureIssues<R>(
   _ comment: Comment? = nil,
+  silently: Bool,
   sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: () throws -> Void,
+  _ body: () throws -> sending R,
   matching issueMatcher: @escaping KnownIssueMatcher = { _ in true }
-) rethrows -> [Issue] {
-  let scope = IssueCapturingScope(issueMatcher: issueMatcher, context: Issue.KnownIssueContext(comment: comment))
-  try IssueCapturingScope.$current.withValue(scope) {
+) rethrows -> (R, [Issue]) {
+  let scope = IssueCapturingScope(
+    captureSilently: silently,
+    issueMatcher: issueMatcher,
+    context: Issue.KnownIssueContext(comment: comment)
+  )
+  let value = try IssueCapturingScope.$current.withValue(scope) {
     try body()
   }
-  return scope.issues.withLock { $0 }
+  return (value, scope.issues.withLock { $0 })
 }
 
 /// Invoke a function, and return any issues recorded during its execution.
@@ -119,16 +127,21 @@ func captureIssues(
 /// ``withKnownIssue(_:isIntermittent:sourceLocation:_:when:matching:)``.
 ///
 /// - Note: `issueMatcher` may be invoked more than once for the same issue.
-func captureIssues(
+func captureIssues<R>(
   _ comment: Comment? = nil,
+  silently: Bool,
   isolation: isolated (any Actor)? = #isolation,
   sourceLocation: SourceLocation = #_sourceLocation,
-  _ body: () async throws -> Void,
+  _ body: () async throws -> sending R,
   matching issueMatcher: @escaping KnownIssueMatcher = { _ in true }
-) async rethrows -> [Issue] {
-  let scope = IssueCapturingScope(issueMatcher: issueMatcher, context: Issue.KnownIssueContext(comment: comment))
-  try await IssueCapturingScope.$current.withValue(scope) {
+) async rethrows -> (R, [Issue]) {
+  let scope = IssueCapturingScope(
+    captureSilently: silently,
+    issueMatcher: issueMatcher,
+    context: Issue.KnownIssueContext(comment: comment)
+  )
+  let value = try await IssueCapturingScope.$current.withValue(scope) {
     try await body()
   }
-  return scope.issues.withLock { $0 }
+  return (value, scope.issues.withLock { $0 })
 }

@@ -16,7 +16,7 @@ struct `Polling Confirmation Tests` {
 
     @available(_clockAPI, *)
     @Test func `simple passing expressions`() async throws {
-      try await confirmation(until: stop) { true }
+      try await confirmation(until: stop) { }
 
       let value = try await confirmation(until: stop) { 1 }
 
@@ -25,15 +25,22 @@ struct `Polling Confirmation Tests` {
 
     @available(_clockAPI, *)
     @Test func `simple failing expressions`() async throws {
-      var issues = await runTest {
-        try await confirmation(until: stop) { false }
-      }
-      issues += await runTest {
-        _ = try await confirmation(until: stop) { Optional<Int>.none }
+      let issues = await runTest {
+        try await confirmation(until: stop) {
+          #expect(Bool(false))
+        }
       }
       #expect(issues.count == 2)
-      #expect(issues.allSatisfy {
+      #expect(issues.contains {
         if case .pollingConfirmationFailed = $0.kind {
+          return true
+        } else {
+          return false
+        }
+      })
+
+      #expect(issues.contains {
+        if case .expectationFailed = $0.kind {
           return true
         } else {
           return false
@@ -45,28 +52,23 @@ struct `Polling Confirmation Tests` {
     @Test func `failing with comments`() async throws {
       let issues = await runTest {
         try await confirmation("a static message describing the overall confirmation", until: stop) {
-          PollResult(false, comment: "This comment indicates that something failed in a polling attempt")
+          #expect(Bool(false), "This comment indicates that something failed in a polling attempt")
         }
       }
-      let issue = try #require(issues.first)
+      let pollingConfirmationFailedIssue = try #require(issues.first {
+        if case .pollingConfirmationFailed = $0.kind {
+          return true
+        } else { return false }
+      })
 
-      if case let .pollingConfirmationFailed(reason) = issue.kind {
+      if case let .pollingConfirmationFailed(reason) = pollingConfirmationFailedIssue.kind {
         #expect(reason == PollingFailedError.Reason.stopConditionFailed(stop))
       } else {
-        #expect(Bool(false), "Unexpected issue kind \(issue.kind)")
+        #expect(Bool(false), "Unexpected issue kind \(pollingConfirmationFailedIssue.kind)")
       }
-      #expect(issue.comments == [
-        "a static message describing the overall confirmation",
-        "This comment indicates that something failed in a polling attempt"
+      #expect(pollingConfirmationFailedIssue.comments == [
+        "a static message describing the overall confirmation"
       ])
-    }
-
-    @available(_clockAPI, *)
-    @Test
-    func `returning false in a closure returning Optional<Bool> is considered a pass`() async throws {
-      try await confirmation(until: stop) { () -> Bool? in
-        return false
-      }
     }
 
     @available(_clockAPI, *)
@@ -75,7 +77,7 @@ struct `Polling Confirmation Tests` {
       let incrementor = Incrementor()
 
       try await confirmation(until: stop) {
-        await incrementor.increment() == 2
+        #expect(await incrementor.increment() == 2)
         // this will pass only on the second invocation
         // This checks that we really are only running the expression until
         // the first time it passes.
@@ -86,13 +88,13 @@ struct `Polling Confirmation Tests` {
     }
 
     @available(_clockAPI, *)
-    @Test func `Thrown errors are treated as returning false`() async throws {
+    @Test func `Thrown errors are treated as an expectation failed`() async throws {
       let issues = await runTest {
-        try await confirmation(until: stop) { () -> PollResult<Bool> in
+        try await confirmation(until: stop) {
           throw PollingTestSampleError.ohNo
         }
       }
-      #expect(issues.count == 1)
+      #expect(issues.count == 2)
     }
 
     @available(_clockAPI, *)
@@ -102,7 +104,7 @@ struct `Polling Confirmation Tests` {
       _ = await runTest {
         // this test will intentionally fail.
         try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
-          await incrementor.increment() == 0
+          #expect(await incrementor.increment() == 0)
         }
       }
       #expect(await incrementor.count == 1000)
@@ -123,7 +125,7 @@ struct `Polling Confirmation Tests` {
         let incrementor = Incrementor()
         var test = Test {
           try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
-            await incrementor.increment() == 0
+            #expect(await incrementor.increment() == 0)
           }
         }
         test.traits = Test.current?.traits ?? []
@@ -144,7 +146,7 @@ struct `Polling Confirmation Tests` {
         let incrementor = Incrementor()
         var test = Test {
           try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
-            await incrementor.increment() == 0
+            #expect(await incrementor.increment() == 0)
           }
         }
         test.traits = Test.current?.traits ?? []
@@ -164,7 +166,7 @@ struct `Polling Confirmation Tests` {
         var test = Test {
           // this test will intentionally fail.
           try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
-            await incrementor.increment() == 0
+            #expect(await incrementor.increment() == 0)
           }
         }
         test.traits = Test.current?.traits ?? []
@@ -188,7 +190,7 @@ struct `Polling Confirmation Tests` {
             within: .milliseconds(50),
             pollingEvery: .milliseconds(1)
           ) {
-            await incrementor.increment() == 0
+            #expect(await incrementor.increment() == 0)
           }
         }
         test.traits = Test.current?.traits ?? []
@@ -203,9 +205,8 @@ struct `Polling Confirmation Tests` {
           until: stop,
           within: .milliseconds(100),
           pollingEvery: .milliseconds(100)
-        ) { () -> PollResult<Bool> in
+        ) {
           _ = await incrementor.increment()
-          return true
         }
 
         #expect(await incrementor.count == 1)
@@ -220,7 +221,7 @@ struct `Polling Confirmation Tests` {
             until: .firstPass,
             within: .seconds(1),
             pollingEvery: .milliseconds(1100)
-          ) { true }
+          ) { }
         }
       }
 
@@ -230,7 +231,7 @@ struct `Polling Confirmation Tests` {
           try await confirmation(
             until: .firstPass,
             pollingEvery: .seconds(0)
-          ) { true }
+          ) { }
         }
       }
 
@@ -241,7 +242,7 @@ struct `Polling Confirmation Tests` {
             until: .firstPass,
             within: .seconds(Int.max),
             pollingEvery: .nanoseconds(1)
-          ) { true }
+          ) { }
         }
       }
 #endif
@@ -260,15 +261,19 @@ struct `Polling Confirmation Tests` {
 
     @available(_clockAPI, *)
     @Test func `Simple failing expressions`() async {
-      var issues = await runTest {
-        try await confirmation(until: stop) { false }
-      }
-      issues += await runTest {
-        _ = try await confirmation(until: stop) { Optional<Int>.none }
+      let issues = await runTest {
+        try await confirmation(until: stop) { #expect(Bool(false)) }
       }
       #expect(issues.count == 2)
-      #expect(issues.allSatisfy {
+      #expect(issues.contains {
         if case .pollingConfirmationFailed = $0.kind {
+          return true
+        } else {
+          return false
+        }
+      })
+      #expect(issues.contains {
+        if case .expectationFailed = $0.kind {
           return true
         } else {
           return false
@@ -280,64 +285,58 @@ struct `Polling Confirmation Tests` {
     @Test func `failing with comments`() async throws {
       let issues = await runTest {
         try await confirmation("a static message describing the overall confirmation", until: stop) {
-          PollResult(false, comment: "This comment indicates that something failed in a polling attempt")
+          #expect(Bool(false), "This comment indicates that something failed in a polling attempt")
         }
       }
-      let issue = try #require(issues.first)
+      let pollingConfirmationFailedIssue = try #require(issues.first {
+        if case .pollingConfirmationFailed = $0.kind {
+          return true
+        } else { return false }
+      })
 
-      if case let .pollingConfirmationFailed(reason) = issue.kind {
+      if case let .pollingConfirmationFailed(reason) = pollingConfirmationFailedIssue.kind {
         #expect(reason == PollingFailedError.Reason.stopConditionFailed(stop))
       } else {
-        #expect(Bool(false), "Unexpected issue kind \(issue.kind)")
+        #expect(Bool(false), "Unexpected issue kind \(pollingConfirmationFailedIssue.kind)")
       }
-      #expect(issue.comments == [
-        "a static message describing the overall confirmation",
-        "This comment indicates that something failed in a polling attempt"
+      #expect(pollingConfirmationFailedIssue.comments == [
+        "a static message describing the overall confirmation"
       ])
     }
 
     @available(_clockAPI, *)
-    @Test
-    func `returning false in a closure returning Optional<Bool> is considered a pass`() async throws {
-      try await confirmation(until: stop) { () -> Bool? in
-        return false
-      }
-    }
-
-    @available(_clockAPI, *)
-    @Test func `if the closure starts off as true, but becomes false`() async {
+    @Test func `if the closure starts off as passing, but later starts to record issues`() async {
       let incrementor = Incrementor()
       let issues = await runTest {
         try await confirmation(until: stop) {
-          await incrementor.increment() == 2
+          #expect(await incrementor.increment() == 2)
           // this will pass only on the first invocation
           // This checks that we fail the test if it starts failing later
           // during polling
         }
       }
-      #expect(issues.count == 1)
+      #expect(issues.count == 2)
     }
 
     @available(_clockAPI, *)
     @Test func `if the closure continues to pass`() async throws {
       let incrementor = Incrementor()
 
-      try await confirmation(until: stop) { () -> PollResult<Bool> in
+      try await confirmation(until: stop) {
         _ = await incrementor.increment()
-        return true
       }
 
       #expect(await incrementor.count > 1)
     }
 
     @available(_clockAPI, *)
-    @Test func `Thrown errors will automatically exit & fail`() async {
+    @Test func `Thrown errors are counted as recorded issues`() async {
       let issues = await runTest {
-        try await confirmation(until: stop) { () -> Bool in
+        try await confirmation(until: stop) {
           throw PollingTestSampleError.ohNo
         }
       }
-      #expect(issues.count == 1)
+      #expect(issues.count == 2)
     }
 
     @available(_clockAPI, *)
@@ -345,7 +344,7 @@ struct `Polling Confirmation Tests` {
     func `Calculates how many times to poll based on the duration & interval`() async throws {
       let incrementor = Incrementor()
       try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
-        await incrementor.increment() != 0
+        #expect(await incrementor.increment() != 0)
       }
       #expect(await incrementor.count == 1000)
     }
@@ -364,7 +363,7 @@ struct `Polling Confirmation Tests` {
       func `"When no test/callsite configuration, it uses the suite configuration"`() async throws {
         let incrementor = Incrementor()
         try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
-          await incrementor.increment() != 0
+          #expect(await incrementor.increment() != 0)
         }
         let count = await incrementor.count
         #expect(count == 100)
@@ -382,7 +381,7 @@ struct `Polling Confirmation Tests` {
       func `Ignore trait configurations that don't match the stop condition`() async throws {
         let incrementor = Incrementor()
         try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
-          await incrementor.increment() != 0
+          #expect(await incrementor.increment() != 0)
         }
         let count = await incrementor.count
         #expect(count == 100)
@@ -398,7 +397,7 @@ struct `Polling Confirmation Tests` {
       func `When test configuration provided, uses the test configuration`() async throws  {
         let incrementor = Incrementor()
         try await confirmation(until: stop, pollingEvery: .milliseconds(1)) {
-          await incrementor.increment() != 0
+          #expect(await incrementor.increment() != 0)
         }
         let count = await incrementor.count
         #expect(await count == 10)
@@ -418,7 +417,7 @@ struct `Polling Confirmation Tests` {
           within: .milliseconds(50),
           pollingEvery: .milliseconds(1)
         ) {
-          await incrementor.increment() != 0
+          #expect(await incrementor.increment() != 0)
         }
         #expect(await incrementor.count == 50)
       }
@@ -430,9 +429,8 @@ struct `Polling Confirmation Tests` {
           until: stop,
           within: .milliseconds(100),
           pollingEvery: .milliseconds(100)
-        ) { () -> Bool in
+        ) {
           _ = await incrementor.increment()
-          return true
         }
 
         #expect(await incrementor.count == 1)
@@ -447,7 +445,7 @@ struct `Polling Confirmation Tests` {
             until: .stopsPassing,
             within: .seconds(1),
             pollingEvery: .milliseconds(1100)
-          ) { true }
+          ) { }
         }
       }
 
@@ -457,7 +455,7 @@ struct `Polling Confirmation Tests` {
           try await confirmation(
             until: .stopsPassing,
             within: .seconds(0)
-          ) { true }
+          ) { }
         }
       }
 
@@ -467,7 +465,7 @@ struct `Polling Confirmation Tests` {
           try await confirmation(
             until: .stopsPassing,
             pollingEvery: .seconds(0)
-          ) { true }
+          ) { }
         }
       }
 #endif
@@ -483,7 +481,7 @@ struct `Polling Confirmation Tests` {
       @available(_clockAPI, *)
       @Test func `Simple passing expressions`() async throws {
         let duration = try await Test.Clock().measure {
-          try await confirmation(until: stop) { true }
+          try await confirmation(until: stop) { }
         }
         #expect(duration.isCloseTo(other: .zero, within: delta))
       }
@@ -492,9 +490,9 @@ struct `Polling Confirmation Tests` {
       @Test func `Simple failing expressions`() async {
         let duration = await Test.Clock().measure {
           let issues = await runTest {
-            try await confirmation(until: stop) { false }
+            try await confirmation(until: stop) { #expect(Bool(false)) }
           }
-          #expect(issues.count == 1)
+          #expect(issues.count == 2)
         }
         #expect(duration.isCloseTo(other: .seconds(2), within: delta))
       }
@@ -506,7 +504,7 @@ struct `Polling Confirmation Tests` {
 
         let duration = try await Test.Clock().measure {
           try await confirmation(until: stop) {
-            await incrementor.increment() == 2
+            #expect(await incrementor.increment() == 2)
             // this will pass only on the second invocation
             // This checks that we really are only running the expression until
             // the first time it passes.
@@ -526,9 +524,9 @@ struct `Polling Confirmation Tests` {
               until: stop,
               within: .seconds(10),
               pollingEvery: .seconds(1) // Wait a long time to handle jitter.
-            ) { false }
+            ) { #expect(Bool(false)) }
           }
-          #expect(issues.count == 1)
+          #expect(issues.count == 2)
         }
         #expect(
           duration.isCloseTo(
@@ -546,7 +544,7 @@ struct `Polling Confirmation Tests` {
       @available(_clockAPI, *)
       @Test func `Simple passing expressions`() async throws {
         let duration = try await Test.Clock().measure {
-          try await confirmation(until: stop) { true }
+          try await confirmation(until: stop) { }
         }
         #expect(duration.isCloseTo(other: .seconds(2), within: delta))
       }
@@ -555,7 +553,7 @@ struct `Polling Confirmation Tests` {
       @Test func `Simple failing expressions`() async {
         let duration = await Test.Clock().measure {
           _ = await runTest {
-            try await confirmation(until: stop) { false }
+            try await confirmation(until: stop) { #expect(Bool(false)) }
           }
         }
         #expect(duration.isCloseTo(other: .zero, within: delta))
@@ -569,7 +567,7 @@ struct `Polling Confirmation Tests` {
             until: stop,
             within: .seconds(10),
             pollingEvery: .seconds(1) // Wait a long time to handle jitter.
-          ) { true }
+          ) { }
         }
         #expect(
           duration.isCloseTo(

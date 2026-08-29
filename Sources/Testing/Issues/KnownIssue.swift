@@ -162,7 +162,7 @@ public func withKnownIssue(
   guard precondition() else {
     return try body()
   }
-  let scope = IssueCapturingScope(issueMatcher: issueMatcher, context: Issue.KnownIssueContext(comment: comment))
+  let scope = IssueCapturingScope(captureSilently: false, issueMatcher: issueMatcher, context: Issue.KnownIssueContext(comment: comment))
   defer {
     if !isIntermittent {
       _handleMiscount(by: scope.issues, comment: comment, sourceLocation: sourceLocation)
@@ -281,7 +281,7 @@ public func withKnownIssue(
   guard await precondition() else {
     return try await body()
   }
-  let scope = IssueCapturingScope(issueMatcher: issueMatcher, context: Issue.KnownIssueContext(comment: comment))
+  let scope = IssueCapturingScope(captureSilently: false, issueMatcher: issueMatcher, context: Issue.KnownIssueContext(comment: comment))
   defer {
     if !isIntermittent {
       _handleMiscount(by: scope.issues, comment: comment, sourceLocation: sourceLocation)

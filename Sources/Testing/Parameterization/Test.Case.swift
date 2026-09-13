@@ -23,6 +23,7 @@ extension Test {
       /// non-parameterized test function.
       case nonParameterized
 
+#if !hasFeature(Embedded)
       /// A test case associated with a parameterized test function.
       ///
       /// - Parameters:
@@ -34,11 +35,16 @@ extension Test {
       ///   - isStable: Whether or not this test case is considered stable
       ///     across successive runs.
       case parameterized(arguments: [Argument], discriminator: Int, isStable: Bool)
+#else
+      /// A test case associated with a parameterized test function.
+      case parameterized
+#endif
     }
 
     /// The kind of this test case.
     private var _kind: _Kind
 
+#if !hasFeature(Embedded)
     /// A type representing an argument passed to a parameter of a parameterized
     /// test function.
     @_spi(Experimental) @_spi(ForToolsIntegrationOnly)
@@ -154,6 +160,13 @@ extension Test {
         isStable
       }
     }
+#else
+    /// Storage for ``id`` under Embedded Swift.
+    ///
+    /// This property cannot be `private` because it is used in another file.
+    /// Code outside `Test.Case` should use ``id`` instead.
+    var _id = ID()
+#endif
 
     private init(kind: _Kind, body: nonisolated(nonsending) @escaping @Sendable () async throws -> Void) {
       _kind = kind
@@ -182,6 +195,7 @@ extension Test {
       parameters: [Parameter],
       body: nonisolated(nonsending) @escaping @Sendable () async throws -> Void
     ) {
+#if !hasFeature(Embedded)
       var isStable = true
 
       let arguments = zip(values, parameters).map { value, parameter in
@@ -216,6 +230,9 @@ extension Test {
       }
 
       self.init(kind: .parameterized(arguments: arguments, discriminator: 0, isStable: isStable), body: body)
+#else
+      self.init(kind: .parameterized, body: body)
+#endif
     }
 
     /// Whether or not this test case is from a parameterized test.
@@ -289,9 +306,11 @@ extension Test {
       self.typeInfo = typeInfo
     }
 
+#if !hasFeature(Embedded)
     init(index: Int, firstName: String, secondName: String? = nil, type: Any.Type) {
       self.init(index: index, firstName: firstName, secondName: secondName, typeInfo: TypeInfo(describing: type))
     }
+#endif
   }
 }
 
@@ -304,8 +323,10 @@ extension Test.Case.Argument.ID: Codable {}
 
 // MARK: - Equatable, Hashable
 
+#if !hasFeature(Embedded)
 extension Test.Parameter: Hashable {}
 extension Test.Case.Argument.ID: Hashable {}
+#endif
 
 #if !SWT_NO_SNAPSHOT_TYPES
 // MARK: - Snapshotting

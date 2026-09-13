@@ -14,7 +14,7 @@ internal import _TestingInternals
 internal import Synchronization
 #endif
 
-#if SWT_TARGET_OS_APPLE && !SWT_NO_OS_UNFAIR_LOCK
+#if !hasFeature(Embedded) && SWT_TARGET_OS_APPLE && !SWT_NO_OS_UNFAIR_LOCK
 /// A type that replicates the interface of ``Synchronization/Mutex``.
 ///
 /// This type is used on Apple platforms because our deployment target there is

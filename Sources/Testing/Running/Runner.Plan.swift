@@ -144,7 +144,7 @@ extension Runner.Plan {
     testGraph.children = testGraph.children.mapValues { child in
       var child = child
       _recursivelyApplyTraits(traits, to: &child)
-      child.value?.traits.insert(contentsOf: traits, at: 0)
+      child.value?.traits.insert(contentsOf: traits.map { $0 as any Trait }, at: 0)
       return child
     }
   }

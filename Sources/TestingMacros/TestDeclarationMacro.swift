@@ -80,9 +80,15 @@ public struct TestDeclarationMacro: PeerMacro, Sendable {
     // type declaration, then it must be a function or closure (disallowed
     // elsewhere) and thus the test function is not a member of any type.
     if let containingTypeDecl = lexicalContext.first?.asProtocol((any DeclGroupSyntax).self) {
-      inheritsFromXCTestClass = declarationInheritsFromXCTestClass(containingTypeDecl)
-      if inheritsFromXCTestClass == true {
-        diagnostics.append(.containingNodeUnsupported(containingTypeDecl, whenUsing: testAttribute, on: declaration))
+      if !context.isTargetEmbedded {
+        inheritsFromXCTestClass = declarationInheritsFromXCTestClass(containingTypeDecl)
+        if inheritsFromXCTestClass == true {
+          diagnostics.append(.containingNodeUnsupported(containingTypeDecl, whenUsing: testAttribute, on: declaration))
+        }
+      } else {
+        // Because we cannot validate type names at macro expansion time,
+        // Embedded Swift does not support tests inside suite types.
+        diagnostics.append(.containingNodeUnsupported(containingTypeDecl, whenUsing: testAttribute, inEmbedded: true, on: declaration))
       }
     }
 
@@ -389,7 +395,7 @@ public struct TestDeclarationMacro: PeerMacro, Sendable {
       in: \(typeNameExpr),
       xcTestCompatibleSelector: \(selectorExpr ?? "nil"),
       \(raw: attributeInfo.functionArgumentList(in: context)),
-      parameters: \(raw: functionDecl.testFunctionParameterList),
+      parameters: \(raw: functionDecl.testFunctionParameterList(in: context)),
       testFunction: \(thunkDecl.name)
     )
     """

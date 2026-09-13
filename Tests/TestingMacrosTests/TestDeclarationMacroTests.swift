@@ -372,6 +372,22 @@ struct TestDeclarationMacroTests {
     }
   }
 
+  @Test("Error diagnostics emitted dependent on Embedded Swift",
+    arguments: [
+      ("@Suite struct S { @Test func f() {} }", "Attribute 'Test' cannot be applied to a function within structure 'S' in Embedded Swift"),
+      ("struct S { @Test func f() {} }", "Attribute 'Test' cannot be applied to a function within structure 'S' in Embedded Swift"),
+      ("extension S1 { struct S2 { @Test func f() {} } }", "Attribute 'Test' cannot be applied to a function within structure 'S2' in Embedded Swift"),
+    ]
+  )
+  func embeddedSwiftDependentDiagnostics(input: String, expectedMessage: String) throws {
+    let (_, diagnostics) = try parse(input, languageMode: VersionTuple(99), isEmbedded: true)
+
+    #expect(diagnostics.count > 0)
+    for diagnostic in diagnostics {
+      #expect(diagnostic.message == expectedMessage)
+    }
+  }
+
   @Test("Raw identifier is detected")
   func rawIdentifier() {
     #expect(TokenSyntax.identifier("`hello`").rawIdentifier == nil)

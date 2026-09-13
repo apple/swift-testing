@@ -68,6 +68,7 @@ extension Test: Identifiable {
       }
     }
 
+#if !hasFeature(Embedded)
     /// Initialize an instance of this type representing the specified test
     /// suite type.
     ///
@@ -81,6 +82,7 @@ extension Test: Identifiable {
     public init(type: Any.Type) {
       self.init(typeInfo: TypeInfo(describing: type))
     }
+#endif
 
     /// Initialize an instance of this type representing the specified test
     /// suite type info.

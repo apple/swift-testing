@@ -8,6 +8,10 @@
 // See https://swift.org/CONTRIBUTORS.txt for Swift project authors
 //
 
+#if canImport(Synchronization)
+private import Synchronization
+#endif
+
 extension Test.Case {
   /// The ID of a test case.
   ///
@@ -16,6 +20,7 @@ extension Test.Case {
   /// different ``Test`` instances.
   @_spi(ForToolsIntegrationOnly)
   public struct ID: Sendable {
+#if !hasFeature(Embedded)
     /// The IDs of the arguments of this instance's associated ``Test/Case``.
     ///
     /// For a parameterized test case, this array contains a single element: an
@@ -46,12 +51,31 @@ extension Test.Case {
       self.discriminator = discriminator
       self.isStable = isStable
     }
+#else
+    /// The next ID's sequence number.
+    private static let _nextSequenceNumber = Atomic<Int>(0)
+
+    /// The sequence number of this instance.
+    private var _sequenceNumber: Int
+
+    init() {
+      _sequenceNumber = Self._nextSequenceNumber.add(1, ordering: .sequentiallyConsistent).oldValue
+    }
+
+    public var isStable: Bool {
+      false
+    }
+#endif
   }
 
   @_spi(ForToolsIntegrationOnly)
   public var id: ID {
+#if !hasFeature(Embedded)
     let argumentIDs = arguments.map { [Argument.ID(combining: $0.map { $0.id })] }
     return ID(argumentIDs: argumentIDs, discriminator: discriminator, isStable: isStable)
+#else
+    _id
+#endif
   }
 }
 
@@ -59,11 +83,15 @@ extension Test.Case {
 
 extension Test.Case.ID: CustomStringConvertible {
   public var description: String {
+#if !hasFeature(Embedded)
     if let argumentIDs, let discriminator {
       "Parameterized test case ID: argumentIDs: \(argumentIDs), discriminator: \(discriminator), isStable: \(isStable)"
     } else {
       "Non-parameterized test case ID"
     }
+#else
+    "Test case ID \(_sequenceNumber)"
+#endif
   }
 }
 

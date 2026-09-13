@@ -46,6 +46,7 @@ public typealias __XCTestCompatibleSelector = Never
 /// itself, the symbols in this file should not be used directly and are subject
 /// to change as the testing library evolves.
 
+#if !hasFeature(Embedded) // TODO: @Suite support in some form
 // MARK: - @Suite
 
 /// Declare a test suite.
@@ -113,6 +114,7 @@ extension Test {
     return Self(displayName: displayName, traits: traits, sourceLocation: sourceBounds.lowerBound, containingTypeInfo: containingTypeInfo)
   }
 }
+#endif
 
 // MARK: - @Test
 
@@ -144,12 +146,17 @@ public macro Test(
   _ traits: any TestTrait...
 ) = #externalMacro(module: "TestingMacros", type: "TestDeclarationMacro")
 
+// TODO: @Suite support in some form
 extension Test {
   /// Information about a parameter to a test function.
   ///
   /// - Warning: This type alias is used to implement the `@Test` macro. Do not
   ///   use it directly.
+#if !hasFeature(Embedded)
   public typealias __Parameter = (firstName: String, secondName: String?, type: Any.Type)
+#else
+  public typealias __Parameter = (firstName: String, secondName: String?, typeName: String)
+#endif
 
   /// Create an instance of ``Test`` for a function.
   ///
@@ -165,13 +172,11 @@ extension Test {
     parameters: [__Parameter] = [],
     testFunction: nonisolated(nonsending) @escaping @Sendable () async throws -> Void
   ) -> Self where S: ~Copyable & ~Escapable {
-    // Don't use Optional.map here due to a miscompile/crash. Expand out to an
-    // if expression instead. SEE: rdar://134280902
-    let containingTypeInfo: TypeInfo? = if let containingType {
-      TypeInfo(describing: containingType)
-    } else {
-      nil
-    }
+#if !hasFeature(Embedded)
+    let containingTypeInfo = containingType.map(TypeInfo.init(describing:))
+#else
+    let containingTypeInfo: TypeInfo? = nil
+#endif
     let caseGenerator = { @Sendable in Case.Generator(testFunction: testFunction) }
     return Self(name: testFunctionName, displayName: displayName, traits: traits, sourceBounds: sourceBounds, containingTypeInfo: containingTypeInfo, xcTestCompatibleSelector: xcTestCompatibleSelector, testCases: caseGenerator, parameters: [])
   }
@@ -185,7 +190,12 @@ extension [Test.__Parameter] {
   /// parameter instances from the position of the tuple in the original array.
   fileprivate var parameters: [Test.Parameter] {
     enumerated().map { index, parameter in
+#if !hasFeature(Embedded)
       Test.Parameter(index: index, firstName: parameter.firstName, secondName: parameter.secondName, type: parameter.type)
+#else
+      let typeInfo = TypeInfo(fullyQualifiedName: parameter.typeName, mangledName: nil)
+      return Test.Parameter(index: index, firstName: parameter.firstName, secondName: parameter.secondName, typeInfo: typeInfo)
+#endif
     }
   }
 }
@@ -250,11 +260,13 @@ extension Test {
     parameters paramTuples: [__Parameter],
     testFunction: nonisolated(nonsending) @escaping @Sendable (C.Element) async throws -> Void
   ) -> Self where S: ~Copyable & ~Escapable, C: Collection & Sendable, C.Element: Sendable {
-    let containingTypeInfo: TypeInfo? = if let containingType {
-      TypeInfo(describing: containingType)
-    } else {
-      nil
-    }
+#if !hasFeature(Embedded)
+    // Don't use Optional.map here due to a miscompile/crash. Expand out to an
+    // if expression instead. SEE: rdar://134280902
+    let containingTypeInfo = containingType.map(TypeInfo.init(describing:))
+#else
+    let containingTypeInfo: TypeInfo? = nil
+#endif
     let parameters = paramTuples.parameters
     let caseGenerator = { @Sendable in Case.Generator(arguments: try await collection(), parameters: parameters, testFunction: testFunction) }
     return Self(name: testFunctionName, displayName: displayName, traits: traits, sourceBounds: sourceBounds, containingTypeInfo: containingTypeInfo, xcTestCompatibleSelector: xcTestCompatibleSelector, testCases: caseGenerator, parameters: parameters)
@@ -397,11 +409,13 @@ extension Test {
     parameters paramTuples: [__Parameter],
     testFunction: nonisolated(nonsending) @escaping @Sendable (C1.Element, C2.Element) async throws -> Void
   ) -> Self where S: ~Copyable & ~Escapable, C1: Collection & Sendable, C1.Element: Sendable, C2: Collection & Sendable, C2.Element: Sendable {
-    let containingTypeInfo: TypeInfo? = if let containingType {
-      TypeInfo(describing: containingType)
-    } else {
-      nil
-    }
+#if !hasFeature(Embedded)
+    // Don't use Optional.map here due to a miscompile/crash. Expand out to an
+    // if expression instead. SEE: rdar://134280902
+    let containingTypeInfo = containingType.map(TypeInfo.init(describing:))
+#else
+    let containingTypeInfo: TypeInfo? = nil
+#endif
     let parameters = paramTuples.parameters
     let caseGenerator = { @Sendable in try await Case.Generator(arguments: collection1(), collection2(), parameters: parameters, testFunction: testFunction) }
     return Self(name: testFunctionName, displayName: displayName, traits: traits, sourceBounds: sourceBounds, containingTypeInfo: containingTypeInfo, xcTestCompatibleSelector: xcTestCompatibleSelector, testCases: caseGenerator, parameters: parameters)
@@ -425,11 +439,11 @@ extension Test {
     parameters paramTuples: [__Parameter],
     testFunction: nonisolated(nonsending) @escaping @Sendable ((E1, E2)) async throws -> Void
   ) -> Self where S: ~Copyable & ~Escapable, C: Collection & Sendable, C.Element == (E1, E2), E1: Sendable, E2: Sendable {
-    let containingTypeInfo: TypeInfo? = if let containingType {
-      TypeInfo(describing: containingType)
-    } else {
-      nil
-    }
+#if !hasFeature(Embedded)
+    let containingTypeInfo = containingType.map(TypeInfo.init(describing:))
+#else
+    let containingTypeInfo: TypeInfo? = nil
+#endif
     let parameters = paramTuples.parameters
     let caseGenerator = { @Sendable in Case.Generator(arguments: try await collection(), parameters: parameters, testFunction: testFunction) }
     return Self(name: testFunctionName, displayName: displayName, traits: traits, sourceBounds: sourceBounds, containingTypeInfo: containingTypeInfo, xcTestCompatibleSelector: xcTestCompatibleSelector, testCases: caseGenerator, parameters: parameters)
@@ -456,11 +470,11 @@ extension Test {
     parameters paramTuples: [__Parameter],
     testFunction: nonisolated(nonsending) @escaping @Sendable (C.Element) async throws -> Void
   ) -> Self where S: ~Copyable & ~Escapable, C: ExpressibleByDictionaryLiteral & Collection & Sendable, C.Element == (key: C.Key, value: C.Value), C.Key: Sendable, C.Value: Sendable {
-    let containingTypeInfo: TypeInfo? = if let containingType {
-      TypeInfo(describing: containingType)
-    } else {
-      nil
-    }
+#if !hasFeature(Embedded)
+    let containingTypeInfo = containingType.map(TypeInfo.init(describing:))
+#else
+    let containingTypeInfo: TypeInfo? = nil
+#endif
     let parameters = paramTuples.parameters
     let caseGenerator = { @Sendable in Case.Generator(arguments: try await dictionary(), parameters: parameters, testFunction: testFunction) }
     return Self(name: testFunctionName, displayName: displayName, traits: traits, sourceBounds: sourceBounds, containingTypeInfo: containingTypeInfo, xcTestCompatibleSelector: xcTestCompatibleSelector, testCases: caseGenerator, parameters: parameters)
@@ -481,11 +495,11 @@ extension Test {
     parameters paramTuples: [__Parameter],
     testFunction: nonisolated(nonsending) @escaping @Sendable (C1.Element, C2.Element) async throws -> Void
   ) -> Self where S: ~Copyable & ~Escapable, C1: Collection & Sendable, C1.Element: Sendable, C2: Collection & Sendable, C2.Element: Sendable {
-    let containingTypeInfo: TypeInfo? = if let containingType {
-      TypeInfo(describing: containingType)
-    } else {
-      nil
-    }
+#if !hasFeature(Embedded)
+    let containingTypeInfo = containingType.map(TypeInfo.init(describing:))
+#else
+    let containingTypeInfo: TypeInfo? = nil
+#endif
     let parameters = paramTuples.parameters
     let caseGenerator = { @Sendable in
       Case.Generator(arguments: try await zippedCollections(), parameters: parameters) {
@@ -576,7 +590,6 @@ extension Test {
   false
 }
 
-#if !hasFeature(Embedded)
 /// The `XCTest.XCTest` Objective-C class.
 let xcTestClass: AnyClass? = {
 #if _runtime(_ObjC)

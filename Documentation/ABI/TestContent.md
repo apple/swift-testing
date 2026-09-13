@@ -31,6 +31,11 @@ section in built test products:
   padding. This padding will be removed in a future update to the Swift
   toolchain ([swift-#87650](https://github.com/swiftlang/swift/issues/87650)).
 
+In Embedded Swift, or when statically linking the standard library and runtime,
+there is a single statically linked test content section. At
+this time, statically-linked test content is supported if you use the Mach-O,
+ELF, or Wasm image format.
+
 ### Record layout
 
 Regardless of platform, all test content records created and discoverable by the

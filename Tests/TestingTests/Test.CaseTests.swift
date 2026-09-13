@@ -18,6 +18,7 @@ struct Test_CaseTests {
     #expect(testCase.id.discriminator == nil)
   }
 
+#if !SWT_NO_CODABLE
   @Test func singleStableArgument() throws {
     let testCase = Test.Case(
       values: [1],
@@ -39,7 +40,6 @@ struct Test_CaseTests {
     #expect(testCase.id.isStable)
   }
 
-#if !SWT_NO_CODABLE
   @Test("Two arguments: one non-stable, followed by one stable")
   func nonStableAndStableArgument() throws {
     let testCase = Test.Case(

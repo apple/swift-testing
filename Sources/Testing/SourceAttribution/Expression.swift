@@ -46,6 +46,7 @@ public struct __Expression: Sendable {
   /// instance of this type.
   var kind: Kind
 
+#if !hasFeature(Embedded)
   init(
     _ sourceCode: String,
     isNegated: Bool = false,
@@ -57,6 +58,17 @@ public struct __Expression: Sendable {
     self.runtimeValue = runtimeValue
     self._subexpressions = subexpressions
   }
+#else
+  init(
+    _ sourceCode: String,
+    isNegated: Bool = false,
+    subexpressions: [Self] = []
+  ) {
+    self.kind = .generic(sourceCode)
+    self.isNegated = isNegated
+    self._subexpressions = subexpressions
+  }
+#endif
 
   /// Whether or not this instance represents a negated expression (`!foo`).
   var isNegated = false
@@ -70,6 +82,7 @@ public struct __Expression: Sendable {
     }
   }
 
+#if !hasFeature(Embedded)
   /// A type which represents an evaluated value, which may include textual
   /// descriptions, type information, substructure, and other information.
   @_spi(ForToolsIntegrationOnly)
@@ -122,12 +135,8 @@ public struct __Expression: Sendable {
       debugDescription = String(reflecting: subject)
       typeInfo = TypeInfo(describingTypeOf: subject)
 
-#if !hasFeature(Embedded)
       let mirror = Mirror(reflectingForTest: subject)
       isCollection = mirror.displayStyle?.isCollection ?? false
-#else
-      isCollection = false
-#endif
     }
 
     /// Initialize an instance of this type with a previously-generated
@@ -211,7 +220,6 @@ public struct __Expression: Sendable {
       self.init(describing: subject)
       self.label = label
 
-#if !hasFeature(Embedded)
       let mirror = Mirror(reflectingForTest: subject)
 
       // If the subject being reflected is an instance of a reference type (e.g.
@@ -268,7 +276,6 @@ public struct __Expression: Sendable {
         }
         self.children = children
       }
-#endif
     }
   }
 
@@ -334,6 +341,7 @@ public struct __Expression: Sendable {
     result._captureRuntimeValues(firstValue, repeat each additionalValues)
     return result
   }
+#endif
 
   /// Get an expanded description of this instance that contains the source
   /// code and runtime value (or values) it represents.
@@ -357,6 +365,7 @@ public struct __Expression: Sendable {
   func expandedDescription(verbose: Bool) -> String {
     var result = sourceCode
 
+#if !hasFeature(Embedded)
     if verbose, let qualifiedName = runtimeValue?.typeInfo.fullyQualifiedName {
       result = "\(result): \(qualifiedName)"
     }
@@ -370,7 +379,7 @@ public struct __Expression: Sendable {
     } else {
       result = "\(result) → <not evaluated>"
     }
-
+#endif
 
     return result
   }
@@ -385,6 +394,8 @@ public struct __Expression: Sendable {
       if !_subexpressions.isEmpty {
         return _subexpressions
       }
+
+#if !hasFeature(Embedded)
       // If there were no explicitly-added subexpressions, look for any
       // subexpressions captured via reflection instead.
       if let children = runtimeValue?.children {
@@ -395,6 +406,8 @@ public struct __Expression: Sendable {
           return __Expression(label, runtimeValue: child)
         }
       }
+#endif
+
       return []
     }
     set {
@@ -455,7 +468,9 @@ extension __Expression: CustomStringConvertible, CustomDebugStringConvertible {
   }
 }
 
+#if !hasFeature(Embedded)
 extension __Expression.Value: CustomStringConvertible, CustomDebugStringConvertible {}
+#endif
 
 /// A type representing a Swift expression captured at compile-time from source
 /// code.

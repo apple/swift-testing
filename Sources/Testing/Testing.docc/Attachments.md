@@ -274,7 +274,6 @@ after your tests finish running:
   If you do not pass the `--attachments-path` option, the testing library does
   not save any attachments you record.
 
-
 ## Topics
 
 ### Attaching values to tests

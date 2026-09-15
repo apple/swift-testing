@@ -15,6 +15,11 @@ function(_swift_testing_install_target module)
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
   get_target_property(type ${module} TYPE)
+  if(MSVC AND NOT type STREQUAL STATIC_LIBRARY)
+    install(FILES $<TARGET_FILE_DIR:${module}>/$<TARGET_FILE_BASE_NAME:${module}>.pdb
+      DESTINATION ${CMAKE_INSTALL_BINDIR}
+      OPTIONAL)
+  endif()
   if(type STREQUAL EXECUTABLE)
     return()
   endif()

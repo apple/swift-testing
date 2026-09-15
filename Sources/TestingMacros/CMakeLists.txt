@@ -60,6 +60,11 @@ if(SwiftTesting_BuildMacrosAsExecutables)
 
   install(TARGETS TestingMacros
     RUNTIME DESTINATION bin)
+  if(MSVC)
+    install(FILES $<TARGET_FILE_DIR:TestingMacros>/$<TARGET_FILE_BASE_NAME:TestingMacros>.pdb
+      DESTINATION bin
+      OPTIONAL)
+  endif()
 else()
   add_library(TestingMacros SHARED)
 
@@ -79,6 +84,11 @@ else()
   install(TARGETS TestingMacros
     LIBRARY DESTINATION "${plugin_destination_dir}"
     RUNTIME DESTINATION bin)
+  if(MSVC)
+    install(FILES $<TARGET_FILE_DIR:TestingMacros>/$<TARGET_FILE_BASE_NAME:TestingMacros>.pdb
+      DESTINATION bin
+      OPTIONAL)
+  endif()
 endif()
 
 target_sources(TestingMacros PRIVATE

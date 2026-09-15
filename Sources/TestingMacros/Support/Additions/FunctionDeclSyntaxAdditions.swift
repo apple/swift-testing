@@ -167,12 +167,17 @@ extension FunctionParameterSyntax {
 }
 
 extension FunctionParameterSyntax {
-  /// The base type name of this parameter.
-  var baseTypeName: String {
+  /// The underlying type of this parameter with any attributed type wrappers
+  /// (such as `inout`) removed.
+  var baseType: TypeSyntax {
     // Discard any specifiers such as `inout` or `borrowing`, since we're only
     // trying to obtain the base type to reference it in an expression.
-    let baseType = type.as(AttributedTypeSyntax.self)?.baseType ?? type
-    return baseType.trimmedDescription
+    type.as(AttributedTypeSyntax.self)?.baseType ?? type
+  }
+
+  /// The base type name of this parameter.
+  var baseTypeName: String {
+    baseType.trimmedDescription
   }
 }
 

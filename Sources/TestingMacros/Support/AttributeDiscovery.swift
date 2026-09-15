@@ -169,9 +169,23 @@ struct AttributeInfo {
     // If there are any parameterized test function arguments, wrap each in a
     // closure so they may be evaluated lazily at runtime.
     if let testFunctionArguments {
-      arguments += testFunctionArguments.map { argument in
+      arguments += testFunctionArguments.enumerated().map { index, argument in
         var copy = argument
-        copy.expression = .init(ClosureExprSyntax { argument.expression.trimmed })
+        var expr = copy.expression.trimmed
+        if let contextualType = _contextualTypeForLiteralArgument(
+          at: index,
+          for: expr,
+          among: testFunctionArguments
+        ) {
+          expr = ExprSyntax(
+            AsExprSyntax(
+              expression: expr,
+              asKeyword: .keyword(.as, leadingTrivia: .space, trailingTrivia: .space),
+              type: contextualType.trimmed
+            )
+          )
+        }
+        copy.expression = .init(ClosureExprSyntax { expr })
         return copy
       }
     }
@@ -179,5 +193,84 @@ struct AttributeInfo {
     arguments.append(Argument(label: "sourceBounds", expression: sourceBounds))
 
     return LabeledExprListSyntax(arguments)
+  }
+
+  /// The contextual type to explicitly apply to a literal `arguments:`
+  /// expression after it is wrapped in a closure for lazy evaluation.
+  ///
+  /// Parameterized `@Test` declarations are modeled in terms of the collection
+  /// type supplied to the macro, but macro expansion only sees source syntax.
+  /// When the `arguments:` parameter is supplied as an array literal, derive
+  /// the corresponding array type from the test function's parameters so the
+  /// literal retains enough contextual type information after lazy wrapping.
+  ///
+  /// This applies to both the single-collection form and the overloads where
+  /// each `arguments:` expression corresponds directly to one parameter.
+  ///
+  /// - Parameters:
+  ///   - index: The position of `expression` within `testFunctionArguments`.
+  ///   - expression: The argument expression being wrapped for lazy evaluation.
+  ///   - testFunctionArguments: The full list of argument expressions supplied
+  ///     to the parameterized `@Test`.
+  ///
+  /// - Returns: The array type to apply to `expression`, or `nil` if no
+  ///   contextual type reconstruction is needed.
+  private func _contextualTypeForLiteralArgument(
+    at index: Int,
+    for expression: ExprSyntax,
+    among testFunctionArguments: [Argument]
+  ) -> TypeSyntax? {
+    guard let functionDecl = declaration.as(FunctionDeclSyntax.self) else {
+      return nil
+    }
+
+    let parameters = Array(functionDecl.signature.parameterClause.parameters)
+    if parameters.isEmpty {
+      return nil
+    }
+
+    if expression.is(ArrayExprSyntax.self) {
+      if testFunctionArguments.count == parameters.count {
+        let parameter = parameters[index]
+        return TypeSyntax(
+          ArrayTypeSyntax(element: parameter.baseType.trimmed)
+        )
+      }
+
+      if testFunctionArguments.count == 1 {
+        if parameters.count == 1, let parameter = parameters.first {
+          // A single-parameter test expects collection elements of the parameter
+          // type itself, not tuple-shaped elements.
+          return TypeSyntax(
+            ArrayTypeSyntax(element: parameter.baseType.trimmed)
+          )
+        }
+        let elementType = TypeSyntax(
+          TupleTypeSyntax(elements: TupleTypeElementListSyntax {
+            for parameter in parameters {
+              TupleTypeElementSyntax(type: parameter.baseType.trimmed)
+            }
+          })
+        )
+        return TypeSyntax(ArrayTypeSyntax(element: elementType))
+      }
+    } else if expression.is(DictionaryExprSyntax.self) {
+      if testFunctionArguments.count == 1, parameters.count == 2 {
+        return TypeSyntax(
+          MemberTypeSyntax(
+            baseType: IdentifierTypeSyntax(name: .identifier("Swift")),
+            name: .identifier("KeyValuePairs"),
+            genericArgumentClause: GenericArgumentClauseSyntax(
+              arguments: GenericArgumentListSyntax {
+                GenericArgumentSyntax(argument: .type(parameters[0].baseType.trimmed))
+                GenericArgumentSyntax(argument: .type(parameters[1].baseType.trimmed))
+              }
+            )
+          )
+        )
+      }
+    }
+
+    return nil
   }
 }

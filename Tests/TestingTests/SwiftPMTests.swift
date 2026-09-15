@@ -439,6 +439,7 @@ struct SwiftPMTests {
     )
   }
 
+#if !SWT_NO_CODABLE
   @Test("--configuration-path argument", arguments: [
     "--configuration-path", "--experimental-configuration-path",
   ])
@@ -468,6 +469,7 @@ struct SwiftPMTests {
     #expect(args.skip == nil)
     #expect(args.parallel == false)
   }
+#endif
 
   @available(*, deprecated)
   @Test("Deprecated eventStreamVersion property")

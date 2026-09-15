@@ -23,6 +23,7 @@ extension ABI {
     /// The source code of the original captured expression.
     var sourceCode: String
 
+#if !hasFeature(Embedded)
     /// A string representation of the runtime value of this expression.
     ///
     /// If the runtime value of this expression has not been evaluated, the
@@ -32,6 +33,7 @@ extension ABI {
     /// The fully-qualified name of the type of value represented by
     /// `runtimeValue`, or `nil` if that value has not been captured.
     var runtimeTypeName: String?
+#endif
 
     /// Any child expressions within this expression.
     var children: [EncodedExpression]?
@@ -53,8 +55,10 @@ extension ABI.EncodedExpression {
   ///   - expression: The expression to initialize this instance from.
   public init(encoding expression: borrowing Expression) {
     sourceCode = expression.sourceCode
+#if !hasFeature(Embedded)
     runtimeValue = expression.runtimeValue.map(String.init(describingForTest:))
     runtimeTypeName = expression.runtimeValue.map { $0.typeInfo.fullyQualifiedName }
+#endif
     let subexpressions = expression.subexpressions
     if !subexpressions.isEmpty {
       children = subexpressions.map(Self.init(encoding:))
@@ -70,6 +74,7 @@ extension Expression {
   ///   - expression: The encoded expression to initialize this instance from.
   public init?<V>(decoding expression: ABI.EncodedExpression<V>) {
     self.init(expression.sourceCode)
+#if !hasFeature(Embedded)
     if let runtimeValue = expression.runtimeValue,
        let runtimeTypeName = expression.runtimeTypeName {
       self.runtimeValue =  __Expression.Value(
@@ -77,6 +82,7 @@ extension Expression {
         typeInfo: TypeInfo(fullyQualifiedName: runtimeTypeName, mangledName: nil)
       )
     }
+#endif
     if let children = expression.children {
       self.subexpressions = children.compactMap(__Expression.init(decoding:))
     }

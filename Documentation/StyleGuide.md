@@ -102,6 +102,13 @@ typedef struct SWTContainer {
 } SWTContainer;
 ```
 
+> [!NOTE]
+> Types defined for the benefit of the Platform Abstraction Layer Annex in
+> `EmbeddedPlatform.h` should instead follow the pattern set by the core
+> Platform Abstraction Layer (with `swift_testing_` in place of the `swift_`
+> prefix). The above examples would then be `swift_testing_big_integer_t` and
+> `swift_testing_container_t` respectively.
+
 #### Documenting symbols
 
 Most symbols, including symbols marked `private`, should be given markup-style

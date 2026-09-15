@@ -10,9 +10,9 @@
 
 @testable @_spi(Experimental) @_spi(ForToolsIntegrationOnly) import Testing
 
+#if !SWT_NO_CODABLE
 @Suite("Test.Case.Argument.ID Tests")
 struct Test_Case_Argument_IDTests {
-#if !SWT_NO_CODABLE
   @Test("One Codable parameter")
   func oneCodableParameter() async throws {
     let test = Test(
@@ -43,7 +43,6 @@ struct Test_Case_Argument_IDTests {
       #expect(argument.id.bytes == SHA256.hash(data))
     }
   }
-#endif
 
   @Test("One Identifiable parameter")
   func oneIdentifiableParameter() async throws {
@@ -74,7 +73,6 @@ struct Test_Case_Argument_IDTests {
   }
 }
 
-#if !SWT_NO_CODABLE
 // MARK: - Fixture parameter types
 
 private struct MyCustomTestArgument: CustomTestArgumentEncodable, Equatable {
@@ -96,7 +94,6 @@ extension MyCustomTestArgument: Decodable {}
 
 @available(*, unavailable, message: "Intentionally not Encodable")
 extension MyCustomTestArgument: Encodable {}
-#endif
 
 private struct MyIdentifiableArgument: Identifiable {
   var id: String
@@ -105,3 +102,4 @@ private struct MyIdentifiableArgument: Identifiable {
 private struct MyRawRepresentableArgument: RawRepresentable {
   var rawValue: String
 }
+#endif

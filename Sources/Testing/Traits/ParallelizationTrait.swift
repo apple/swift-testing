@@ -52,11 +52,13 @@ public struct ParallelizationTrait: TestTrait, SuiteTrait {
       /// An unbounded dependency.
       case unbounded
 
+#if !hasFeature(Embedded)
       /// A dependency on a Swift type.
       ///
       /// - Parameters:
       ///   - typeInfo: The Swift type.
       case type(_ typeInfo: TypeInfo)
+#endif
     }
 
     /// The kind of this dependency.
@@ -243,12 +245,15 @@ extension ParallelizationTrait.Dependency: CustomStringConvertible {
     switch kind {
     case .unbounded:
       return "*"
+#if !hasFeature(Embedded)
     case let .type(typeInfo):
       return #"(\#(typeInfo.fullyQualifiedName)).self"#
+#endif
     }
   }
 }
 
+#if !hasFeature(Embedded)
 // MARK: - Dependencies
 
 @_spi(Experimental)
@@ -294,6 +299,7 @@ extension Trait where Self == ParallelizationTrait {
     return Self(dependency: dependency)
   }
 }
+#endif
 
 // MARK: - Unbounded dependencies (*)
 

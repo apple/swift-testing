@@ -205,6 +205,49 @@ SWT_EXTERN SWT_NODISCARD bool _swift_testing_getConsoleCapabilities(swift_testin
 /// needed, or omit them entirely in single-threaded environments.
 SWT_EXTERN void _swift_testing_writeToConsole(const uint8_t *chars, size_t count);
 
+// MARK: - JSON output
+
+/// Writes a JSON object.
+///
+/// - Parameters:
+///   - json: The JSON bytes to write. It is not `NULL`-terminated.
+///   - count: The number of bytes at `json`.
+///   - terminator: If not `NULL`, a pointer to a single byte to write
+///     immediately after writing `json`. This byte is not included in `json` to
+///     avoid creating unnecessary copies of `json` in memory.
+///
+/// The testing library uses this function to write the JSON event stream on
+/// targets that do not support file I/O. The destination is
+/// implementation-defined. When built for non-Embedded Swift, or when built
+/// with support for file I/O, the testing library writes JSON to files and
+/// pipes specified by its caller in e.g. the command line arguments to
+/// `swift test`.
+///
+/// ### Reference implementations
+///
+/// This function can be implemented with the following algorithm:
+///
+/// ```c
+/// FILE *f = ...;
+/// flockfile(f); {
+///   fwrite(json, 1, count, f);
+///   if (terminator) {
+///     fputc(*terminator, f);
+///   }
+/// } funlockfile(f);
+/// ```
+///
+/// If your platform does not support writing JSON or consuming it later, you
+/// can implement this function as a no-op.
+///
+/// ### Concurrency support
+///
+/// This function's implementation must be concurrency-safe unless the system is
+/// single-threaded. In the reference example above, you can substitute
+/// platform-specific equivalents for `flockfile()` and `funlockfile()` if
+/// needed, or omit them entirely in single-threaded environments.
+SWT_EXTERN void _swift_testing_writeJSON(const uint8_t *json, size_t count, const uint8_t terminator[_Nullable 1]);
+
 // MARK: - Test timing
 
 /// Get the amount of time that has passed since the system's epoch.

@@ -143,7 +143,6 @@ struct TestCaseSelectionTests {
       await fixtureTest.run(configuration: configuration)
     }
   }
-#endif
 
   @Test("Multiple arguments conforming to Identifiable, passed to one parameter, selecting one case")
   func oneParameterAcceptingIdentifiableArgumentSelectingOneCase() async throws {
@@ -174,6 +173,7 @@ struct TestCaseSelectionTests {
       await fixtureTest.run(configuration: configuration)
     }
   }
+#endif
 
   @Test("Multiple arguments conforming to RawRepresentable, passed to one parameter, selecting one case")
   func oneParameterAcceptingRawRepresentableArgumentSelectingOneCase() async throws {

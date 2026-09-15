@@ -63,6 +63,7 @@ package struct Win32Error: Error, RawRepresentable {
 /// - Returns: A Swift string equal to the result of `strerror()` from the C
 ///   standard library.
 func strerror(_ errorCode: CInt) -> String {
+#if !hasFeature(Embedded)
 #if os(Windows)
   String(unsafeUninitializedCapacity: 1024) { buffer in
     _ = strerror_s(buffer.baseAddress!, buffer.count, errorCode)
@@ -76,6 +77,9 @@ func strerror(_ errorCode: CInt) -> String {
   }
 #else
   String(cString: _TestingInternals.strerror(errorCode))
+#endif
+#else
+  "An error occurred (\(errorCode).)"
 #endif
 }
 

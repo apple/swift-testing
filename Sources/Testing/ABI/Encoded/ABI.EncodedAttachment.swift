@@ -68,7 +68,11 @@ extension ABI.EncodedAttachment: Codable {
     func encodeBytes(_ bytes: UnsafeRawBufferPointer) throws {
 #if !SWT_NO_FOUNDATION
       // If possible, encode this structure as Base64 data.
-      let data = Data(bytesNoCopy: .init(mutating: bytes.baseAddress!), count: bytes.count, deallocator: .none)
+      let data = if let baseAddress = bytes.baseAddress {
+        Data(bytesNoCopy: .init(mutating: baseAddress), count: bytes.count, deallocator: .none)
+      } else {
+        Data()
+      }
       try container.encode(data.base64EncodedString(), forKey: .bytes)
 #else
       // Otherwise, it's an array of integers.

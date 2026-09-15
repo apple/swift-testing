@@ -94,7 +94,11 @@ extension ABI {
           _backtrace = EncodedBacktrace(encoding: backtrace, in: eventContext)
         }
         _error = if let error = issue.error {
+#if !hasFeature(Embedded)
           EncodedError(encoding: error)
+#else
+          EncodedError(encoding: error as any Error)
+#endif
         } else {
           switch issue.kind {
           case .apiMisused:

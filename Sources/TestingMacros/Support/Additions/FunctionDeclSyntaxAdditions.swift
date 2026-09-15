@@ -59,11 +59,16 @@ extension FunctionDeclSyntax {
     )
   }
 
-  /// An array of tuples representing this function's parameters.
-  var testFunctionParameterList: ArrayExprSyntax {
-    ArrayExprSyntax {
+  /// Get an array of tuples representing this function's parameters.
+  ///
+  /// - Parameters:
+  ///   - context: The macro context in which the expression is being parsed.
+  ///
+  /// - Returns: An array of tuples representing this function's parameters.
+  func testFunctionParameterList(in context: some MacroExpansionContext) -> ArrayExprSyntax {
+    ArrayExprSyntax { [isTargetEmbedded = context.isTargetEmbedded] in
       for parameter in signature.parameterClause.parameters {
-        ArrayElementSyntax(expression: parameter.testFunctionParameter)
+        ArrayElementSyntax(expression: parameter.testFunctionParameter(isTargetEmbedded: isTargetEmbedded))
       }
     }
   }
@@ -122,15 +127,20 @@ extension FunctionDeclSyntax {
 // MARK: -
 
 extension FunctionParameterSyntax {
-  /// A tuple containing this parameter's name(s) and type.
+  /// Get a tuple containing this parameter's name(s) and type.
+  ///
+  /// - Parameters:
+  ///   - isTargetEmbedded: Whether or not the target is using Embedded Swift.
+  ///
+  /// - Returns: A tuple describing the parameter.
   ///
   /// This is meant to be included in an array of parameters and passed along
   /// with other test function details.
   ///
   /// ## See Also
   ///
-  /// - ``FunctionDeclSyntax/testFunctionParameterList``
-  fileprivate var testFunctionParameter: TupleExprSyntax {
+  /// - ``FunctionDeclSyntax/testFunctionParameterList(in:)``
+  fileprivate func testFunctionParameter(isTargetEmbedded: Bool) -> TupleExprSyntax {
     TupleExprSyntax {
       LabeledExprSyntax(label: "firstName", expression: StringLiteralExprSyntax(content: firstName.textWithoutBackticks))
 
@@ -140,7 +150,11 @@ extension FunctionParameterSyntax {
         LabeledExprSyntax(label: "secondName", expression: NilLiteralExprSyntax())
       }
 
-      LabeledExprSyntax(label: "type", expression: typeMetatypeExpression)
+      if !isTargetEmbedded {
+        LabeledExprSyntax(label: "type", expression: typeMetatypeExpression)
+      } else {
+        LabeledExprSyntax(label: "typeName", expression: TypeExprSyntax(type: type.trimmed))
+      }
     }
   }
 

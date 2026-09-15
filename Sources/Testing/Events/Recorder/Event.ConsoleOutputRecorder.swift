@@ -90,7 +90,7 @@ extension Event {
           // predefined tag colors (red, orange, etc.) to be overridden.
           var tagColors = Color.predefinedTagColors
           tagColors.merge(
-            newValue.lazy.filter { !$0.key.isPredefinedColor },
+            newValue.lazy.filter { !$0.key.isPredefinedColor }.map { $0 },
             uniquingKeysWith: { _, rhs in rhs }
           )
           _tagColors = tagColors
